@@ -6,6 +6,7 @@ from app.services.claude_service import inferir_ferragens
 from app.core.catalogo import (
     CATALOGO_LAYOUTS, FERRAGEM_DEFAULTS, normalizar_nome,
     resolver_layout_por_nome, aplicar_defaults_ferragem,
+    inferir_ferragens_por_tipologia,
 )
 
 router = APIRouter(prefix="/api/v1", tags=["render"])
@@ -49,13 +50,21 @@ async def _enriquecer_ferragens(
     algum_claude = False
 
     for peca in request.pecas:
+        # Inferir ferragens padrão pelo nome da tipologia quando nenhuma foi enviada
+        ferragens_efetivas = peca.ferragens
+        if not ferragens_efetivas and request.tipologia_nome:
+            padrao = inferir_ferragens_por_tipologia(request.tipologia_nome)
+            if padrao:
+                from app.models.render import FerragemInput
+                ferragens_efetivas = [FerragemInput(**f) for f in padrao]
+
         sem_posicao = [
-            f.model_dump() for f in peca.ferragens
+            f.model_dump() for f in ferragens_efetivas
             if f.posicao_y_mm is None
         ]
         com_posicao = [
             {**f.model_dump(), "inferida_por_ia": False}
-            for f in peca.ferragens
+            for f in ferragens_efetivas
             if f.posicao_y_mm is not None
         ]
 

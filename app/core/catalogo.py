@@ -87,6 +87,56 @@ FERRAGEM_DEFAULTS: dict[str, dict] = {
 }
 
 
+FERRAGENS_POR_TIPOLOGIA: dict[str, list[dict]] = {
+    # PORTAS
+    "pivotante": [
+        {"tipo": "puxador",   "nome": "Puxador Barra Inox"},
+        {"tipo": "dobradica", "nome": "Dobradiça 180°"},
+        {"tipo": "fechadura", "nome": "Fechadura Central"},
+    ],
+    "porta correr": [
+        {"tipo": "puxador",    "nome": "Puxador Concha"},
+        {"tipo": "bate_fecha", "nome": "Bate Fecha Mini"},
+    ],
+    "sanfonada": [
+        {"tipo": "dobradica", "nome": "Dobradiça Sanfonada"},
+        {"tipo": "puxador",   "nome": "Puxador Concha"},
+    ],
+    # BOX
+    "box": [
+        {"tipo": "puxador",    "nome": "Puxador Arco Polímero"},
+        {"tipo": "bate_fecha", "nome": "Bate Fecha V/V"},
+        {"tipo": "dobradica",  "nome": "Dobradiça Automática Box"},
+    ],
+    # JANELAS
+    "janela": [
+        {"tipo": "bate_fecha", "nome": "Bate Fecha Mini V/A"},
+        {"tipo": "trinco",     "nome": "Trinco s/ Miolo"},
+    ],
+    "basculante": [
+        {"tipo": "trinco", "nome": "Trinco Basculante"},
+    ],
+    # GUARDA-CORPO
+    "guarda corpo": [
+        {"tipo": "perfil", "nome": "Perfil U Inox"},
+    ],
+    # DIVISÓRIA
+    "divisoria": [
+        {"tipo": "dobradica", "nome": "Dobradiça 180°"},
+        {"tipo": "fechadura", "nome": "Fechadura Central"},
+    ],
+}
+
+
+def inferir_ferragens_por_tipologia(tipologia_nome: str) -> list[dict]:
+    """Retorna ferragens padrão baseado no nome da tipologia."""
+    nome = normalizar_nome(tipologia_nome)
+    for chave, ferragens in FERRAGENS_POR_TIPOLOGIA.items():
+        if chave in nome:
+            return ferragens
+    return []
+
+
 def resolver_layout_por_nome(tipologia_nome: str) -> str | None:
     """Busca o layout no catálogo pelo nome normalizado. Retorna None se não encontrar."""
     chave = normalizar_nome(tipologia_nome)
