@@ -14,34 +14,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Validate syntax
-        run: python -m py_compile app/main.py
+      - run: python -m py_compile app/main.py
 
       - name: Setup SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Deploy app/
+      - name: Deploy app
         run: |
           rsync -az --delete \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }}" \
             app/ \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/home/${{ secrets.VPS_USER }}/vdx-render-api/app/
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/vdx-render-api/app/
 
-      - name: Deploy requirements.txt
-        run: |
           scp -i ~/.ssh/deploy_key -P ${{ secrets.VPS_PORT }} \
             requirements.txt \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/home/${{ secrets.VPS_USER }}/vdx-render-api/
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/vdx-render-api/
 
-      - name: Install deps + restart
+      - name: Restart service
         run: |
           ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }} \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
@@ -51,5 +49,4 @@ jobs:
                -v /run/systemd:/run/systemd -v /var/run/dbus:/var/run/dbus \
                alpine sh -c 'nsenter --mount=/proc/1/ns/mnt -- systemctl restart vdx-render' && \
              sleep 5 && \
-             curl -sf http://localhost:8001/health && \
-             echo 'Deploy OK'"
+             curl -sf http://localhost:8001/health && echo 'Deploy OK'"
