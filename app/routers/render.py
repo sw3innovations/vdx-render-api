@@ -1,16 +1,17 @@
 import os
 import logging
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Header, HTTPException, Request
-from app.models.render import RenderRequest, RenderResponse
+from app.models.render import (
+    RenderRequest, RenderResponse,
+    PecaRenderizada, KitFerragem, RegrasInterativas,
+)
 from app.services.svg_service import gerar_svg
 from app.services.posicionamento_service import posicionar_ferragens
-from app.core.catalogo import (
-    CATALOGO_LAYOUTS, FERRAGEM_DEFAULTS, normalizar_nome,
-    resolver_layout_por_nome, aplicar_defaults_ferragem,
-    inferir_ferragens_por_tipologia,
-)
-from app.core.skill_vidracaria import get_ferragens_para_peca, normalizar_para_skill
+from app.core.classificador import classificar_peca
+from app.core.kit_resolver import resolver_kit
+from app.core.catalogo import normalizar_nome, resolver_layout_por_nome
+from app.core.skill_vidracaria import normalizar_para_skill
 from app.core.limiter import limiter
 
 logger = logging.getLogger(__name__)
@@ -164,51 +165,18 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
     return alertas
 
 
-def _resolver_ferragens(body: RenderRequest) -> tuple[list[list[dict]], list[dict]]:
-    """
-    Resolve ferragens para cada peça usando posicionamento determinístico.
-    Claude nunca é chamado. Retorna (ferragens_por_peca, alertas_norma).
-
-    Pipeline por peça:
-      1. Skill de vidraçaria → catálogo com posições calculadas (determinístico)
-      2. Ferragens do request → posicionamento_service posiciona
-      3. Catálogo genérico → posicionamento_service posiciona
-      Em todos os casos: puxador explícito do frontend sobrepõe o da skill.
-    """
-    resultado: list[list[dict]] = []
-    alertas: list[dict] = []
-
-    skill_chave = normalizar_para_skill(body.tipologia_nome) if body.tipologia_nome else ""
-
-    # Check ABNT determinista (roda sempre)
-    alertas.extend(_verificar_normas_abnt(body, skill_chave))
-
-    for peca in body.pecas:
-        # Obter catálogo de ferragens (skill, request ou padrão)
-        if not peca.ferragens and skill_chave:
-            ferragens_lista = get_ferragens_para_peca(
-                skill_chave, peca.nome, peca.largura_mm, peca.altura_mm
-            ) or []
-        else:
-            ferragens_lista = [f.model_dump() for f in peca.ferragens]
-            if not ferragens_lista and body.tipologia_nome:
-                padrao = inferir_ferragens_por_tipologia(body.tipologia_nome)
-                if padrao:
-                    ferragens_lista = padrao
-
-        puxador_dict = peca.puxador.model_dump() if peca.puxador else None
-
-        posicionadas = posicionar_ferragens(
-            peca_nome=peca.nome,
-            largura_mm=peca.largura_mm,
-            altura_mm=peca.altura_mm,
-            ferragens=ferragens_lista,
-            puxador=puxador_dict,
-            tipologia_nome=body.tipologia_nome,
-        )
-        resultado.append(posicionadas)
-
-    return resultado, alertas
+def _montar_regras_interativas(pecas: List[PecaRenderizada]) -> Optional[RegrasInterativas]:
+    """Retorna info para o frontend calcular posições de puxador dinamicamente."""
+    for peca in pecas:
+        puxadores = [f for f in peca.ferragens if f.tipo == "puxador"]
+        if puxadores:
+            centro_y = peca.altura_mm * 0.50
+            centro_x = puxadores[0].x_mm
+            return RegrasInterativas(
+                puxador_centro_y_mm=centro_y,
+                puxador_centro_x_mm=centro_x,
+            )
+    return None
 
 
 @router.post("/render", response_model=RenderResponse)
@@ -224,13 +192,39 @@ async def render_endpoint(
         raise HTTPException(status_code=403, detail="X-VDX-Key inválida")
 
     layout = _inferir_layout(body)
-    ferragens_enriquecidas, alertas_norma = _resolver_ferragens(body)
-    claude_usado = False
+    skill_chave = normalizar_para_skill(body.tipologia_nome) if body.tipologia_nome else ""
+    alertas_norma = _verificar_normas_abnt(body, skill_chave)
 
-    pecas_dict = [p.model_dump() for p in body.pecas]
+    # Montar peças renderizadas
+    pecas_renderizadas: List[PecaRenderizada] = []
+    for peca in body.pecas:
+        puxador_dict = peca.puxador.model_dump() if peca.puxador else None
+        ferragens = posicionar_ferragens(
+            peca_nome=peca.nome,
+            largura_mm=peca.largura_mm,
+            altura_mm=peca.altura_mm,
+            tipologia_nome=body.tipologia_nome or "",
+            puxador=puxador_dict,
+        )
+        classificacao = classificar_peca(peca.nome, body.tipologia_nome or "")
+        pecas_renderizadas.append(PecaRenderizada(
+            nome=peca.nome,
+            largura_mm=peca.largura_mm,
+            altura_mm=peca.altura_mm,
+            classificacao=classificacao,
+            ferragens=ferragens,
+        ))
+
+    # Kit
+    kit_data = resolver_kit(body.tipologia_nome or "")
+    kit = KitFerragem(**kit_data) if kit_data else None
+
+    # RegrasInterativas
+    regras = _montar_regras_interativas(pecas_renderizadas)
+
+    # SVG
     svg = gerar_svg(
-        pecas_input=pecas_dict,
-        ferragens_por_peca=ferragens_enriquecidas,
+        pecas_renderizadas=pecas_renderizadas,
         layout_usado=layout,
         opcoes_dict=body.opcoes.model_dump(),
         tipologia_nome=body.tipologia_nome,
@@ -238,18 +232,16 @@ async def render_endpoint(
         altura_px=body.opcoes.altura_px,
     )
 
-    alguma_inferida = any(
-        f.get("inferida_por_ia", False)
-        for lista in ferragens_enriquecidas
-        for f in lista
-    )
-
     return RenderResponse(
         svg=svg,
+        pecas=pecas_renderizadas,
+        kit=kit,
+        regras_interativas=regras,
+        alertas_norma=alertas_norma,
+        metadata={"layout_usado": layout, "tipologia_chave": skill_chave},
         largura_px=body.opcoes.largura_px,
         altura_px=body.opcoes.altura_px,
         layout_usado=layout,
-        ferragens_inferidas=alguma_inferida,
-        claude_usado=claude_usado,
-        alertas_norma=alertas_norma,
+        ferragens_inferidas=False,
+        claude_usado=False,
     )

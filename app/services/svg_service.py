@@ -402,14 +402,55 @@ _LAYOUT_FNS = {
 # ─── Função principal ─────────────────────────────────────────────────────────
 
 def gerar_svg(
-    pecas_input: list[dict],
-    ferragens_por_peca: list[list[dict]],
-    layout_usado: str,
-    opcoes_dict: dict,
+    pecas_input: list[dict] = None,
+    ferragens_por_peca: list[list[dict]] = None,
+    layout_usado: str = "paralelas",
+    opcoes_dict: dict = None,
     tipologia_nome: str = "",
     largura_px: int = 480,
     altura_px: int = 360,
+    # Novo: aceita List[PecaRenderizada]
+    pecas_renderizadas=None,
 ) -> str:
+    if opcoes_dict is None:
+        opcoes_dict = {}
+
+    # Se recebeu novo formato (PecaRenderizada), converter para formato interno
+    if pecas_renderizadas is not None:
+        pecas_input = []
+        ferragens_por_peca = []
+        for peca in pecas_renderizadas:
+            pecas_input.append({
+                "nome": peca.nome,
+                "largura_mm": peca.largura_mm,
+                "altura_mm": peca.altura_mm,
+            })
+            # Extrair eixo_mm do nome se contiver "eixo Xmm"
+            ferragens_convertidas = []
+            for f in peca.ferragens:
+                eixo_mm = None
+                nome_lower = f.nome.lower()
+                if "eixo" in nome_lower:
+                    import re
+                    m = re.search(r"eixo\s+(\d+)\s*mm", nome_lower)
+                    if m:
+                        eixo_mm = float(m.group(1))
+                ferragens_convertidas.append({
+                    "tipo": f.tipo,
+                    "nome": f.nome,
+                    "posicao_y_mm": f.y_mm,
+                    "distancia_borda_mm": f.x_mm,
+                    "tipo_visual": f.visual,
+                    "inferida_por_ia": False,
+                    "eixo_mm": eixo_mm,
+                })
+            ferragens_por_peca.append(ferragens_convertidas)
+
+    if pecas_input is None:
+        pecas_input = []
+    if ferragens_por_peca is None:
+        ferragens_por_peca = []
+
     tema_nome = opcoes_dict.get("tema", "tecnico")
     tema = TEMAS.get(tema_nome, TEMAS["tecnico"])
 

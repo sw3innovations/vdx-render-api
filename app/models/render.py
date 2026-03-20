@@ -86,12 +86,54 @@ class RenderRequest(BaseModel):
     tipo_vidro: Optional[str] = None             # "temperado"|"laminado"|"aramado"|"comum"
 
 
+class FerragemPosicionada(BaseModel):
+    codigo: Optional[str] = None
+    nome: str
+    tipo: str
+    x_mm: float
+    y_mm: float
+    lado: str                          # "esquerdo", "direito", "centro"
+    visual: str                        # "retangulo", "circulo", "linha_h"
+    recorte: str = "padrao_sm"         # "padrao_sm", "furo_passante", "nenhum"
+
+
+class PecaRenderizada(BaseModel):
+    nome: str
+    largura_mm: float
+    altura_mm: float
+    classificacao: str                 # "fixa" ou "movel"
+    ferragens: List[FerragemPosicionada] = []
+
+
+class KitFerragem(BaseModel):
+    codigo: str
+    nome: str
+    itens: List[dict] = []
+    puxador_separado: bool = True
+
+
+class RegrasInterativas(BaseModel):
+    puxador_centro_y_mm: Optional[float] = None
+    puxador_centro_x_mm: Optional[float] = None
+    formula_puxador: str = "centro_y ± eixo_mm / 2"
+    eixos_disponiveis: List[int] = [100, 200, 300, 400, 500, 600, 800]
+    nomes_pecas_fixas: List[str] = [
+        "FIXO", "Bandeira", "Painel", "Lateral fixa",
+        "Vidro fixo", "Lateral", "Fixo 1", "Fixo 2", "Folha fixa"
+    ]
+
+
 class RenderResponse(BaseModel):
     svg: str
-    largura_px: int
-    altura_px: int
-    layout_usado: str
-    ferragens_inferidas: bool
-    claude_usado: bool
+    pecas: List[PecaRenderizada] = []
+    kit: Optional[KitFerragem] = None
+    regras_interativas: Optional[RegrasInterativas] = None
     alertas_norma: List[dict] = []
+    metadata: dict = {}
+    # manter campos legados para compatibilidade
+    largura_px: int = 800
+    altura_px: int = 600
+    layout_usado: str = ""
+    ferragens_inferidas: bool = False
+    claude_usado: bool = False
     versao_api: str = "1.0.0"
