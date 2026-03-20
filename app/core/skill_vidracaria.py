@@ -1928,13 +1928,57 @@ def get_ferragens_para_peca(
         n = _ud.normalize('NFD', s.lower())
         return ''.join(c for c in n if _ud.category(c) != 'Mn')
 
+    # Aliases: nomes curtos que o backend envia → lista de fragmentos a procurar na chave da skill
+    # Ordem importa: a primeira correspondência encontrada vence.
+    _PECA_ALIASES: dict[str, list[str]] = {
+        # folha ativa / móvel / porta de correr
+        "movel":    ["movel", "folha 2", "folha 1"],
+        "porta":    ["movel", "folha 2"],
+        "ativa":    ["movel", "folha 2"],
+        # folha fixo / parede
+        "fixo":     ["fixa", "folha 1"],
+        "parede":   ["fixa", "folha 1"],
+        # lateral (box canto, guarda-corpo)
+        "lateral":  ["lateral"],
+        # bandeira / travessa
+        "bandeira": ["bandeira"],
+        "travessa": ["travessa"],
+        "superior": ["superior", "folha 1"],
+        "inferior": ["inferior", "folha 2"],
+        # folha numerada explícita
+        "folha 1":  ["folha 1"],
+        "folha 2":  ["folha 2"],
+        "folha 3":  ["folha 3"],
+        "folha 4":  ["folha 4"],
+        "f1":       ["folha 1"],
+        "f2":       ["folha 2"],
+        "f3":       ["folha 3"],
+        "f4":       ["folha 4"],
+    }
+
     peca_key = None
     peca_nome_norm = _norm(peca_nome)
+
+    # 1ª tentativa: match substring direto (cobre maioria dos casos)
     for key in ferragens_config:
         key_norm = _norm(key)
         if key_norm in peca_nome_norm or peca_nome_norm in key_norm:
             peca_key = key
             break
+
+    # 2ª tentativa: via aliases → fragmentos mapeados como substring da chave da skill
+    if not peca_key:
+        for alias_input, alias_targets in _PECA_ALIASES.items():
+            if alias_input in peca_nome_norm:
+                for target in alias_targets:
+                    for key in ferragens_config:
+                        if target in _norm(key):
+                            peca_key = key
+                            break
+                    if peca_key:
+                        break
+            if peca_key:
+                break
 
     if not peca_key:
         return []
