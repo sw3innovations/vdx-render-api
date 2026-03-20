@@ -97,7 +97,7 @@ def _arrow_v(x1, y1, y2, stroke, size=4) -> str:
 # ─── Ferragens SVG ────────────────────────────────────────────────────────────
 
 def _ferragem_svg(ferragem: dict, px: float, py: float, pw: float, ph: float,
-                  sc: float, tema: dict) -> str:
+                  sc: float, tema: dict, label_fy: float = None) -> str:
     cor = tema["ferragem"]
     tipo_v = ferragem.get("tipo_visual", "linha_h")
     pos_y_mm = ferragem.get("posicao_y_mm", ph / sc * 0.5)
@@ -107,6 +107,10 @@ def _ferragem_svg(ferragem: dict, px: float, py: float, pw: float, ph: float,
     # posicao_y_mm é medido DA BASE para cima; no SVG y=0 é o topo
     fy = py + ph - (pos_y_mm * sc)
     fy = max(py + 4, min(py + ph - 4, fy))   # clamp dentro da peça
+
+    # label_fy separado do símbolo para permitir anti-colisão
+    if label_fy is None:
+        label_fy = fy
 
     # x a partir da borda esquerda
     fx = px + dist_mm * sc
@@ -118,7 +122,7 @@ def _ferragem_svg(ferragem: dict, px: float, py: float, pw: float, ph: float,
     if tipo_v == "linha_h":
         parts.append(_line(px + 2, fy, px + pw - 2, fy, cor, 1.5, "4 2"))
         if nome:
-            parts.append(_text(label_x, fy, nome[:18], cor, 7, "start"))
+            parts.append(_text(label_x, label_fy, nome, cor, 7, "start"))
 
     elif tipo_v == "circulo":
         r = max(6, min(10, pw * 0.06))
@@ -127,7 +131,7 @@ def _ferragem_svg(ferragem: dict, px: float, py: float, pw: float, ph: float,
         parts.append(_line(fx - r, fy, fx + r, fy, cor, 0.8))
         parts.append(_line(fx, fy - r, fx, fy + r, cor, 0.8))
         if nome:
-            parts.append(_text(label_x, fy, nome[:18], cor, 7, "start"))
+            parts.append(_text(label_x, label_fy, nome, cor, 7, "start"))
 
     elif tipo_v == "retangulo":
         rw, rh = 10, 18
@@ -135,7 +139,7 @@ def _ferragem_svg(ferragem: dict, px: float, py: float, pw: float, ph: float,
         parts.append(f'<rect x="{fx:.1f}" y="{ry:.1f}" width="{rw}" height="{rh}" '
                      f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>')
         if nome:
-            parts.append(_text(label_x, fy, nome[:18], cor, 7, "start"))
+            parts.append(_text(label_x, label_fy, nome, cor, 7, "start"))
 
     return "\n".join(parts)
 
@@ -221,8 +225,27 @@ def _peca_svg(peca: dict, px: float, py: float, pw: float, ph: float,
     # Ferragens
     if opcoes.get("mostrar_ferragens", True):
         sc = pw / peca["largura_mm"] if peca["largura_mm"] else 1
+
+        # Calcular fy de cada ferragem e aplicar anti-colisão nos labels
+        fys = []
         for f in ferragens:
-            parts.append(_ferragem_svg(f, px, py, pw, ph, sc, t))
+            pos_y_mm = f.get("posicao_y_mm", ph / sc * 0.5)
+            fy = py + ph - (pos_y_mm * sc)
+            fys.append(max(py + 4, min(py + ph - 4, fy)))
+
+        # Ordenar por fy (topo→base) e empurrar labels que colidem (< 16px)
+        min_gap = 16
+        order = sorted(range(len(fys)), key=lambda i: fys[i])
+        label_fys = list(fys)
+        for k in range(1, len(order)):
+            prev_i = order[k - 1]
+            curr_i = order[k]
+            if label_fys[curr_i] - label_fys[prev_i] < min_gap:
+                label_fys[curr_i] = label_fys[prev_i] + min_gap
+
+        for i, f in enumerate(ferragens):
+            parts.append(_ferragem_svg(f, px, py, pw, ph, sc, t, label_fy=label_fys[i]))
+
         # Cota eixo puxador (quando há par de furos com eixo_mm)
         cota = _cota_eixo_puxador(ferragens, px, py, pw, ph, sc, t["ferragem"])
         if cota:
