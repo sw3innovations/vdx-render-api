@@ -85,4 +85,5 @@ class RenderResponse(BaseModel):
     layout_usado: str
     ferragens_inferidas: bool
     claude_usado: bool
+    alertas_norma: List[dict] = []
     versao_api: str = "1.0.0"

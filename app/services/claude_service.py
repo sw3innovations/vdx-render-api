@@ -25,15 +25,15 @@ async def inferir_ferragens(
     largura_mm: float,
     altura_mm: float,
     ferragens_sem_posicao: list[dict],
-) -> tuple[list[dict], bool]:
+) -> tuple[list[dict], bool, list[dict]]:
     """
     Tenta usar Claude para inferir posicionamento técnico das ferragens.
-    Retorna (ferragens_enriquecidas, claude_usado).
+    Retorna (ferragens_enriquecidas, claude_usado, alertas_norma).
     Fallback para FERRAGEM_DEFAULTS se Claude indisponível ou falhar.
     """
     client = _get_client()
     if not client or not ferragens_sem_posicao:
-        return _aplicar_defaults(ferragens_sem_posicao, altura_mm), False
+        return _aplicar_defaults(ferragens_sem_posicao, altura_mm), False, []
 
     lista_str = json.dumps(
         [{"tipo": f["tipo"], "nome": f.get("nome", f["tipo"])} for f in ferragens_sem_posicao],
@@ -46,22 +46,34 @@ async def inferir_ferragens(
         f"Para cada ferragem abaixo, infira a posição técnica correta conforme "
         f"normas ABNT e prática do mercado brasileiro.\n\n"
         f"Ferragens: {lista_str}\n\n"
-        f"Retorne SOMENTE JSON válido (sem markdown):\n"
+        f"REGRAS DE POSICIONAMENTO:\n"
+        f"- posicao_y_mm é medida da BASE da peça para cima (não do topo)\n"
+        f"- posicao_y_mm deve estar entre 20 e {altura_mm - 20:.0f} (dentro da peça)\n"
+        f"- tipo_visual: linha_h (bate-fecha/trinco), circulo (puxador), retangulo (dobradiça/fechadura)\n\n"
+        f"VERIFICAÇÃO DE NORMAS ABNT (inclua alerta_norma somente se houver violação):\n"
+        f"- Box banheiro: vidro mínimo 8mm (NBR 14207:2009)\n"
+        f"- Porta pivotante: vidro mínimo 10mm (NBR 7199:2016)\n"
+        f"- Janela: vidro mínimo 6mm (NBR 7199:2016)\n"
+        f"- Guarda-corpo: altura mínima 1100mm, laminado obrigatório (NBR 14718:2019)\n"
+        f"- Cobertura: temperado simples PROIBIDO, usar laminado (NBR 7199:2016)\n\n"
+        f"Retorne SOMENTE JSON válido (sem markdown), array com as ferragens posicionadas.\n"
+        f"Se houver violação de norma, adicione ao final do array:\n"
+        f'{{"alerta_norma": {{"nivel": "CRITICO", "norma": "NBR X", "mensagem": "..."}}}}\n\n'
+        f"Exemplo de retorno:\n"
         f"[\n"
         f"  {{\n"
         f'    "tipo": "bate_fecha",\n'
-        f'    "posicao_y_mm": 1100,\n'
+        f'    "posicao_y_mm": {altura_mm * 0.85:.0f},\n'
         f'    "distancia_borda_mm": 0,\n'
         f'    "tipo_visual": "linha_h"\n'
         f"  }}\n"
-        f"]\n\n"
-        f"tipo_visual deve ser: linha_h (bate-fecha/trinco), circulo (puxador), retangulo (dobradiça/fechadura)"
+        f"]"
     )
 
     try:
         message = client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=300,
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
             messages=[{"role": "user", "content": prompt}],
         )
         raw = message.content[0].text.strip()
@@ -70,12 +82,16 @@ async def inferir_ferragens(
             raw = "\n".join(raw.split("\n")[1:])
         if raw.endswith("```"):
             raw = "\n".join(raw.split("\n")[:-1])
-        inferidas = json.loads(raw)
-        resultado = _mesclar_com_originais(ferragens_sem_posicao, inferidas, altura_mm)
-        return resultado, True
+        todos = json.loads(raw)
+        alertas = [item["alerta_norma"] for item in todos
+                   if isinstance(item, dict) and "alerta_norma" in item]
+        ferragens_inferidas = [item for item in todos
+                               if isinstance(item, dict) and "alerta_norma" not in item]
+        resultado = _mesclar_com_originais(ferragens_sem_posicao, ferragens_inferidas, altura_mm)
+        return resultado, True, alertas
     except (APIError, json.JSONDecodeError, Exception) as e:
         log.warning("Claude falhou para ferragens (%s), usando defaults: %s", peca_nome, e)
-        return _aplicar_defaults(ferragens_sem_posicao, altura_mm), False
+        return _aplicar_defaults(ferragens_sem_posicao, altura_mm), False, []
 
 
 def _aplicar_defaults(ferragens: list[dict], altura_mm: float) -> list[dict]:

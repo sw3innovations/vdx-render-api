@@ -40,17 +40,47 @@ def _inferir_layout(request: RenderRequest) -> str:
     return "paralelas"
 
 
+def _verificar_normas_abnt(request: RenderRequest, skill_chave: str) -> list[dict]:
+    """Check determinista de normas ABNT — roda independente do Claude."""
+    from app.core.catalogo import normalizar_nome
+    alertas = []
+    tip = normalizar_nome(request.tipologia_nome) if request.tipologia_nome else ""
+
+    if "guarda_corpo" in skill_chave or "guarda corpo" in tip:
+        for peca in request.pecas:
+            if peca.altura_mm < 1100:
+                alertas.append({
+                    "nivel": "CRITICO",
+                    "norma": "NBR 14718:2019",
+                    "mensagem": (
+                        f"Peça '{peca.nome}': altura {peca.altura_mm:.0f}mm abaixo do mínimo "
+                        f"de 1100mm exigido para guarda-corpo."
+                    ),
+                })
+    if any(k in tip for k in ("cobertura", "claraboia", "telhado")):
+        alertas.append({
+            "nivel": "CRITICO",
+            "norma": "NBR 7199:2016",
+            "mensagem": "Cobertura: vidro temperado simples é PROIBIDO. Utilizar vidro laminado.",
+        })
+    return alertas
+
+
 async def _enriquecer_ferragens(
     request: RenderRequest,
-) -> tuple[list[list[dict]], bool]:
+) -> tuple[list[list[dict]], bool, list[dict]]:
     """
     Para cada peça, enriquece as ferragens sem posição definida.
-    Retorna (ferragens_por_peca, algum_claude_usado).
+    Retorna (ferragens_por_peca, algum_claude_usado, alertas_norma).
     """
     resultado: list[list[dict]] = []
     algum_claude = False
+    alertas: list[dict] = []
 
     skill_chave = normalizar_para_skill(request.tipologia_nome) if request.tipologia_nome else ""
+
+    # Check ABNT determinista (roda sempre, independente do Claude)
+    alertas.extend(_verificar_normas_abnt(request, skill_chave))
 
     for peca in request.pecas:
         # 1ª prioridade: skill de vidraçaria (determinista, posições calculadas)
@@ -82,7 +112,7 @@ async def _enriquecer_ferragens(
 
         if sem_posicao:
             # 3ª prioridade: Claude para posicionamento
-            enriquecidas, claude = await inferir_ferragens(
+            enriquecidas, claude, alertas_peca = await inferir_ferragens(
                 tipologia_nome=request.tipologia_nome,
                 peca_nome=peca.nome,
                 largura_mm=peca.largura_mm,
@@ -91,11 +121,12 @@ async def _enriquecer_ferragens(
             )
             if claude:
                 algum_claude = True
+            alertas.extend(alertas_peca)
             resultado.append(com_posicao + enriquecidas)
         else:
             resultado.append([{**f.model_dump(), "inferida_por_ia": False} for f in peca.ferragens])
 
-    return resultado, algum_claude
+    return resultado, algum_claude, alertas
 
 
 @router.post("/render", response_model=RenderResponse)
@@ -107,7 +138,7 @@ async def render_endpoint(
         raise HTTPException(status_code=401, detail="X-VDX-Key header obrigatório")
 
     layout = _inferir_layout(request)
-    ferragens_enriquecidas, claude_usado = await _enriquecer_ferragens(request)
+    ferragens_enriquecidas, claude_usado, alertas_norma = await _enriquecer_ferragens(request)
 
     pecas_dict = [p.model_dump() for p in request.pecas]
     svg = gerar_svg(
@@ -133,4 +164,5 @@ async def render_endpoint(
         layout_usado=layout,
         ferragens_inferidas=alguma_inferida,
         claude_usado=claude_usado,
+        alertas_norma=alertas_norma,
     )
