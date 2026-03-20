@@ -8,6 +8,7 @@ from app.core.catalogo import (
     resolver_layout_por_nome, aplicar_defaults_ferragem,
     inferir_ferragens_por_tipologia,
 )
+from app.core.skill_vidracaria import get_ferragens_para_peca, normalizar_para_skill
 
 router = APIRouter(prefix="/api/v1", tags=["render"])
 
@@ -49,8 +50,19 @@ async def _enriquecer_ferragens(
     resultado: list[list[dict]] = []
     algum_claude = False
 
+    skill_chave = normalizar_para_skill(request.tipologia_nome) if request.tipologia_nome else ""
+
     for peca in request.pecas:
-        # Inferir ferragens padrão pelo nome da tipologia quando nenhuma foi enviada
+        # 1ª prioridade: skill de vidraçaria (determinista, posições calculadas)
+        if not peca.ferragens and skill_chave:
+            da_skill = get_ferragens_para_peca(
+                skill_chave, peca.nome, peca.largura_mm, peca.altura_mm
+            )
+            if da_skill:
+                resultado.append(da_skill)
+                continue
+
+        # 2ª prioridade: ferragens enviadas no request ou catálogo genérico
         ferragens_efetivas = peca.ferragens
         if not ferragens_efetivas and request.tipologia_nome:
             padrao = inferir_ferragens_por_tipologia(request.tipologia_nome)
@@ -69,6 +81,7 @@ async def _enriquecer_ferragens(
         ]
 
         if sem_posicao:
+            # 3ª prioridade: Claude para posicionamento
             enriquecidas, claude = await inferir_ferragens(
                 tipologia_nome=request.tipologia_nome,
                 peca_nome=peca.nome,
@@ -80,7 +93,6 @@ async def _enriquecer_ferragens(
                 algum_claude = True
             resultado.append(com_posicao + enriquecidas)
         else:
-            # Todas já têm posição → apenas converter para dict com flag
             resultado.append([{**f.model_dump(), "inferida_por_ia": False} for f in peca.ferragens])
 
     return resultado, algum_claude

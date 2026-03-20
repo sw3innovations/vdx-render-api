@@ -104,31 +104,38 @@ def _ferragem_svg(ferragem: dict, px: float, py: float, pw: float, ph: float,
     dist_mm = ferragem.get("distancia_borda_mm", 0)
     nome = ferragem.get("nome") or ferragem.get("tipo", "")
 
-    fy = py + pos_y_mm * sc
-    fx_borda = px + dist_mm * sc
+    # posicao_y_mm é medido DA BASE para cima; no SVG y=0 é o topo
+    fy = py + ph - (pos_y_mm * sc)
+    fy = max(py + 4, min(py + ph - 4, fy))   # clamp dentro da peça
+
+    # x a partir da borda esquerda
+    fx = px + dist_mm * sc
+
+    # Label sempre fora da peça, à direita
+    label_x = px + pw + 6
 
     parts = []
     if tipo_v == "linha_h":
         parts.append(_line(px + 2, fy, px + pw - 2, fy, cor, 1.5, "4 2"))
         if nome:
-            parts.append(_text(px + pw / 2, fy - 7, nome[:20], cor, 7))
+            parts.append(_text(label_x, fy, nome[:18], cor, 7, "start"))
+
     elif tipo_v == "circulo":
         r = max(6, min(10, pw * 0.06))
-        cx = px + pw - dist_mm * sc
-        parts.append(f'<circle cx="{cx:.1f}" cy="{fy:.1f}" r="{r:.1f}" '
+        parts.append(f'<circle cx="{fx:.1f}" cy="{fy:.1f}" r="{r:.1f}" '
                      f'fill="none" stroke="{cor}" stroke-width="1.5"/>')
-        parts.append(_line(cx - r, fy, cx + r, fy, cor, 0.8))
-        parts.append(_line(cx, fy - r, cx, fy + r, cor, 0.8))
+        parts.append(_line(fx - r, fy, fx + r, fy, cor, 0.8))
+        parts.append(_line(fx, fy - r, fx, fy + r, cor, 0.8))
         if nome:
-            parts.append(_text(cx, fy + r + 9, nome[:16], cor, 7))
+            parts.append(_text(label_x, fy, nome[:18], cor, 7, "start"))
+
     elif tipo_v == "retangulo":
-        rw, rh = 12, 8
-        rx = px + dist_mm * sc
+        rw, rh = 10, 18
         ry = fy - rh / 2
-        parts.append(f'<rect x="{rx:.1f}" y="{ry:.1f}" width="{rw}" height="{rh}" '
+        parts.append(f'<rect x="{fx:.1f}" y="{ry:.1f}" width="{rw}" height="{rh}" '
                      f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>')
         if nome:
-            parts.append(_text(rx + rw + 4, fy, nome[:20], cor, 7, "start"))
+            parts.append(_text(label_x, fy, nome[:18], cor, 7, "start"))
 
     return "\n".join(parts)
 
