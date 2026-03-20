@@ -1,5 +1,7 @@
+import os
+import logging
 from typing import Optional
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from app.models.render import RenderRequest, RenderResponse
 from app.services.svg_service import gerar_svg
 from app.services.claude_service import inferir_ferragens
@@ -9,6 +11,13 @@ from app.core.catalogo import (
     inferir_ferragens_por_tipologia,
 )
 from app.core.skill_vidracaria import get_ferragens_para_peca, normalizar_para_skill
+from app.core.limiter import limiter
+
+logger = logging.getLogger(__name__)
+
+_VDX_API_KEY = os.getenv("VDX_API_MASTER_KEY", "")
+if not _VDX_API_KEY:
+    logger.warning("VDX_API_MASTER_KEY não configurada — modo dev, aceitando qualquer key")
 
 router = APIRouter(prefix="/api/v1", tags=["render"])
 
@@ -130,12 +139,16 @@ async def _enriquecer_ferragens(
 
 
 @router.post("/render", response_model=RenderResponse)
+@limiter.limit("10/second")
 async def render_endpoint(
+    http_request: Request,
     request: RenderRequest,
     x_vdx_key: Optional[str] = Header(None),
 ):
     if not x_vdx_key:
         raise HTTPException(status_code=401, detail="X-VDX-Key header obrigatório")
+    if _VDX_API_KEY and x_vdx_key != _VDX_API_KEY:
+        raise HTTPException(status_code=403, detail="X-VDX-Key inválida")
 
     layout = _inferir_layout(request)
     ferragens_enriquecidas, claude_usado, alertas_norma = await _enriquecer_ferragens(request)
