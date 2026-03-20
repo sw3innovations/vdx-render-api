@@ -141,8 +141,8 @@ async def _enriquecer_ferragens(
 @router.post("/render", response_model=RenderResponse)
 @limiter.limit("10/second")
 async def render_endpoint(
-    http_request: Request,
-    request: RenderRequest,
+    request: Request,
+    body: RenderRequest,
     x_vdx_key: Optional[str] = Header(None),
 ):
     if not x_vdx_key:
@@ -150,18 +150,18 @@ async def render_endpoint(
     if _VDX_API_KEY and x_vdx_key != _VDX_API_KEY:
         raise HTTPException(status_code=403, detail="X-VDX-Key inválida")
 
-    layout = _inferir_layout(request)
-    ferragens_enriquecidas, claude_usado, alertas_norma = await _enriquecer_ferragens(request)
+    layout = _inferir_layout(body)
+    ferragens_enriquecidas, claude_usado, alertas_norma = await _enriquecer_ferragens(body)
 
-    pecas_dict = [p.model_dump() for p in request.pecas]
+    pecas_dict = [p.model_dump() for p in body.pecas]
     svg = gerar_svg(
         pecas_input=pecas_dict,
         ferragens_por_peca=ferragens_enriquecidas,
         layout_usado=layout,
-        opcoes_dict=request.opcoes.model_dump(),
-        tipologia_nome=request.tipologia_nome,
-        largura_px=request.opcoes.largura_px,
-        altura_px=request.opcoes.altura_px,
+        opcoes_dict=body.opcoes.model_dump(),
+        tipologia_nome=body.tipologia_nome,
+        largura_px=body.opcoes.largura_px,
+        altura_px=body.opcoes.altura_px,
     )
 
     alguma_inferida = any(
@@ -172,8 +172,8 @@ async def render_endpoint(
 
     return RenderResponse(
         svg=svg,
-        largura_px=request.opcoes.largura_px,
-        altura_px=request.opcoes.altura_px,
+        largura_px=body.opcoes.largura_px,
+        altura_px=body.opcoes.altura_px,
         layout_usado=layout,
         ferragens_inferidas=alguma_inferida,
         claude_usado=claude_usado,
