@@ -82,6 +82,8 @@ class RenderRequest(BaseModel):
     layout: Layout = Layout.auto
     pecas: List[PecaInput]
     opcoes: Opcoes = Opcoes()
+    espessura_vidro_mm: Optional[float] = None   # espessura do vidro (ex: 8.0, 10.0)
+    tipo_vidro: Optional[str] = None             # "temperado"|"laminado"|"aramado"|"comum"
 
 
 class RenderResponse(BaseModel):
