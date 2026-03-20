@@ -14,45 +14,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate Python syntax
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: python -m py_compile app/main.py app/routers/render.py app/services/svg_service.py
+      - name: Validate syntax
+        run: python -m py_compile app/main.py
 
-      - name: Upload app files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "app,requirements.txt"
-          target: /home/${{ secrets.VPS_USER }}/vdx-render-api/
-          overwrite: true
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Restart service
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          port: ${{ secrets.VPS_PORT }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /home/${{ secrets.VPS_USER }}/vdx-render-api
+      - name: Deploy app/
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }}" \
+            app/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/home/${{ secrets.VPS_USER }}/vdx-render-api/app/
 
-            # Instalar dependências novas (só se requirements.txt mudou)
-            .venv/bin/pip install -r requirements.txt -q
+      - name: Deploy requirements.txt
+        run: |
+          scp -i ~/.ssh/deploy_key -P ${{ secrets.VPS_PORT }} \
+            requirements.txt \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/home/${{ secrets.VPS_USER }}/vdx-render-api/
 
-            # Restart via docker nsenter (sem sudo/su)
-            docker run --rm --privileged --pid=host \
-              -v /run/systemd:/run/systemd \
-              -v /var/run/dbus:/var/run/dbus \
-              alpine sh -c 'nsenter --mount=/proc/1/ns/mnt -- systemctl restart vdx-render'
-
-            sleep 6
-
-            # Health check
-            curl -sf http://localhost:8001/health || exit 1
-            echo "Render API OK"
+      - name: Install deps + restart
+        run: |
+          ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }} \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "cd ~/vdx-render-api && \
+             .venv/bin/pip install -r requirements.txt -q && \
+             docker run --rm --privileged --pid=host \
+               -v /run/systemd:/run/systemd -v /var/run/dbus:/var/run/dbus \
+               alpine sh -c 'nsenter --mount=/proc/1/ns/mnt -- systemctl restart vdx-render' && \
+             sleep 5 && \
+             curl -sf http://localhost:8001/health && \
+             echo 'Deploy OK'"
