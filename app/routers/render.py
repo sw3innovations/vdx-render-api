@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Header, HTTPException, Request
 from app.models.render import RenderRequest, RenderResponse
 from app.services.svg_service import gerar_svg
-from app.services.claude_service import inferir_ferragens
+from app.services.posicionamento_service import posicionar_ferragens
 from app.core.catalogo import (
     CATALOGO_LAYOUTS, FERRAGEM_DEFAULTS, normalizar_nome,
     resolver_layout_por_nome, aplicar_defaults_ferragem,
@@ -75,67 +75,51 @@ def _verificar_normas_abnt(request: RenderRequest, skill_chave: str) -> list[dic
     return alertas
 
 
-async def _enriquecer_ferragens(
-    request: RenderRequest,
-) -> tuple[list[list[dict]], bool, list[dict]]:
+def _resolver_ferragens(body: RenderRequest) -> tuple[list[list[dict]], list[dict]]:
     """
-    Para cada peça, enriquece as ferragens sem posição definida.
-    Retorna (ferragens_por_peca, algum_claude_usado, alertas_norma).
+    Resolve ferragens para cada peça usando posicionamento determinístico.
+    Claude nunca é chamado. Retorna (ferragens_por_peca, alertas_norma).
+
+    Pipeline por peça:
+      1. Skill de vidraçaria → catálogo com posições calculadas (determinístico)
+      2. Ferragens do request → posicionamento_service posiciona
+      3. Catálogo genérico → posicionamento_service posiciona
+      Em todos os casos: puxador explícito do frontend sobrepõe o da skill.
     """
     resultado: list[list[dict]] = []
-    algum_claude = False
     alertas: list[dict] = []
 
-    skill_chave = normalizar_para_skill(request.tipologia_nome) if request.tipologia_nome else ""
+    skill_chave = normalizar_para_skill(body.tipologia_nome) if body.tipologia_nome else ""
 
-    # Check ABNT determinista (roda sempre, independente do Claude)
-    alertas.extend(_verificar_normas_abnt(request, skill_chave))
+    # Check ABNT determinista (roda sempre)
+    alertas.extend(_verificar_normas_abnt(body, skill_chave))
 
-    for peca in request.pecas:
-        # 1ª prioridade: skill de vidraçaria (determinista, posições calculadas)
+    for peca in body.pecas:
+        # Obter catálogo de ferragens (skill, request ou padrão)
         if not peca.ferragens and skill_chave:
-            da_skill = get_ferragens_para_peca(
+            ferragens_lista = get_ferragens_para_peca(
                 skill_chave, peca.nome, peca.largura_mm, peca.altura_mm
-            )
-            if da_skill:
-                resultado.append(da_skill)
-                continue
-
-        # 2ª prioridade: ferragens enviadas no request ou catálogo genérico
-        ferragens_efetivas = peca.ferragens
-        if not ferragens_efetivas and request.tipologia_nome:
-            padrao = inferir_ferragens_por_tipologia(request.tipologia_nome)
-            if padrao:
-                from app.models.render import FerragemInput
-                ferragens_efetivas = [FerragemInput(**f) for f in padrao]
-
-        sem_posicao = [
-            f.model_dump() for f in ferragens_efetivas
-            if f.posicao_y_mm is None
-        ]
-        com_posicao = [
-            {**f.model_dump(), "inferida_por_ia": False}
-            for f in ferragens_efetivas
-            if f.posicao_y_mm is not None
-        ]
-
-        if sem_posicao:
-            # 3ª prioridade: Claude para posicionamento
-            enriquecidas, claude, alertas_peca = await inferir_ferragens(
-                tipologia_nome=request.tipologia_nome,
-                peca_nome=peca.nome,
-                largura_mm=peca.largura_mm,
-                altura_mm=peca.altura_mm,
-                ferragens_sem_posicao=sem_posicao,
-            )
-            if claude:
-                algum_claude = True
-            alertas.extend(alertas_peca)
-            resultado.append(com_posicao + enriquecidas)
+            ) or []
         else:
-            resultado.append([{**f.model_dump(), "inferida_por_ia": False} for f in peca.ferragens])
+            ferragens_lista = [f.model_dump() for f in peca.ferragens]
+            if not ferragens_lista and body.tipologia_nome:
+                padrao = inferir_ferragens_por_tipologia(body.tipologia_nome)
+                if padrao:
+                    ferragens_lista = padrao
 
-    return resultado, algum_claude, alertas
+        puxador_dict = peca.puxador.model_dump() if peca.puxador else None
+
+        posicionadas = posicionar_ferragens(
+            peca_nome=peca.nome,
+            largura_mm=peca.largura_mm,
+            altura_mm=peca.altura_mm,
+            ferragens=ferragens_lista,
+            puxador=puxador_dict,
+            tipologia_nome=body.tipologia_nome,
+        )
+        resultado.append(posicionadas)
+
+    return resultado, alertas
 
 
 @router.post("/render", response_model=RenderResponse)
@@ -151,7 +135,8 @@ async def render_endpoint(
         raise HTTPException(status_code=403, detail="X-VDX-Key inválida")
 
     layout = _inferir_layout(body)
-    ferragens_enriquecidas, claude_usado, alertas_norma = await _enriquecer_ferragens(body)
+    ferragens_enriquecidas, alertas_norma = _resolver_ferragens(body)
+    claude_usado = False
 
     pecas_dict = [p.model_dump() for p in body.pecas]
     svg = gerar_svg(

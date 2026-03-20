@@ -140,6 +140,35 @@ def _ferragem_svg(ferragem: dict, px: float, py: float, pw: float, ph: float,
     return "\n".join(parts)
 
 
+# ─── Cota eixo puxador ────────────────────────────────────────────────────────
+
+def _cota_eixo_puxador(ferragens: list[dict], px: float, py: float, pw: float, ph: float,
+                        sc: float, cor: str) -> str:
+    """Cota vertical entre dois furos de puxador quando eixo_mm está presente."""
+    pares = [f for f in ferragens if f.get("tipo") == "puxador" and f.get("eixo_mm")]
+    if len(pares) < 2:
+        return ""
+
+    ys_mm = sorted(f["posicao_y_mm"] for f in pares)
+    fy_inf = py + ph - (ys_mm[0] * sc)   # menor pos_y_mm → mais baixo no SVG
+    fy_sup = py + ph - (ys_mm[1] * sc)   # maior pos_y_mm → mais alto no SVG
+    fy_inf = max(py + 4, min(py + ph - 4, fy_inf))
+    fy_sup = max(py + 4, min(py + ph - 4, fy_sup))
+
+    eixo_mm = pares[0]["eixo_mm"]
+    cx = px + pw + 50  # à direita da área de labels (label_x = px+pw+6)
+
+    parts = [
+        _line(cx, fy_sup, cx, fy_inf, cor, 0.8),
+        _line(cx - 3, fy_sup, cx + 3, fy_sup, cor, 0.8),
+        _line(cx - 3, fy_inf, cx + 3, fy_inf, cor, 0.8),
+        _arrow_v(cx, fy_sup + 4, fy_sup, cor, size=3),
+        _arrow_v(cx, fy_inf - 4, fy_inf, cor, size=3),
+        _text(cx + 6, (fy_sup + fy_inf) / 2, f"Eixo {eixo_mm:.0f}mm", cor, 7, "start"),
+    ]
+    return "\n".join(parts)
+
+
 # ─── Peça SVG ─────────────────────────────────────────────────────────────────
 
 def _peca_svg(peca: dict, px: float, py: float, pw: float, ph: float,
@@ -194,6 +223,10 @@ def _peca_svg(peca: dict, px: float, py: float, pw: float, ph: float,
         sc = pw / peca["largura_mm"] if peca["largura_mm"] else 1
         for f in ferragens:
             parts.append(_ferragem_svg(f, px, py, pw, ph, sc, t))
+        # Cota eixo puxador (quando há par de furos com eixo_mm)
+        cota = _cota_eixo_puxador(ferragens, px, py, pw, ph, sc, t["ferragem"])
+        if cota:
+            parts.append(cota)
 
     return "\n".join(parts)
 

@@ -47,11 +47,17 @@ class FerragemEnriquecida(BaseModel):
     inferida_por_ia: bool = False
 
 
+class PuxadorInput(BaseModel):
+    tipo_furacao: str           # "EIXO_600", "EIXO_300", "PUXADOR_UM_FURO"
+    eixo_mm: Optional[float] = None  # distância entre furos (ex: 600, 300)
+
+
 class PecaInput(BaseModel):
     nome: str
     largura_mm: float
     altura_mm: float
     ferragens: List[FerragemInput] = []
+    puxador: Optional[PuxadorInput] = None  # puxador explícito do frontend
 
 
 class PecaEnriquecida(BaseModel):
