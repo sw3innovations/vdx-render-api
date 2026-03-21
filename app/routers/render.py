@@ -8,6 +8,7 @@ from app.models.render import (
 )
 from app.services.svg_service import gerar_svg
 from app.core import constitution
+from app.core.normalizer import normalizar_tipologia
 from app.services import constitution_engine
 from app.services import claude_teacher
 # Legacy fallback imports
@@ -170,9 +171,7 @@ async def render_endpoint(
     tip_nome = body.tipologia_nome or ""
 
     # ── Resolve tipologia na Constitution ────────────────────────────────────
-    chave = constitution.normalizar(tip_nome, tipo="tipologia") if tip_nome else ""
-    entry = constitution.buscar(chave, tipo="tipologia") if chave else None
-    tipologia_dados = entry["dados"] if entry else None
+    chave, tipologia_dados = normalizar_tipologia(tip_nome) if tip_nome else ("", None)
     modo = "constitution" if tipologia_dados else None
 
     # ── Modo 2: Claude como professor ────────────────────────────────────────

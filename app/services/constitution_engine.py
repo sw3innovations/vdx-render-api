@@ -6,6 +6,7 @@ Substitui posicionamento_service + classificador + kit_resolver como fonte de da
 import logging
 from typing import Optional
 from app.core import constitution
+from app.core.normalizer import classificar_peca as _normalizer_classificar
 from app.models.render import FerragemPosicionada, KitFerragem, RegrasInterativas
 
 log = logging.getLogger(__name__)
@@ -21,21 +22,8 @@ def _eval_formula(formula: str, largura: float, altura: float) -> float:
 
 
 def classificar_peca(nome_peca: str, tipologia_dados: dict) -> str:
-    """Classifica peça como fixa/movel/correr usando dados da Constitution."""
-    nome = nome_peca.strip().lower()
-    class_map = tipologia_dados.get("classificacao_pecas", {})
-
-    # Match direto no mapa da tipologia (chave contida no nome ou vice-versa)
-    for key, cls in class_map.items():
-        if key in nome or nome in key:
-            return cls
-
-    # Fallback por alias global
-    alias_cls = constitution.normalizar(nome, tipo="classificacao_peca")
-    if alias_cls in ("fixa", "movel", "correr"):
-        return alias_cls
-
-    return "fixa"
+    """Classifica peça usando o Normalizador Inteligente (3 camadas)."""
+    return _normalizer_classificar(nome_peca, tipologia_dados)
 
 
 def posicionar_ferragens(
