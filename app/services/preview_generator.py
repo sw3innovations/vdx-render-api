@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import logging
@@ -99,7 +100,7 @@ PRODUZA O MELHOR SVG QUE CONSEGUIR. Qualidade de produto premium."""
     try:
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=4000,
+            max_tokens=6000,
             messages=[{"role": "user", "content": prompt}],
         )
         svg = message.content[0].text.strip()
@@ -126,6 +127,12 @@ PRODUZA O MELHOR SVG QUE CONSEGUIR. Qualidade de produto premium."""
     except (APIError, Exception) as e:
         log.error(f"Erro gerando preview para '{chave}': {e}")
         return _fallback_svg(nome)
+
+
+async def gerar_preview_async(chave: str, tipologia_dados: dict) -> str:
+    """Versão async: roda gerar_preview em thread pool para não bloquear o event loop."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, gerar_preview, chave, tipologia_dados)
 
 
 def invalidar_cache(chave: str):

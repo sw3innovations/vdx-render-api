@@ -20,7 +20,7 @@ async def preview_tipologia(
         raise HTTPException(status_code=404, detail=f"Tipologia '{chave}' não encontrada")
     if regenerar:
         preview_generator.invalidar_cache(chave_norm)
-    svg = preview_generator.gerar_preview(chave_norm, dados)
+    svg = await preview_generator.gerar_preview_async(chave_norm, dados)
     return Response(content=svg, media_type="image/svg+xml",
                     headers={"Cache-Control": "public, max-age=86400"})
 
@@ -58,7 +58,7 @@ async def regenerar_todos(
         entry = buscar(e["chave"], tipo="tipologia")
         if entry:
             preview_generator.invalidar_cache(e["chave"])
-            svg = preview_generator.gerar_preview(e["chave"], entry["dados"])
+            svg = await preview_generator.gerar_preview_async(e["chave"], entry["dados"])
             resultados.append({
                 "chave": e["chave"],
                 "bytes": len(svg),
