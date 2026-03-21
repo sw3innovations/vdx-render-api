@@ -107,8 +107,8 @@ def seed():
                  "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
             ],
             "puxador_config": {
-                "y_formula": "altura * 0.50", "x_formula": "largura / 2",
-                "lado": "centro", "aceita_eixo": False,
+                "y_formula": "altura * 0.50", "x_formula": "largura - 40",
+                "lado": "direito", "aceita_eixo": False,
                 "default": {"codigo": "1504", "nome": "Puxador Botão", "visual": "circulo"}
             }
         },
@@ -142,8 +142,8 @@ def seed():
                  "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
             ],
             "puxador_config": {
-                "y_formula": "altura * 0.50", "x_formula": "largura / 2",
-                "lado": "centro", "aceita_eixo": False,
+                "y_formula": "altura * 0.50", "x_formula": "largura - 40",
+                "lado": "direito", "aceita_eixo": False,
                 "default": {"codigo": "1504", "nome": "Puxador Botão", "visual": "circulo"}
             }
         },
