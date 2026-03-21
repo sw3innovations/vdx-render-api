@@ -32,70 +32,176 @@ def gerar_preview(chave: str, tipologia_dados: dict) -> str:
     nome = tipologia_dados.get("nome_display", chave)
     classificacao = tipologia_dados.get("classificacao_pecas", {})
     ferragens = tipologia_dados.get("ferragens_por_peca", {})
-    kit = tipologia_dados.get("kit", {})
 
-    prompt = f"""Você é um designer especialista em vidraçaria brasileira criando SVGs interativos para um catálogo digital premium.
+    prompt = f"""Você é um engenheiro de vidraçaria brasileira criando um diagrama técnico SVG animado.
 
-TAREFA: Gerar um SVG animado de ALTA QUALIDADE para a tipologia "{nome}".
+TAREFA: Criar SVG para "{nome}" — diagrama FECHADO que ABRE SUAVEMENTE no hover.
 
-DADOS TÉCNICOS DA TIPOLOGIA:
-- Nome: {nome}
+DADOS DA TIPOLOGIA:
 - Peças: {json.dumps(classificacao, ensure_ascii=False)}
-- Ferragens: {json.dumps(ferragens, ensure_ascii=False)[:1500]}
-- Kit: {json.dumps(kit, ensure_ascii=False)[:500]}
+- Ferragens: {json.dumps(ferragens, ensure_ascii=False)[:1200]}
 
-ESPECIFICAÇÕES OBRIGATÓRIAS DO SVG:
-1. viewBox="0 0 300 200" — proporção fixa
-2. Fundo TRANSPARENTE (sem rect de background)
-3. Retorne SOMENTE o código SVG (começando com <svg e terminando com </svg>). Nada antes, nada depois. Sem markdown.
+═══ ESPECIFICAÇÕES SVG OBRIGATÓRIAS ═══
 
-DESIGN SYSTEM:
-- Vidro: fill="#DCE8F5" fill-opacity="0.55" stroke="#185FA5" stroke-width="1.2"
-- Perfil alumínio: fill="#94A3B8" (barras finas 3-4px nos marcos/batentes, rx="1")
-- Ferragens: fill="#D85A30" (dobradiças=circle r=3, puxador=line stroke-width=2.5 stroke-linecap=round, roldana=circle r=3.5 com cruz +, fechadura=rect pequeno, trinco=rect fino)
-- Labels de peça: font-family="'Courier New',monospace" font-size="8" fill="#64748B" text-anchor="middle"
-- Nome da tipologia no rodapé: font-size="9" fill="#475569" font-weight="bold" text-anchor="middle" y="195"
-- Sombra sutil: filter com feDropShadow stdDeviation="1" dx="0" dy="1" flood-opacity="0.08"
-- X do temperado: 2 diagonais canto a canto, opacity="0.15" stroke-width="0.4" stroke="#185FA5"
-- Reflexo no vidro: rect branco diagonal opacity="0.08"
+viewBox="0 0 300 200"
+Fundo: TRANSPARENTE (sem retângulo de fundo)
+Retorne SOMENTE <svg>...</svg>. Sem markdown. Sem texto antes ou depois.
 
-REGRAS DE ANIMAÇÃO:
-- TODA peça móvel deve ter animação de abertura/funcionamento no hover
-- Animação ativa com svg:hover .classe (CSS transitions 0.5-0.8s ease-in-out)
-- Estado padrão: FECHADO. Estado hover: ABERTO
-- Arco/seta de abertura: aparece com opacity transition no hover, stroke="#185FA5" stroke-dasharray="4 2"
-- Tipos de movimento:
-  * Pivotante: rotate no eixo das dobradiças (transform-origin no lado do pivô)
-  * Correr/deslizante: translateX na direção do trilho
-  * Basculante: simular tombamento (translateY + scaleY)
-  * Maxim-ar: abrir de baixo pra cima (transform-origin topo)
-  * Box: porta gira com dobradiça automática (~25deg)
-  * Fixo/guarda-corpo: shimmer sutil (fill-opacity oscilando via @keyframes)
-  * Cobertura: sem movimento, efeito de reflexo
+═══ DESIGN SYSTEM (use exatamente estas cores) ═══
 
-DETALHES DE QUALIDADE:
-- Proporções realistas: porta mais alta que larga, janela mais larga que alta, basculante compacta, guarda-corpo largo e baixo
-- Se tem FIXO + MÓVEL: divisor vertical (perfil entre peças)
-- Perfis formam o marco/batente completo (retângulos finos nos 3-4 lados)
-- Ferragens nos pontos tecnicamente corretos conforme os dados
-- Dobradiças no lado do pivô, puxador no lado oposto
-- Roldanas no TOPO (trilho superior) pra tipologias de correr
-- Cada peça deve ter label pequeno (FIXO, PORTA, etc.)
+Vidro: fill="#DCE8F5" fill-opacity="0.5" stroke="#185FA5" stroke-width="1.5"
+Perfil/marco alumínio: fill="#8B9DB5" rx="1" (barras de 3-4px)
+Ferragem dobradiça: fill="#C85A30" circle r="2.5"
+Ferragem puxador: stroke="#C85A30" stroke-width="2" line vertical 12px
+Ferragem roldana: fill="#C85A30" circle r="3" com stroke-width="0.5"
+Ferragem fechadura: fill="#C85A30" rect 5×4px rx="1"
+X temperado: 2 diagonais dentro do vidro, stroke="#185FA5" stroke-width="0.3" opacity="0.12"
+Label peça: font-family="'Courier New',monospace" font-size="7" fill="#8B9DB5"
+Título rodapé: font-size="8" fill="#64748B" font-weight="bold" y="195" text-anchor="middle" x="150"
 
-REFERÊNCIA DE LAYOUT POR TIPO:
-- Porta Pivotante: FIXO esq ~35% + PORTA dir ~65%, porta gira no pivô esquerdo
-- Porta Pivotante Dupla com Bandeira: Bandeira em cima, 2 portas embaixo
-- Janela Correr 2 Folhas: 2 folhas sobrepostas, móvel desliza no hover, trilhos sup/inf
-- Box Frontal: FIXO + PORTA, sem perfil inferior (chão banheiro)
-- Box Canto 90: vista de cima (planta baixa) em L, lateral fixa + frontal com porta
-- Basculante: retângulo único, tomba pra fora, braço articulado
-- Maxim-Ar: retângulo único, abre de baixo pra cima, 2 braços
-- Guarda-Corpo: painéis lado a lado, colunas entre eles, sem movimento
-- Cobertura/Claraboia: vista lateral, perfis inclinados, vidros entre eles
-- Divisória com Porta: painéis fixos + porta central pivotante
-- Janela Pivotante: como porta pivotante mas menor, com perfil em volta
+═══ REGRAS CRÍTICAS DE ANIMAÇÃO ═══
 
-PRODUZA O MELHOR SVG QUE CONSEGUIR. Qualidade de produto premium."""
+ESTADO PADRÃO: Tudo FECHADO, dentro do marco.
+HOVER (svg:hover): Peça móvel abre SUAVEMENTE com CSS transition.
+
+A animação DEVE seguir estas regras exatas por tipo:
+
+### PIVOTANTE (porta ou janela):
+- A porta gira NO EIXO DAS DOBRADIÇAS (lado esquerdo)
+- transform-origin: BORDA ESQUERDA DA PORTA (ex: "135px 100px" se porta começa em x=135)
+- Ângulo de abertura: rotate(-15deg) no hover (MÁXIMO 20deg)
+- Arco tracejado: quarter-circle pequeno na borda oposta às dobradiças
+- NUNCA girar no centro. NUNCA girar mais de 20deg.
+- A porta NÃO pode sair do viewBox.
+- Dobradiças: 2 pontos no lado esquerdo da porta (topo e base)
+- Puxador: barra vertical no lado DIREITO da porta
+
+### PIVOTANTE DUPLA COM BANDEIRA:
+- Bandeira: retângulo fixo no TOPO (sem movimento)
+- Porta 1: gira à esquerda, transform-origin na borda esquerda, rotate(-12deg)
+- Porta 2: gira à direita, transform-origin na borda direita, rotate(12deg)
+- As duas portas JUNTAS, com divisor no centro
+- Ângulo MÁXIMO 15deg cada lado
+
+### CORRER (janela ou porta):
+- Folha fixa: NÃO se move
+- Folha móvel: translateX(25px) no hover (desliza pra direita)
+- SEM rotação. Apenas translação horizontal.
+- Trilho superior e inferior: linhas horizontais finas
+- Roldanas: 2 pontos no TOPO da folha móvel
+- As folhas se sobrepõem levemente (a móvel fica na frente)
+- Setas de direção: triangulozinho indicando pra onde desliza
+
+### CORRER 3 FOLHAS:
+- 3 retângulos: FIXO à esquerda, MÓVEL no centro (na frente), FIXO à direita
+- Folha central desliza translateX(30px) no hover
+- Roldanas no topo da folha central
+- Trilhos sup/inf
+
+### CORRER 4 FOLHAS:
+- 4 retângulos lado a lado dentro do marco
+- Folhas externas (1 e 4): FIXAS
+- Folhas internas (2 e 3): deslizam pra FORA no hover
+- Folha 2: translateX(-15px), Folha 3: translateX(15px)
+- Roldanas no topo das folhas internas
+
+### BOX BANHEIRO (frontal):
+- FIXO à esquerda, PORTA à direita
+- Porta gira na borda ESQUERDA (onde tem dobradiça automática)
+- transform-origin: borda esquerda da porta
+- Ângulo: rotate(-15deg) no hover
+- SEM perfil inferior (é chão de banheiro)
+- Puxador: círculo no CENTRO da porta (botão)
+
+### BOX CANTO 90:
+- Vista FRONTAL (não planta baixa)
+- Lateral fixa à esquerda + frontal com porta à direita
+- A porta da parte frontal gira rotate(-12deg) no hover
+
+### BASCULANTE:
+- Retângulo único dentro do marco
+- Abre pra FORA pelo TOPO: translateY(-8px) + scale(0.95)
+- Braço articulado: linha do centro lateral até o marco
+- Trinco: ponto no centro
+
+### MAXIM-AR:
+- Retângulo único dentro do marco
+- transform-origin: borda SUPERIOR
+- No hover: rotateX(10deg) com perspective(300px)
+- 2 braços articulados nos lados
+- Trinco no centro
+
+### GUARDA-CORPO:
+- 2-3 painéis lado a lado, colunas/postes entre eles
+- NENHUM movimento
+- Shimmer sutil: @keyframes oscilando fill-opacity de 0.4 a 0.55
+
+### COBERTURA/CLARABOIA:
+- Vista LATERAL: perfis inclinados (~15°) com vidro entre eles
+- NENHUM movimento
+- Shimmer + efeito de gotas
+
+### DIVISÓRIA COM PORTA:
+- 2 painéis fixos nas laterais + porta central pivotante
+- Porta gira no eixo esquerdo, rotate(-12deg) no hover
+
+═══ REGRAS DE LAYOUT ═══
+
+- Margem: 20px de todos os lados (conteúdo entre x=20..280, y=15..185)
+- Marco/moldura: retângulo de perfil alumínio envolvendo TODAS as peças
+- Vidro DENTRO do marco (não pode ultrapassar)
+- No hover, a peça pode sair LEVEMENTE do marco (máximo 15px) pra simular abertura
+- Labels de peça: FIXO, PORTA, etc. em 7px, centralizados na peça, cor clara
+- NÃO colocar códigos de ferragem (1101, 1520). Só os símbolos visuais (pontos, barras)
+- NÃO colocar legenda separada. NÃO colocar cotas/medidas.
+- NÃO colocar "hover para abrir" ou instruções de uso
+
+═══ CSS ═══
+
+<style> dentro do <svg>. Usar SOMENTE:
+- transition: transform 0.6s ease-in-out, opacity 0.4s (pra peças móveis)
+- svg:hover .move {{ transform: ... }} (pra ativar no hover)
+- @keyframes shimmer (só pra guarda-corpo e cobertura)
+
+═══ EXEMPLO DE REFERÊNCIA (porta pivotante simples com fixo) ═══
+
+<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+<style>
+  .porta {{ transition: transform 0.6s ease-in-out; transform-origin: 125px 100px; }}
+  svg:hover .porta {{ transform: rotate(-15deg); }}
+  .arco {{ opacity: 0; transition: opacity 0.4s; }}
+  svg:hover .arco {{ opacity: 1; }}
+</style>
+<!-- Marco -->
+<rect x="30" y="15" width="240" height="170" rx="2" fill="none" stroke="#8B9DB5" stroke-width="3"/>
+<!-- Fixo -->
+<rect x="33" y="18" width="90" height="164" fill="#DCE8F5" fill-opacity="0.5" stroke="#185FA5" stroke-width="1.2"/>
+<line x1="35" y1="20" x2="121" y2="180" stroke="#185FA5" stroke-width="0.3" opacity="0.12"/>
+<line x1="121" y1="20" x2="35" y2="180" stroke="#185FA5" stroke-width="0.3" opacity="0.12"/>
+<text x="78" y="105" text-anchor="middle" font-size="7" fill="#8B9DB5" font-family="'Courier New',monospace">FIXO</text>
+<!-- Divisor -->
+<rect x="123" y="15" width="4" height="170" fill="#8B9DB5" rx="1"/>
+<!-- Porta (animada) -->
+<g class="porta">
+  <rect x="127" y="18" width="140" height="164" fill="#DCE8F5" fill-opacity="0.5" stroke="#185FA5" stroke-width="1.5"/>
+  <line x1="129" y1="20" x2="265" y2="180" stroke="#185FA5" stroke-width="0.3" opacity="0.12"/>
+  <line x1="265" y1="20" x2="129" y2="180" stroke="#185FA5" stroke-width="0.3" opacity="0.12"/>
+  <text x="197" y="105" text-anchor="middle" font-size="7" fill="#8B9DB5" font-family="'Courier New',monospace">PORTA</text>
+  <!-- Dobradiças -->
+  <circle cx="130" cy="35" r="2.5" fill="#C85A30"/>
+  <circle cx="130" cy="165" r="2.5" fill="#C85A30"/>
+  <!-- Puxador -->
+  <line x1="258" y1="94" x2="258" y2="106" stroke="#C85A30" stroke-width="2" stroke-linecap="round"/>
+  <!-- Fechadura -->
+  <rect x="254" y="98" width="5" height="4" rx="1" fill="#C85A30" opacity="0.7"/>
+</g>
+<!-- Arco de abertura -->
+<path class="arco" d="M 267 100 A 70 70 0 0 0 240 30" fill="none" stroke="#185FA5" stroke-width="0.7" stroke-dasharray="3 2"/>
+<!-- Título -->
+<text x="150" y="195" text-anchor="middle" font-size="8" fill="#64748B" font-family="'Courier New',monospace" font-weight="bold">{nome}</text>
+</svg>
+
+USE ESSE NÍVEL DE QUALIDADE E PRECISÃO. A porta fica DENTRO do marco e gira SUAVEMENTE no hover."""
 
     try:
         message = client.messages.create(

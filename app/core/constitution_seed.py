@@ -382,6 +382,43 @@ def seed():
         "normas": [{"nbr": "NBR 7199:2016", "espessura_min_mm": 8}]
     }, origem="catalogo_glasspecas", confianca=1.0)
 
+    registrar("porta_correr_3_folhas", tipo="tipologia", dados={
+        "nome_display": "Porta de Correr 3 Folhas",
+        "classificacao_pecas": {
+            "fixo": "fixa", "fixo 1": "fixa", "fixo 2": "fixa",
+            "porta": "correr", "movel": "correr"
+        },
+        "ferragens_por_peca": {
+            "correr": [
+                {"codigo": "3530", "nome": "Roldana", "tipo": "roldana",
+                 "y_formula": "altura - 20", "x_formula": "50",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "3530", "nome": "Roldana", "tipo": "roldana",
+                 "y_formula": "altura - 20", "x_formula": "largura - 50",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1629B", "nome": "Bate-fecha", "tipo": "bate_fecha",
+                 "y_formula": "altura * 0.50", "x_formula": "0",
+                 "lado": "esquerdo", "visual": "linha_h", "recorte": "nenhum"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura / 2",
+                "lado": "centro", "aceita_eixo": True
+            }
+        },
+        "kit": {
+            "codigo": "KIT_10", "nome": "Kit Porta Correr 3 Folhas",
+            "itens": [
+                {"codigo": "3530", "nome": "Roldana simples", "qtd": 2},
+                {"codigo": "1629B", "nome": "Bate-fecha", "qtd": 1},
+                {"codigo": "3534", "nome": "Trinco", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "espessura_min_mm": 8, "espessura_rec_mm": 10}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
     # ═══ ALIASES ═══
     aliases_tipologia = {
         "porta_pivotante_simples": ["porta_pivotante", "pivotante_simples", "porta_de_vidro_pivotante"],
@@ -396,6 +433,8 @@ def seed():
         "guarda_corpo_linear": ["guarda_corpo", "guarda_corpo_reto", "guarda_corpo_vidro"],
         "cobertura": ["claraboia", "telhado_vidro", "cobertura_vidro", "marquise"],
         "divisoria_porta_pivotante": ["divisoria", "divisoria_porta", "divisoria_vidro"],
+        "porta_correr_3_folhas": ["porta_tres_folhas", "porta_3_folhas", "porta_correr_3",
+                                   "correr_3_folhas", "porta_tres_folhas_correr"],
     }
     for canonical, alias_list in aliases_tipologia.items():
         registrar_alias(canonical, canonical, "tipologia")

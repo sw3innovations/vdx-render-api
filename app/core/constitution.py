@@ -169,6 +169,14 @@ def foi_validada(chave: str, tipo: str = "tipologia", nicho: str = "vidros") -> 
     return bool(row and row["confianca"] >= 0.95)
 
 
+def limpar_previews():
+    """Remove todos os previews cacheados para forçar regeneração."""
+    conn = _get_conn()
+    conn.execute("DELETE FROM constitution_entries WHERE tipo='preview'")
+    conn.commit()
+    conn.close()
+
+
 def listar_entries(tipo: str = None, nicho: str = "vidros") -> list:
     conn = _get_conn()
     if tipo:
