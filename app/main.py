@@ -5,6 +5,8 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
 from app.routers import render
+from app.core.constitution import init_db
+from app.core.constitution_seed import seed as constitution_seed
 
 load_dotenv()
 
@@ -31,6 +33,12 @@ app.add_middleware(
 )
 
 app.include_router(render.router)
+
+
+@app.on_event("startup")
+def startup_event():
+    init_db()
+    constitution_seed()
 
 
 @app.get("/health")

@@ -7,11 +7,14 @@ from app.models.render import (
     PecaRenderizada, KitFerragem, RegrasInterativas,
 )
 from app.services.svg_service import gerar_svg
-from app.services.posicionamento_service import posicionar_ferragens
-from app.core.classificador import classificar_peca
-from app.core.kit_resolver import resolver_kit
+from app.core import constitution
+from app.services import constitution_engine
+from app.services import claude_teacher
+# Legacy fallback imports
+from app.services.posicionamento_service import posicionar_ferragens as _pos_legacy
+from app.core.classificador import classificar_peca as _cls_legacy
+from app.core.kit_resolver import resolver_kit as _kit_legacy
 from app.core.catalogo import normalizar_nome, resolver_layout_por_nome
-from app.core.skill_vidracaria import normalizar_para_skill
 from app.core.limiter import limiter
 
 logger = logging.getLogger(__name__)
@@ -33,7 +36,6 @@ def _inferir_layout(request: RenderRequest) -> str:
         if encontrado:
             return encontrado
 
-    # Fallback por nome das peças
     nomes = " ".join(p.nome.lower() for p in request.pecas)
     if "canto" in nomes or "l " in nomes:
         return "canto_l"
@@ -54,21 +56,15 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
     """
     Verificação determinística de normas ABNT.
     Fontes: NBR 7199:2016, NBR 14207:2009, NBR 14718:2019, NBR 16259:2014.
-
-    Níveis:
-      CRITICO — violação direta de norma (risco de acidente / processo)
-      ALERTA  — fora da prática recomendada (risco técnico)
-      INFO    — recomendação (não obrigatório mas indicado)
     """
     alertas = []
     tip = normalizar_nome(body.tipologia_nome) if body.tipologia_nome else ""
-    esp = body.espessura_vidro_mm                       # None = não informado
-    tv  = (body.tipo_vidro or "").strip().lower()       # "temperado"|"laminado"|"aramado"|"comum"|""
+    esp = body.espessura_vidro_mm
+    tv  = (body.tipo_vidro or "").strip().lower()
 
     def _a(nivel, norma, msg):
         alertas.append({"nivel": nivel, "norma": norma, "mensagem": msg})
 
-    # ── 1. PORTAS ────────────────────────────────────────────────────────────────
     eh_porta = any(k in tip for k in ("porta", "pivotante", "correr_porta", "abrir"))
     if eh_porta:
         if tv in ("comum",):
@@ -82,7 +78,6 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
                 _a("ALERTA", "NBR 7199:2016",
                    f"Porta: espessura {esp:.0f}mm abaixo do recomendado de 10mm.")
 
-    # ── 2. BOX BANHEIRO ──────────────────────────────────────────────────────────
     eh_box = any(k in tip for k in ("box", "banheiro"))
     if eh_box:
         if tv in ("comum",):
@@ -94,7 +89,6 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
                f"Box banheiro: espessura {esp:.0f}mm — mínimo 8mm temperado. "
                "4mm permitido apenas encaixilhado ≤700×2000mm.")
 
-    # ── 3. JANELAS ───────────────────────────────────────────────────────────────
     eh_janela = "janela" in tip
     if eh_janela:
         if esp is not None and esp < 6:
@@ -104,7 +98,6 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
             _a("ALERTA", "NBR 7199:2016",
                "Janela 4mm: permitido apenas encaixilhado nos 4 cantos e acima de 1100mm do piso.")
 
-    # ── 4. GUARDA-CORPO ──────────────────────────────────────────────────────────
     eh_gc = "guarda_corpo" in skill_chave or any(k in tip for k in ("guarda_corpo", "guarda corpo"))
     if eh_gc:
         for peca in body.pecas:
@@ -122,7 +115,6 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
             _a("ALERTA", "NBR 14718:2019",
                f"Guarda-corpo: espessura {esp:.0f}mm — recomendado mínimo 10mm laminado.")
 
-    # ── 5. COBERTURA / CLARABOIA / MARQUISE ──────────────────────────────────────
     eh_cob = any(k in tip for k in ("cobertura", "claraboia", "telhado", "marquise"))
     if eh_cob:
         if tv not in ("laminado", "aramado"):
@@ -134,7 +126,6 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
             _a("ALERTA", "NBR 7199:2016",
                f"Cobertura: espessura {esp:.0f}mm — recomendado mínimo 8mm laminado.")
 
-    # ── 6. SACADA / FECHAMENTO DE VARANDA ────────────────────────────────────────
     eh_sacada = any(k in tip for k in ("sacada", "varanda", "fechamento_varanda"))
     if eh_sacada:
         if tv in ("comum",):
@@ -144,7 +135,6 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
             _a("ALERTA", "NBR 16259:2014",
                f"Sacada/varanda: espessura {esp:.0f}mm — recomendado mínimo 8mm.")
 
-    # ── 7. DIVISÓRIA ─────────────────────────────────────────────────────────────
     eh_div = any(k in tip for k in ("divisoria", "divisória", "biombo"))
     if eh_div:
         if tv in ("comum",):
@@ -154,7 +144,6 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
             _a("ALERTA", "NBR 7199:2016",
                f"Divisória: espessura {esp:.0f}mm — recomendado mínimo 8mm temperado.")
 
-    # ── 8. REGRA GERAL — 4mm PROIBIDO em aplicações críticas ─────────────────────
     if esp is not None and esp <= 4:
         apps_criticas = ("porta", "guarda_corpo", "cobertura", "sacada", "varanda", "marquise")
         if any(k in tip or k in skill_chave for k in apps_criticas):
@@ -163,20 +152,6 @@ def _verificar_normas_abnt(body: RenderRequest, skill_chave: str) -> list[dict]:
                "Permitido apenas em janelas encaixilhadas ou box encaixilhado ≤700×2000mm.")
 
     return alertas
-
-
-def _montar_regras_interativas(pecas: List[PecaRenderizada]) -> Optional[RegrasInterativas]:
-    """Retorna info para o frontend calcular posições de puxador dinamicamente."""
-    for peca in pecas:
-        puxadores = [f for f in peca.ferragens if f.tipo == "puxador"]
-        if puxadores:
-            centro_y = peca.altura_mm * 0.50
-            centro_x = puxadores[0].x_mm
-            return RegrasInterativas(
-                puxador_centro_y_mm=centro_y,
-                puxador_centro_x_mm=centro_x,
-            )
-    return None
 
 
 @router.post("/render", response_model=RenderResponse)
@@ -192,21 +167,51 @@ async def render_endpoint(
         raise HTTPException(status_code=403, detail="X-VDX-Key inválida")
 
     layout = _inferir_layout(body)
-    skill_chave = normalizar_para_skill(body.tipologia_nome) if body.tipologia_nome else ""
-    alertas_norma = _verificar_normas_abnt(body, skill_chave)
+    tip_nome = body.tipologia_nome or ""
 
-    # Montar peças renderizadas
+    # ── Resolve tipologia na Constitution ────────────────────────────────────
+    chave = constitution.normalizar(tip_nome, tipo="tipologia") if tip_nome else ""
+    entry = constitution.buscar(chave, tipo="tipologia") if chave else None
+    tipologia_dados = entry["dados"] if entry else None
+    modo = "constitution" if tipologia_dados else None
+
+    # ── Modo 2: Claude como professor ────────────────────────────────────────
+    if not tipologia_dados and tip_nome:
+        pecas_dicts = [{"nome": p.nome, "largura_mm": p.largura_mm,
+                        "altura_mm": p.altura_mm} for p in body.pecas]
+        tipologia_dados = await claude_teacher.resolver_tipologia_desconhecida(
+            tip_nome, pecas_dicts)
+        modo = "claude_inferido" if tipologia_dados else "fallback"
+
+    # ── Montar peças renderizadas ─────────────────────────────────────────────
+    skill_chave = chave or tip_nome.lower().replace(" ", "_")
+    alertas_norma = _verificar_normas_abnt(body, skill_chave)
     pecas_renderizadas: List[PecaRenderizada] = []
+
     for peca in body.pecas:
         puxador_dict = peca.puxador.model_dump() if peca.puxador else None
-        ferragens = posicionar_ferragens(
-            peca_nome=peca.nome,
-            largura_mm=peca.largura_mm,
-            altura_mm=peca.altura_mm,
-            tipologia_nome=body.tipologia_nome or "",
-            puxador=puxador_dict,
-        )
-        classificacao = classificar_peca(peca.nome, body.tipologia_nome or "")
+
+        if tipologia_dados:
+            # Modo 1 ou 2: Constitution engine
+            ferragens = constitution_engine.posicionar_ferragens(
+                peca_nome=peca.nome,
+                largura_mm=peca.largura_mm,
+                altura_mm=peca.altura_mm,
+                tipologia_dados=tipologia_dados,
+                puxador=puxador_dict,
+            )
+            classificacao = constitution_engine.classificar_peca(peca.nome, tipologia_dados)
+        else:
+            # Modo fallback: módulos legados
+            ferragens = _pos_legacy(
+                peca_nome=peca.nome,
+                largura_mm=peca.largura_mm,
+                altura_mm=peca.altura_mm,
+                tipologia_nome=tip_nome,
+                puxador=puxador_dict,
+            )
+            classificacao = _cls_legacy(peca.nome, tip_nome)
+
         pecas_renderizadas.append(PecaRenderizada(
             nome=peca.nome,
             largura_mm=peca.largura_mm,
@@ -215,19 +220,39 @@ async def render_endpoint(
             ferragens=ferragens,
         ))
 
-    # Kit
-    kit_data = resolver_kit(body.tipologia_nome or "")
-    kit = KitFerragem(**kit_data) if kit_data else None
+    # ── Kit ───────────────────────────────────────────────────────────────────
+    if tipologia_dados:
+        kit = constitution_engine.resolver_kit(tipologia_dados)
+    else:
+        kit_data = _kit_legacy(tip_nome)
+        kit = KitFerragem(**kit_data) if kit_data else None
 
-    # RegrasInterativas
-    regras = _montar_regras_interativas(pecas_renderizadas)
+    # ── RegrasInterativas ─────────────────────────────────────────────────────
+    regras = None
+    if tipologia_dados:
+        # Usar dimensões da primeira peça móvel para calcular fórmulas
+        for peca in body.pecas:
+            cls = constitution_engine.classificar_peca(peca.nome, tipologia_dados)
+            if cls in ("movel", "correr"):
+                regras = constitution_engine.montar_regras_interativas(
+                    tipologia_dados, peca.largura_mm, peca.altura_mm)
+                break
+    else:
+        for pr in pecas_renderizadas:
+            puxadores = [f for f in pr.ferragens if f.tipo == "puxador"]
+            if puxadores:
+                regras = RegrasInterativas(
+                    puxador_centro_y_mm=pr.altura_mm * 0.50,
+                    puxador_centro_x_mm=puxadores[0].x_mm,
+                )
+                break
 
-    # SVG
+    # ── SVG ───────────────────────────────────────────────────────────────────
     svg = gerar_svg(
         pecas_renderizadas=pecas_renderizadas,
         layout_usado=layout,
         opcoes_dict=body.opcoes.model_dump(),
-        tipologia_nome=body.tipologia_nome,
+        tipologia_nome=tip_nome,
         largura_px=body.opcoes.largura_px,
         altura_px=body.opcoes.altura_px,
     )
@@ -238,10 +263,10 @@ async def render_endpoint(
         kit=kit,
         regras_interativas=regras,
         alertas_norma=alertas_norma,
-        metadata={"layout_usado": layout, "tipologia_chave": skill_chave},
+        metadata={"layout_usado": layout, "tipologia_chave": chave, "modo": modo},
         largura_px=body.opcoes.largura_px,
         altura_px=body.opcoes.altura_px,
         layout_usado=layout,
-        ferragens_inferidas=False,
-        claude_usado=False,
+        ferragens_inferidas=(modo == "claude_inferido"),
+        claude_usado=(modo == "claude_inferido"),
     )

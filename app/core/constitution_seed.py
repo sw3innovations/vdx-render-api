@@ -1,0 +1,420 @@
+"""
+Seed da Constitution Vidros — migra conhecimento hardcoded para o DB.
+Idempotente via ON CONFLICT — seguro rodar multiplas vezes.
+"""
+from app.core.constitution import init_db, registrar, registrar_alias
+
+
+def seed():
+    init_db()
+
+    # ═══ TIPOLOGIAS ═══
+
+    registrar("porta_pivotante_simples", tipo="tipologia", dados={
+        "nome_display": "Porta Pivotante Simples",
+        "classificacao_pecas": {
+            "porta": "movel", "fixo": "fixa", "bandeira": "fixa",
+            "painel": "fixa", "vidro fixo": "fixa"
+        },
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                 "y_formula": "altura - 50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "y_formula": "50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1520", "nome": "Fechadura Central", "tipo": "fechadura",
+                 "y_formula": "altura * 0.50", "x_formula": "largura - 15",
+                 "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50",
+                "x_formula": "largura - 35",
+                "lado": "direito",
+                "aceita_eixo": True
+            }
+        },
+        "kit": {
+            "codigo": "KIT_01", "nome": "Kit Porta Pivotante Simples V/A",
+            "itens": [
+                {"codigo": "1201", "nome": "Pivô superior", "qtd": 1},
+                {"codigo": "1101", "nome": "Dobradiça superior", "qtd": 1},
+                {"codigo": "1103", "nome": "Dobradiça inferior", "qtd": 1},
+                {"codigo": "1013", "nome": "Pivô inferior", "qtd": 1},
+                {"codigo": "1520", "nome": "Fechadura central", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "regra": "Vidro segurança obrigatório abaixo 1100mm",
+             "espessura_min_mm": 8, "espessura_rec_mm": 10}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("porta_pivotante_dupla_bandeira", tipo="tipologia", dados={
+        "nome_display": "Porta Pivotante Dupla c/ Bandeira",
+        "classificacao_pecas": {
+            "porta": "movel", "porta 1": "movel", "porta 2": "movel",
+            "bandeira": "fixa", "fixo": "fixa"
+        },
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                 "y_formula": "altura - 50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "y_formula": "50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1520", "nome": "Fechadura Central", "tipo": "fechadura",
+                 "y_formula": "altura * 0.50", "x_formula": "largura - 15",
+                 "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura - 35",
+                "lado": "direito", "aceita_eixo": True
+            }
+        },
+        "kit": {
+            "codigo": "KIT_02", "nome": "Kit Porta Pivotante Dupla c/ Bandeira",
+            "itens": [
+                {"codigo": "1201", "nome": "Pivô superior", "qtd": 2},
+                {"codigo": "1101", "nome": "Dobradiça superior", "qtd": 2},
+                {"codigo": "1103", "nome": "Dobradiça inferior", "qtd": 2},
+                {"codigo": "1013", "nome": "Pivô inferior", "qtd": 2},
+                {"codigo": "1520", "nome": "Fechadura central", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "regra": "Vidro segurança obrigatório",
+             "espessura_min_mm": 8, "espessura_rec_mm": 10}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("box_frontal_2_folhas", tipo="tipologia", dados={
+        "nome_display": "Box Frontal 2 Folhas",
+        "classificacao_pecas": {
+            "porta": "movel", "fixo": "fixa"
+        },
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1114", "nome": "Dobradiça Auto Superior", "tipo": "dobradica",
+                 "y_formula": "altura - 50", "x_formula": "25",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1114", "nome": "Dobradiça Auto Inferior", "tipo": "dobradica",
+                 "y_formula": "50", "x_formula": "25",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura / 2",
+                "lado": "centro", "aceita_eixo": False,
+                "default": {"codigo": "1504", "nome": "Puxador Botão", "visual": "circulo"}
+            }
+        },
+        "kit": {
+            "codigo": "KIT_05", "nome": "Kit Box Frontal 2 Folhas",
+            "itens": [
+                {"codigo": "1114", "nome": "Dobradiça automática", "qtd": 2},
+                {"codigo": "1629B", "nome": "Bate-fecha", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 14207:2009", "regra": "Mínimo 8mm temperado",
+             "espessura_min_mm": 8}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("box_canto_90", tipo="tipologia", dados={
+        "nome_display": "Box Canto 90°",
+        "classificacao_pecas": {
+            "porta": "movel", "frontal": "movel", "lateral": "fixa",
+            "fixo": "fixa", "lateral fixa": "fixa"
+        },
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1114", "nome": "Dobradiça Auto Superior", "tipo": "dobradica",
+                 "y_formula": "altura - 50", "x_formula": "25",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1114", "nome": "Dobradiça Auto Inferior", "tipo": "dobradica",
+                 "y_formula": "50", "x_formula": "25",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura / 2",
+                "lado": "centro", "aceita_eixo": False,
+                "default": {"codigo": "1504", "nome": "Puxador Botão", "visual": "circulo"}
+            }
+        },
+        "kit": {
+            "codigo": "KIT_03", "nome": "Kit Box Canto 90°",
+            "itens": [
+                {"codigo": "1114", "nome": "Dobradiça automática", "qtd": 2},
+                {"codigo": "1302", "nome": "Suporte de canto", "qtd": 2},
+                {"codigo": "1629B", "nome": "Bate-fecha", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 14207:2009", "regra": "Mínimo 8mm temperado",
+             "espessura_min_mm": 8}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("porta_correr_2_folhas", tipo="tipologia", dados={
+        "nome_display": "Porta de Correr 2 Folhas",
+        "classificacao_pecas": {
+            "fixo": "fixa", "porta": "correr", "movel": "correr",
+            "folha 1": "fixa", "folha 2": "correr"
+        },
+        "ferragens_por_peca": {
+            "correr": [
+                {"codigo": "3530", "nome": "Roldana", "tipo": "roldana",
+                 "y_formula": "20", "x_formula": "50",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "3530", "nome": "Roldana", "tipo": "roldana",
+                 "y_formula": "20", "x_formula": "largura - 50",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1629B", "nome": "Bate-fecha", "tipo": "bate_fecha",
+                 "y_formula": "altura * 0.50", "x_formula": "0",
+                 "lado": "esquerdo", "visual": "linha_h", "recorte": "nenhum"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura / 2",
+                "lado": "centro", "aceita_eixo": True
+            }
+        },
+        "kit": {
+            "codigo": "KIT_09", "nome": "Kit Porta Correr 2 Folhas",
+            "itens": [
+                {"codigo": "3530", "nome": "Roldana simples", "qtd": 2},
+                {"codigo": "1629B", "nome": "Bate-fecha", "qtd": 1},
+                {"codigo": "3534", "nome": "Trinco", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "regra": "Vidro segurança obrigatório",
+             "espessura_min_mm": 8, "espessura_rec_mm": 10}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("janela_correr_2_folhas", tipo="tipologia", dados={
+        "nome_display": "Janela de Correr 2 Folhas",
+        "classificacao_pecas": {
+            "fixo": "fixa", "folha 1": "fixa", "folha fixa": "fixa",
+            "porta": "correr", "movel": "correr", "folha 2": "correr", "folha movel": "correr"
+        },
+        "ferragens_por_peca": {
+            "correr": [
+                {"codigo": "1125", "nome": "Roldana Simples", "tipo": "roldana",
+                 "y_formula": "20", "x_formula": "50",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1125", "nome": "Roldana Simples", "tipo": "roldana",
+                 "y_formula": "20", "x_formula": "largura - 50",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1629B", "nome": "Bate-fecha Janela", "tipo": "bate_fecha",
+                 "y_formula": "altura * 0.50", "x_formula": "0",
+                 "lado": "esquerdo", "visual": "linha_h", "recorte": "nenhum"},
+            ],
+            "puxador_config": None
+        },
+        "kit": {
+            "codigo": "KIT_05V", "nome": "Kit Janela Correr 2 Folhas",
+            "itens": [
+                {"codigo": "1125", "nome": "Roldana simples", "qtd": 2},
+                {"codigo": "1629B", "nome": "Bate-fecha janela", "qtd": 1},
+                {"codigo": "1038", "nome": "Capuchinho", "qtd": 2},
+            ],
+            "puxador_separado": False
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "espessura_min_mm": 6}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("janela_basculante", tipo="tipologia", dados={
+        "nome_display": "Janela Basculante",
+        "classificacao_pecas": {"folha": "movel", "basculante": "movel"},
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1335T", "nome": "Trinco Basculante", "tipo": "trinco",
+                 "y_formula": "altura * 0.50", "x_formula": "largura / 2",
+                 "lado": "centro", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1500", "nome": "Suporte Abertura", "tipo": "suporte",
+                 "y_formula": "altura * 0.50", "x_formula": "150",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "nenhum"},
+            ],
+            "puxador_config": None
+        },
+        "kit": {
+            "codigo": "KIT_06", "nome": "Kit Janela Basculante",
+            "itens": [
+                {"codigo": "1335T", "nome": "Trinco basculante", "qtd": 1},
+                {"codigo": "1500", "nome": "Suporte de abertura", "qtd": 1},
+            ],
+            "puxador_separado": False
+        },
+        "normas": [{"nbr": "NBR 7199:2016", "espessura_min_mm": 6}]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("janela_maxim_ar", tipo="tipologia", dados={
+        "nome_display": "Janela Maxim-Ar",
+        "classificacao_pecas": {"folha": "movel", "maxim": "movel"},
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1500", "nome": "Braço Articulado", "tipo": "suporte",
+                 "y_formula": "altura - 30", "x_formula": "largura * 0.30",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "nenhum"},
+                {"codigo": "1500", "nome": "Braço Articulado", "tipo": "suporte",
+                 "y_formula": "altura - 30", "x_formula": "largura * 0.70",
+                 "lado": "direito", "visual": "retangulo", "recorte": "nenhum"},
+                {"codigo": "1335T", "nome": "Trinco", "tipo": "trinco",
+                 "y_formula": "altura * 0.50", "x_formula": "largura / 2",
+                 "lado": "centro", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+            "puxador_config": None
+        },
+        "kit": {
+            "codigo": "KIT_07", "nome": "Kit Janela Maxim-Ar",
+            "itens": [
+                {"codigo": "1335T", "nome": "Trinco", "qtd": 1},
+                {"codigo": "1500", "nome": "Braço articulado", "qtd": 2},
+            ],
+            "puxador_separado": False
+        },
+        "normas": [{"nbr": "NBR 7199:2016", "espessura_min_mm": 6}]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("janela_pivotante", tipo="tipologia", dados={
+        "nome_display": "Janela Pivotante",
+        "classificacao_pecas": {"folha": "movel", "pivotante": "movel"},
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                 "y_formula": "altura - 50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "y_formula": "50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1520", "nome": "Fechadura", "tipo": "fechadura",
+                 "y_formula": "altura * 0.50", "x_formula": "largura - 15",
+                 "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura - 35",
+                "lado": "direito", "aceita_eixo": True
+            }
+        },
+        "kit": {
+            "codigo": "KIT_01J", "nome": "Kit Janela Pivotante",
+            "itens": [
+                {"codigo": "1101", "nome": "Dobradiça superior", "qtd": 1},
+                {"codigo": "1103", "nome": "Dobradiça inferior", "qtd": 1},
+                {"codigo": "1520", "nome": "Fechadura", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [{"nbr": "NBR 7199:2016", "espessura_min_mm": 6}]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("guarda_corpo_linear", tipo="tipologia", dados={
+        "nome_display": "Guarda-Corpo Linear",
+        "classificacao_pecas": {"painel": "fixa", "fixo": "fixa", "vidro": "fixa"},
+        "ferragens_por_peca": {},
+        "puxador_config": None,
+        "kit": {"codigo": "NENHUM", "nome": "Sem kit — fixação por coluna/base",
+                "itens": [], "puxador_separado": False},
+        "normas": [
+            {"nbr": "NBR 14718:2019", "regra": "Altura min 1100mm, laminado obrigatório",
+             "espessura_min_mm": 10, "tipo_obrigatorio": "laminado"}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("cobertura", tipo="tipologia", dados={
+        "nome_display": "Cobertura / Claraboia",
+        "classificacao_pecas": {"painel": "fixa", "fixo": "fixa", "vidro": "fixa"},
+        "ferragens_por_peca": {},
+        "puxador_config": None,
+        "kit": {"codigo": "NENHUM", "nome": "Sem kit — apoio em perfis",
+                "itens": [], "puxador_separado": False},
+        "normas": [
+            {"nbr": "NBR 7199:2016", "regra": "Temperado simples PROIBIDO, usar laminado",
+             "tipo_proibido": "temperado", "espessura_min_mm": 8}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("divisoria_porta_pivotante", tipo="tipologia", dados={
+        "nome_display": "Divisória com Porta Pivotante",
+        "classificacao_pecas": {
+            "porta": "movel", "painel": "fixa", "fixo": "fixa",
+            "divisoria": "fixa", "vidro fixo": "fixa"
+        },
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                 "y_formula": "altura - 50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "y_formula": "50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1520", "nome": "Fechadura Central", "tipo": "fechadura",
+                 "y_formula": "altura * 0.50", "x_formula": "largura - 15",
+                 "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura - 35",
+                "lado": "direito", "aceita_eixo": True
+            }
+        },
+        "kit": {
+            "codigo": "KIT_01", "nome": "Kit Porta Pivotante (divisória)",
+            "itens": [
+                {"codigo": "1201", "nome": "Pivô superior", "qtd": 1},
+                {"codigo": "1101", "nome": "Dobradiça superior", "qtd": 1},
+                {"codigo": "1103", "nome": "Dobradiça inferior", "qtd": 1},
+                {"codigo": "1013", "nome": "Pivô inferior", "qtd": 1},
+                {"codigo": "1520", "nome": "Fechadura central", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [{"nbr": "NBR 7199:2016", "espessura_min_mm": 8}]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    # ═══ ALIASES ═══
+    aliases_tipologia = {
+        "porta_pivotante_simples": ["porta_pivotante", "pivotante_simples", "porta_de_vidro_pivotante"],
+        "porta_pivotante_dupla_bandeira": ["pivotante_dupla", "dupla_bandeira", "porta_dupla_bandeira"],
+        "box_frontal_2_folhas": ["box_frontal", "box_2_folhas", "box_de_banheiro", "box_banheiro"],
+        "box_canto_90": ["box_canto", "box_em_l", "canto_90", "box_l"],
+        "porta_correr_2_folhas": ["porta_correr", "porta_de_correr", "correr_2_folhas"],
+        "janela_correr_2_folhas": ["janela_correr", "janela_2_folhas", "janela_duas_folhas", "janela_dupla_correr"],
+        "janela_basculante": ["basculante", "janela_basculante_vidro"],
+        "janela_maxim_ar": ["maxim_ar", "maximar", "janela_maxim", "janela_maxim_ar"],
+        "janela_pivotante": ["janela_pivot", "janela_pivotante_vidro"],
+        "guarda_corpo_linear": ["guarda_corpo", "guarda_corpo_reto", "guarda_corpo_vidro"],
+        "cobertura": ["claraboia", "telhado_vidro", "cobertura_vidro", "marquise"],
+        "divisoria_porta_pivotante": ["divisoria", "divisoria_porta", "divisoria_vidro"],
+    }
+    for canonical, alias_list in aliases_tipologia.items():
+        registrar_alias(canonical, canonical, "tipologia")
+        for alias in alias_list:
+            registrar_alias(alias, canonical, "tipologia")
+
+    aliases_peca = {
+        "fixa": ["fixo", "fixo_1", "fixo_2", "vidro_fixo", "lateral_fixa",
+                 "folha_fixa", "bandeira", "painel", "lateral"],
+        "movel": ["porta", "folha_movel", "pivotante", "basculante",
+                  "maxim_ar", "folha_2", "movel"],
+        "correr": ["folha_de_correr", "correr", "deslizante"],
+    }
+    for canonical, alias_list in aliases_peca.items():
+        for alias in alias_list:
+            registrar_alias(alias, canonical, "classificacao_peca")
+
+    print("Seed completo. Entries e aliases registrados.")
+
+
+if __name__ == "__main__":
+    seed()
