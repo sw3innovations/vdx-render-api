@@ -171,10 +171,10 @@ def seed():
         "ferragens_por_peca": {
             "correr": [
                 {"codigo": "3530", "nome": "Roldana", "tipo": "roldana",
-                 "y_formula": "20", "x_formula": "50",
+                 "y_formula": "altura - 20", "x_formula": "50",
                  "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
                 {"codigo": "3530", "nome": "Roldana", "tipo": "roldana",
-                 "y_formula": "20", "x_formula": "largura - 50",
+                 "y_formula": "altura - 20", "x_formula": "largura - 50",
                  "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
                 {"codigo": "1629B", "nome": "Bate-fecha", "tipo": "bate_fecha",
                  "y_formula": "altura * 0.50", "x_formula": "0",
@@ -209,10 +209,10 @@ def seed():
         "ferragens_por_peca": {
             "correr": [
                 {"codigo": "1125", "nome": "Roldana Simples", "tipo": "roldana",
-                 "y_formula": "20", "x_formula": "50",
+                 "y_formula": "altura - 20", "x_formula": "50",
                  "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
                 {"codigo": "1125", "nome": "Roldana Simples", "tipo": "roldana",
-                 "y_formula": "20", "x_formula": "largura - 50",
+                 "y_formula": "altura - 20", "x_formula": "largura - 50",
                  "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
                 {"codigo": "1629B", "nome": "Bate-fecha Janela", "tipo": "bate_fecha",
                  "y_formula": "altura * 0.50", "x_formula": "0",

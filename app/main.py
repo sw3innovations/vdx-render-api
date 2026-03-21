@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
-from app.routers import render, chat
+from app.routers import render, chat, feedback
 from app.core.constitution import init_db
 from app.core.constitution_seed import seed as constitution_seed
 
@@ -34,6 +34,7 @@ app.add_middleware(
 
 app.include_router(render.router)
 app.include_router(chat.router)
+app.include_router(feedback.router)
 
 
 @app.on_event("startup")

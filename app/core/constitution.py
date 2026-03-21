@@ -50,6 +50,17 @@ def init_db():
 
     CREATE INDEX IF NOT EXISTS idx_entries_chave ON constitution_entries(nicho, tipo, chave);
     CREATE INDEX IF NOT EXISTS idx_aliases_alias ON constitution_aliases(nicho, alias, tipo);
+
+    CREATE TABLE IF NOT EXISTS constitution_validations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nicho TEXT NOT NULL DEFAULT 'vidros',
+        entry_chave TEXT NOT NULL,
+        tipo_validacao TEXT NOT NULL,
+        resultado TEXT NOT NULL,
+        correcoes TEXT,
+        validado_por TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
     """)
     conn.commit()
     conn.close()
@@ -120,6 +131,42 @@ def registrar_alias(alias: str, canonical: str, tipo: str = "tipologia",
     """, (nicho, alias_norm, canonical, tipo, origem))
     conn.commit()
     conn.close()
+
+
+def marcar_validada(chave: str, tipo: str = "tipologia",
+                    nicho: str = "vidros", confianca: float = 0.95):
+    """Marca entry como validada, atualiza confiança."""
+    conn = _get_conn()
+    conn.execute(
+        "UPDATE constitution_entries SET confianca=?, updated_at=CURRENT_TIMESTAMP "
+        "WHERE nicho=? AND tipo=? AND chave=?",
+        (confianca, nicho, tipo, chave))
+    conn.commit()
+    conn.close()
+
+
+def registrar_validacao(chave: str, tipo_validacao: str, resultado: str,
+                         correcoes: str = None,
+                         validado_por: str = "claude_validator",
+                         nicho: str = "vidros"):
+    conn = _get_conn()
+    conn.execute(
+        "INSERT INTO constitution_validations "
+        "(nicho, entry_chave, tipo_validacao, resultado, correcoes, validado_por) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (nicho, chave, tipo_validacao, resultado, correcoes, validado_por))
+    conn.commit()
+    conn.close()
+
+
+def foi_validada(chave: str, tipo: str = "tipologia", nicho: str = "vidros") -> bool:
+    """Retorna True se a entry já tem confiança >= 0.95 (validada ou seed)."""
+    conn = _get_conn()
+    row = conn.execute(
+        "SELECT confianca FROM constitution_entries WHERE nicho=? AND tipo=? AND chave=?",
+        (nicho, tipo, chave)).fetchone()
+    conn.close()
+    return bool(row and row["confianca"] >= 0.95)
 
 
 def listar_entries(tipo: str = None, nicho: str = "vidros") -> list:

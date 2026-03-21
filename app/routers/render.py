@@ -17,6 +17,7 @@ from app.core.classificador import classificar_peca as _cls_legacy
 from app.core.kit_resolver import resolver_kit as _kit_legacy
 from app.core.catalogo import normalizar_nome, resolver_layout_por_nome
 from app.core.limiter import limiter
+from app.services import render_validator
 
 logger = logging.getLogger(__name__)
 
@@ -245,6 +246,18 @@ async def render_endpoint(
                     puxador_centro_x_mm=puxadores[0].x_mm,
                 )
                 break
+
+    # ── Validação pós-render (apenas para claude_inferido, confiança < 0.95) ──
+    if modo == "claude_inferido" and chave and tipologia_dados:
+        try:
+            await render_validator.validar_posicionamento(
+                tipologia_chave=chave,
+                tipologia_nome=tip_nome,
+                pecas=pecas_renderizadas,
+                tipologia_dados=tipologia_dados,
+            )
+        except Exception as _ve:
+            logger.warning(f"Validação pós-render falhou silenciosamente: {_ve}")
 
     # ── SVG ───────────────────────────────────────────────────────────────────
     svg = gerar_svg(
