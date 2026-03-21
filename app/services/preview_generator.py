@@ -156,12 +156,54 @@ A animação DEVE seguir estas regras exatas por tipo:
 - NÃO colocar legenda separada. NÃO colocar cotas/medidas.
 - NÃO colocar "hover para abrir" ou instruções de uso
 
-═══ CSS ═══
+═══ CSS — DEVE FUNCIONAR EM DESKTOP (hover) E MOBILE (auto-loop) ═══
 
-<style> dentro do <svg>. Usar SOMENTE:
-- transition: transform 0.6s ease-in-out, opacity 0.4s (pra peças móveis)
-- svg:hover .move {{ transform: ... }} (pra ativar no hover)
-- @keyframes shimmer (só pra guarda-corpo e cobertura)
+Para CADA peça móvel, usar DUAS estratégias no mesmo bloco <style>:
+
+1. DESKTOP (hover): svg:hover .classe {{ transform: ... }}
+2. MOBILE (auto-loop): @media (hover: none) com @keyframes loop infinito
+
+Regra: dispositivos touch NÃO suportam hover — o @media (hover: none) ativa
+automaticamente em mobile/tablet. Desktop usa hover normalmente.
+
+Ciclo do @keyframes: 4s total — 0% fechado, 40% aberto, 60% aberto, 100% fechado.
+
+Exemplo para PIVOTANTE:
+.porta {{ transition: transform 0.6s ease-in-out; transform-origin: 125px 100px; }}
+svg:hover .porta {{ transform: rotate(-15deg); }}
+@media (hover: none) {{
+  .porta {{ animation: abrePorta 4s ease-in-out infinite; }}
+}}
+@keyframes abrePorta {{
+  0%, 100% {{ transform: rotate(0deg); }}
+  40%, 60% {{ transform: rotate(-15deg); }}
+}}
+
+Exemplo para CORRER (translateX):
+.folha {{ transition: transform 0.6s ease-in-out; }}
+svg:hover .folha {{ transform: translateX(25px); }}
+@media (hover: none) {{
+  .folha {{ animation: abreCorrer 4s ease-in-out infinite; }}
+}}
+@keyframes abreCorrer {{
+  0%, 100% {{ transform: translateX(0); }}
+  40%, 60% {{ transform: translateX(25px); }}
+}}
+
+Para o ARCO de abertura:
+.arco {{ opacity: 0; transition: opacity 0.4s; }}
+svg:hover .arco {{ opacity: 1; }}
+@media (hover: none) {{
+  .arco {{ animation: mostraArco 4s ease-in-out infinite; }}
+}}
+@keyframes mostraArco {{
+  0%, 100% {{ opacity: 0; }}
+  40%, 60% {{ opacity: 1; }}
+}}
+
+@keyframes shimmer (só pra guarda-corpo e cobertura, SEM @media condicional)
+
+REGRA ABSOLUTA: toda classe de peça móvel DEVE ter hover + @media (hover: none).
 
 ═══ EXEMPLO DE REFERÊNCIA (porta pivotante simples com fixo) ═══
 
@@ -171,6 +213,18 @@ A animação DEVE seguir estas regras exatas por tipo:
   svg:hover .porta {{ transform: rotate(-15deg); }}
   .arco {{ opacity: 0; transition: opacity 0.4s; }}
   svg:hover .arco {{ opacity: 1; }}
+  @media (hover: none) {{
+    .porta {{ animation: abrePorta 4s ease-in-out infinite; }}
+    .arco {{ animation: mostraArco 4s ease-in-out infinite; }}
+  }}
+  @keyframes abrePorta {{
+    0%, 100% {{ transform: rotate(0deg); }}
+    40%, 60% {{ transform: rotate(-15deg); }}
+  }}
+  @keyframes mostraArco {{
+    0%, 100% {{ opacity: 0; }}
+    40%, 60% {{ opacity: 1; }}
+  }}
 </style>
 <!-- Marco -->
 <rect x="30" y="15" width="240" height="170" rx="2" fill="none" stroke="#8B9DB5" stroke-width="3"/>
