@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/v1", tags=["preview"])
 async def preview_tipologia(
     chave: str,
     regenerar: bool = Query(False, description="Forçar regeneração"),
+    highlight: str = Query(None, description="Nome da peça pra destacar"),
     x_vdx_key: str = Header(None, alias="X-VDX-Key"),
 ):
     if not x_vdx_key:
@@ -21,8 +22,11 @@ async def preview_tipologia(
     if regenerar:
         preview_generator.invalidar_cache(chave_norm)
     svg = await preview_generator.gerar_preview_async(chave_norm, dados)
+    if highlight:
+        svg = preview_generator.aplicar_destaque(svg, highlight)
+    cache = "no-cache" if highlight else "public, max-age=86400"
     return Response(content=svg, media_type="image/svg+xml",
-                    headers={"Cache-Control": "public, max-age=86400"})
+                    headers={"Cache-Control": cache})
 
 
 @router.get("/tipologias/previews")

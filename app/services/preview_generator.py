@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 import logging
 from anthropic import Anthropic, APIError
 from app.core import constitution
@@ -300,6 +301,76 @@ def invalidar_cache(chave: str):
     conn.execute("DELETE FROM constitution_entries WHERE tipo='preview' AND chave=?", (chave,))
     conn.commit()
     conn.close()
+
+
+_PECA_KEYWORDS = ['FIXO', 'PORTA', 'MOVEL', 'MÓVEL', 'BANDEIRA', 'PAINEL',
+                  'LATERAL', 'FOLHA', 'ESQ', 'DIR', 'FRONTAL']
+
+_HIGHLIGHT_CSS = """
+.peca-dim{opacity:0.25!important;filter:grayscale(0.7)!important;}
+.peca-dim *{animation-play-state:paused!important;}
+.peca-highlight rect[fill-opacity],.peca-highlight rect[fill='#DCE8F5']{stroke:#C85A30!important;stroke-width:2.5px!important;}
+"""
+
+
+def aplicar_destaque(svg_str: str, highlight: str) -> str:
+    """Aplica destaque server-side: peça=highlight acesa, restante esmaecido."""
+    if not highlight or not svg_str:
+        return svg_str
+
+    hl = highlight.upper().strip()
+    hl_words = [w for w in hl.split() if len(w) > 3]
+
+    def matches(content: str) -> bool:
+        c = content.upper().strip()
+        if hl in c or c in hl:
+            return True
+        return (any(w in c for w in hl_words) or
+                any(w in hl for w in c.split() if len(w) > 3))
+
+    # Injetar CSS de destaque
+    if '<style>' in svg_str:
+        svg_str = svg_str.replace('<style>', '<style>' + _HIGHLIGHT_CSS, 1)
+    else:
+        idx = svg_str.find('>', svg_str.find('<svg'))
+        if idx >= 0:
+            svg_str = svg_str[:idx+1] + '<style>' + _HIGHLIGHT_CSS + '</style>' + svg_str[idx+1:]
+
+    # Marcar grupos de peça
+    text_pat = re.compile(r'<text[^>]*>([^<]{1,25})</text>', re.IGNORECASE)
+    g_open_pat = re.compile(r'<g[\s>]')
+
+    for m in reversed(list(text_pat.finditer(svg_str))):
+        content = m.group(1).strip()
+        c_upper = content.upper()
+
+        if not any(kw in c_upper for kw in _PECA_KEYWORDS):
+            continue
+
+        classe = 'peca-highlight' if matches(content) else 'peca-dim'
+
+        # Último <g antes deste texto
+        before = svg_str[:m.start()]
+        g_starts = [gm.start() for gm in g_open_pat.finditer(before)]
+        if not g_starts:
+            continue
+
+        g_pos = g_starts[-1]
+        g_end = svg_str.find('>', g_pos)
+        if g_end < 0:
+            continue
+
+        g_tag = svg_str[g_pos:g_end + 1]
+        if 'class="' in g_tag:
+            new_g = g_tag.replace('class="', f'class="{classe} ', 1)
+        elif "class='" in g_tag:
+            new_g = g_tag.replace("class='", f"class='{classe} ", 1)
+        else:
+            new_g = g_tag.replace('<g', f'<g class="{classe}"', 1)
+
+        svg_str = svg_str[:g_pos] + new_g + svg_str[g_end + 1:]
+
+    return svg_str
 
 
 def _fallback_svg(nome: str) -> str:
