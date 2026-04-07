@@ -419,6 +419,113 @@ def seed():
         ]
     }, origem="catalogo_glasspecas", confianca=1.0)
 
+    registrar("box_de_giro", tipo="tipologia", dados={
+        "nome_display": "Box de Giro",
+        "classificacao_pecas": {
+            "porta": "movel", "giro": "movel"
+        },
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1201", "nome": "Pivô Superior", "tipo": "pivo",
+                 "y_formula": "altura - 30", "x_formula": "largura / 2",
+                 "lado": "centro", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1013", "nome": "Pivô Inferior", "tipo": "pivo",
+                 "y_formula": "30", "x_formula": "largura / 2",
+                 "lado": "centro", "visual": "circulo", "recorte": "nenhum"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura - 40",
+                "lado": "direito", "aceita_eixo": False,
+                "default": {"codigo": "1504", "nome": "Puxador Botão", "visual": "circulo"}
+            }
+        },
+        "kit": {
+            "codigo": "KIT_04", "nome": "Kit Box de Giro",
+            "itens": [
+                {"codigo": "1201", "nome": "Pivô superior", "qtd": 1},
+                {"codigo": "1013", "nome": "Pivô inferior", "qtd": 1},
+                {"codigo": "1629B", "nome": "Bate-fecha", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 14207:2009", "regra": "Mínimo 8mm temperado",
+             "espessura_min_mm": 8}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("fechamento_de_sacada_6_folhas", tipo="tipologia", dados={
+        "nome_display": "Fechamento de Sacada 6 Folhas",
+        "classificacao_pecas": {
+            "folha 1": "correr", "folha 2": "correr", "folha 3": "correr",
+            "folha 4": "correr", "folha 5": "correr", "folha 6": "correr",
+            "folha": "correr", "painel": "correr", "movel": "correr"
+        },
+        "ferragens_por_peca": {
+            "correr": [
+                {"codigo": "3530", "nome": "Roldana", "tipo": "roldana",
+                 "y_formula": "altura - 20", "x_formula": "50",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "3530", "nome": "Roldana", "tipo": "roldana",
+                 "y_formula": "altura - 20", "x_formula": "largura - 50",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura / 2",
+                "lado": "centro", "aceita_eixo": True
+            }
+        },
+        "kit": {
+            "codigo": "KIT_11", "nome": "Kit Fechamento de Sacada 6 Folhas",
+            "itens": [
+                {"codigo": "3530", "nome": "Roldana simples", "qtd": 12},
+                {"codigo": "1629B", "nome": "Bate-fecha", "qtd": 2},
+                {"codigo": "3534", "nome": "Trinco", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "regra": "Temperado mínimo 8mm, laminado recomendado em sacadas",
+             "espessura_min_mm": 8, "espessura_rec_mm": 10}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    registrar("janela_quatro_folhas", tipo="tipologia", dados={
+        "nome_display": "Janela Quatro Folhas",
+        "classificacao_pecas": {
+            "folha 1": "fixa", "folha fixa 1": "fixa",
+            "folha 2": "fixa", "folha fixa 2": "fixa",
+            "folha 3": "correr", "folha 4": "correr",
+            "folha movel": "correr", "movel": "correr", "correr": "correr"
+        },
+        "ferragens_por_peca": {
+            "correr": [
+                {"codigo": "1125", "nome": "Roldana Simples", "tipo": "roldana",
+                 "y_formula": "altura - 20", "x_formula": "50",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1125", "nome": "Roldana Simples", "tipo": "roldana",
+                 "y_formula": "altura - 20", "x_formula": "largura - 50",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1629B", "nome": "Bate-fecha Janela", "tipo": "bate_fecha",
+                 "y_formula": "altura * 0.50", "x_formula": "0",
+                 "lado": "esquerdo", "visual": "linha_h", "recorte": "nenhum"},
+            ],
+            "puxador_config": None
+        },
+        "kit": {
+            "codigo": "KIT_05V4", "nome": "Kit Janela Quatro Folhas",
+            "itens": [
+                {"codigo": "1125", "nome": "Roldana simples", "qtd": 4},
+                {"codigo": "1629B", "nome": "Bate-fecha janela", "qtd": 2},
+                {"codigo": "1038", "nome": "Capuchinho", "qtd": 4},
+            ],
+            "puxador_separado": False
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "espessura_min_mm": 6}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
     # ═══ ALIASES ═══
     aliases_tipologia = {
         "porta_pivotante_simples": ["porta_pivotante", "pivotante_simples", "porta_de_vidro_pivotante"],
@@ -435,6 +542,11 @@ def seed():
         "divisoria_porta_pivotante": ["divisoria", "divisoria_porta", "divisoria_vidro"],
         "porta_correr_3_folhas": ["porta_tres_folhas", "porta_3_folhas", "porta_correr_3",
                                    "correr_3_folhas", "porta_tres_folhas_correr"],
+        "box_de_giro": ["box_giro", "box_pivotante", "box_pivot", "giro"],
+        "fechamento_de_sacada_6_folhas": ["sacada_6_folhas", "fechamento_sacada", "sacada_seis_folhas",
+                                          "fechamento_6_folhas", "sacada"],
+        "janela_quatro_folhas": ["janela_4_folhas", "janela_correr_4_folhas", "janela_4",
+                                 "janela_quatro", "janela_correr_4"],
     }
     for canonical, alias_list in aliases_tipologia.items():
         registrar_alias(canonical, canonical, "tipologia")
