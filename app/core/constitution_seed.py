@@ -526,6 +526,38 @@ def seed():
         ]
     }, origem="catalogo_glasspecas", confianca=1.0)
 
+    registrar("janela_correr_2_folhas_oriun_plus", tipo="tipologia", dados={
+        "nome_display": "Janela Duas Folhas Sistema Oriun Plus",
+        "classificacao_pecas": {
+            "fixo": "fixa", "folha 1": "fixa", "folha fixa": "fixa",
+            "porta": "correr", "movel": "correr", "folha 2": "correr", "folha movel": "correr"
+        },
+        "ferragens_por_peca": {
+            "correr": [
+                {"codigo": "1125", "nome": "Roldana Simples", "tipo": "roldana",
+                 "y_formula": "altura - 20", "x_formula": "50",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1125", "nome": "Roldana Simples", "tipo": "roldana",
+                 "y_formula": "altura - 20", "x_formula": "largura - 50",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1629B", "nome": "Bate-fecha Janela", "tipo": "bate_fecha",
+                 "y_formula": "altura * 0.50", "x_formula": "0",
+                 "lado": "esquerdo", "visual": "linha_h", "recorte": "nenhum"},
+            ],
+            "puxador_config": None
+        },
+        "kit": {
+            "codigo": "KIT_05V_ORIUN", "nome": "Kit Janela Correr 2 Folhas Oriun Plus",
+            "itens": [
+                {"codigo": "1125", "nome": "Roldana simples", "qtd": 2},
+                {"codigo": "1629B", "nome": "Bate-fecha janela", "qtd": 1},
+                {"codigo": "1038", "nome": "Capuchinho", "qtd": 2},
+            ],
+            "puxador_separado": False
+        },
+        "normas": [{"nbr": "NBR 7199:2016", "espessura_min_mm": 6}]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
     # ═══ ALIASES ═══
     aliases_tipologia = {
         "porta_pivotante_simples": ["porta_pivotante", "pivotante_simples", "porta_de_vidro_pivotante"],
@@ -547,6 +579,15 @@ def seed():
                                           "fechamento_6_folhas", "sacada"],
         "janela_quatro_folhas": ["janela_4_folhas", "janela_correr_4_folhas", "janela_4",
                                  "janela_quatro", "janela_correr_4"],
+        "janela_correr_2_folhas_oriun_plus": ["janela_duas_folhas_sistema_oriun_plus",
+                                               "janela_oriun_plus", "janela_oriun", "oriun_plus",
+                                               "janela_duas_folhas_oriun"],
+        "porta_pivotante_dupla_bandeira": ["porta_pivoltante_dupla", "pivoltante",
+                                           "porta_+_bandeira_superior", "porta_bandeira_superior",
+                                           "porta_bandeira", "porta_mais_bandeira_superior"],
+        "box_frontal_2_folhas": ["box_de_banheiro"],
+        "janela_basculante": ["janela_basculante_simples"],
+        "porta_correr_3_folhas": ["porta_tres_folhas"],
     }
     for canonical, alias_list in aliases_tipologia.items():
         registrar_alias(canonical, canonical, "tipologia")

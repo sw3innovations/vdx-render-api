@@ -83,6 +83,14 @@ def processar(req: FeedbackRequest) -> FeedbackResponse:
         f"{req.campo_corrigido}: '{valor_anterior}' → '{req.valor_correto}'"
     )
 
+    # Invalidar preview SVG para regenerar com posicionamento corrigido
+    try:
+        from app.services import preview_generator
+        preview_generator.invalidar_cache(req.tipologia_chave)
+        log.info(f"Preview invalidado para regeneração: '{req.tipologia_chave}'")
+    except Exception as e:
+        log.warning(f"Falha ao invalidar preview: {e}")
+
     return FeedbackResponse(
         aceito=True,
         mensagem="Correção aplicada com sucesso. Constitution atualizada.",

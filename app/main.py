@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
-from app.routers import render, chat, feedback, preview, tipologia_image
+from app.routers import render, chat, feedback, preview, tipologia_image, tipologia_sync
 from app.core.constitution import init_db
 from app.core.constitution_seed import seed as constitution_seed
 
@@ -37,6 +37,7 @@ app.include_router(chat.router)
 app.include_router(feedback.router)
 app.include_router(preview.router)
 app.include_router(tipologia_image.router)
+app.include_router(tipologia_sync.router)
 
 
 @app.on_event("startup")

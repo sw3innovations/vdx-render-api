@@ -117,6 +117,23 @@ Exemplos de tipologias conhecidas:
                                      origem="claude_inferido")
 
         log.info(f"Claude resolveu tipologia '{tipologia_nome}' → '{chave}' (confiança 0.7)")
+
+        # Disparar geração de preview SVG + imagem em background
+        try:
+            import asyncio
+            from app.services import preview_generator, image_generator
+
+            preview_generator.invalidar_cache(chave)
+            asyncio.get_event_loop().run_in_executor(
+                None, preview_generator.gerar_preview, chave, dados
+            )
+            log.info(f"Preview SVG disparado em background para '{chave}'")
+
+            asyncio.create_task(image_generator.gerar_imagem(chave, dados))
+            log.info(f"Geração de imagem disparada em background para '{chave}'")
+        except Exception as e:
+            log.warning(f"Falha ao disparar geração de assets para '{chave}': {e}")
+
         return dados
 
     except Exception as e:
