@@ -29,7 +29,18 @@ fi
 mkdir -p "$BACKUP_DIR"
 
 # ── Backup com VACUUM INTO (snapshot atômico e consistente) ───────────────────
-sqlite3 "$DB_PATH" "VACUUM INTO '$BACKUP_FILE';"
+# Usa sqlite3 CLI se disponível, senão fallback para Python stdlib
+if command -v sqlite3 &>/dev/null; then
+    sqlite3 "$DB_PATH" "VACUUM INTO '$BACKUP_FILE';"
+else
+    python3 -c "
+import sqlite3, sys
+src, dst = sys.argv[1], sys.argv[2]
+src_conn = sqlite3.connect(src)
+src_conn.execute(\"VACUUM INTO '\" + dst + \"'\")
+src_conn.close()
+" "$DB_PATH" "$BACKUP_FILE"
+fi
 
 SIZE="$(du -h "$BACKUP_FILE" | cut -f1)"
 echo "[OK] Backup: $BACKUP_FILE ($SIZE)"
