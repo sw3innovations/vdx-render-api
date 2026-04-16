@@ -1,14 +1,21 @@
+"""Schemas Pydantic do pipeline de render — request e response do VDX Glass Engine."""
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from enum import Enum
+from app.models._limits import DIMENSAO_MIN_MM, DIMENSAO_MAX_MM, ESPESSURA_MIN_MM, ESPESSURA_MAX_MM
 
 
 class Formato(str, Enum):
+    """Formato de saída do render."""
+
     svg = "svg"
-    # png e pdf = fase 2
+    png = "png"
+    pdf = "pdf"
 
 
 class Layout(str, Enum):
+    """Algoritmo de layout para posicionamento das peças no canvas."""
+
     auto = "auto"
     paralelas = "paralelas"
     bandeira_topo = "bandeira_topo"
@@ -20,17 +27,23 @@ class Layout(str, Enum):
 
 
 class Tema(str, Enum):
+    """Tema visual do SVG gerado."""
+
     tecnico = "tecnico"   # azul técnico VDX
     clean = "clean"       # preto e branco
 
 
 class TipoVisual(str, Enum):
+    """Representação gráfica da ferragem no desenho técnico."""
+
     linha_h = "linha_h"       # linha horizontal (bate-fecha, trinco)
     circulo = "circulo"       # círculo com crosshair (puxador)
     retangulo = "retangulo"   # pequeno retângulo (dobradiça, fechadura)
 
 
 class FerragemInput(BaseModel):
+    """Ferragem informada pelo cliente na request — posicionamento pode ser inferido pela IA."""
+
     tipo: str                              # "bate_fecha"|"puxador"|"dobradica"|"trinco"|"fechadura"
     nome: Optional[str] = None
     posicao_y_mm: Optional[float] = None  # None → Claude infere
@@ -39,6 +52,8 @@ class FerragemInput(BaseModel):
 
 
 class FerragemEnriquecida(BaseModel):
+    """Ferragem após enriquecimento com posição calculada e tipo visual resolvido."""
+
     tipo: str
     nome: Optional[str] = None
     posicao_y_mm: float
@@ -48,19 +63,35 @@ class FerragemEnriquecida(BaseModel):
 
 
 class PuxadorInput(BaseModel):
+    """Especificação explícita do puxador enviada pelo frontend."""
+
     tipo_furacao: str           # "EIXO_600", "EIXO_300", "PUXADOR_UM_FURO"
     eixo_mm: Optional[float] = None  # distância entre furos (ex: 600, 300)
 
 
 class PecaInput(BaseModel):
+    """Peça de vidro com dimensões e ferragens a renderizar."""
+
     nome: str
-    largura_mm: float
-    altura_mm: float
+    largura_mm: float = Field(
+        ...,
+        ge=DIMENSAO_MIN_MM,
+        le=DIMENSAO_MAX_MM,
+        description=f"Largura em mm ({DIMENSAO_MIN_MM}–{DIMENSAO_MAX_MM})",
+    )
+    altura_mm: float = Field(
+        ...,
+        ge=DIMENSAO_MIN_MM,
+        le=DIMENSAO_MAX_MM,
+        description=f"Altura em mm ({DIMENSAO_MIN_MM}–{DIMENSAO_MAX_MM})",
+    )
     ferragens: List[FerragemInput] = []
     puxador: Optional[PuxadorInput] = None  # puxador explícito do frontend
 
 
 class PecaEnriquecida(BaseModel):
+    """Peça após resolução de ferragens pela Constitution ou pela IA."""
+
     nome: str
     largura_mm: float
     altura_mm: float
@@ -68,6 +99,8 @@ class PecaEnriquecida(BaseModel):
 
 
 class Opcoes(BaseModel):
+    """Opções visuais do SVG gerado."""
+
     tema: Tema = Tema.tecnico
     mostrar_cotas: bool = True
     mostrar_nome_peca: bool = True
@@ -77,16 +110,41 @@ class Opcoes(BaseModel):
 
 
 class RenderRequest(BaseModel):
+    """Body da request POST /render — peças + opções de saída."""
+
     formato: Formato = Formato.svg
     tipologia_nome: str = ""
     layout: Layout = Layout.auto
     pecas: List[PecaInput]
     opcoes: Opcoes = Opcoes()
-    espessura_vidro_mm: Optional[float] = None   # espessura do vidro (ex: 8.0, 10.0)
+    espessura_vidro_mm: Optional[float] = Field(
+        None,
+        ge=ESPESSURA_MIN_MM,
+        le=ESPESSURA_MAX_MM,
+        description=f"Espessura do vidro em mm ({ESPESSURA_MIN_MM}–{ESPESSURA_MAX_MM})",
+    )  # ex: 8.0, 10.0
     tipo_vidro: Optional[str] = None             # "temperado"|"laminado"|"aramado"|"comum"
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "tipologia_nome": "porta_pivotante_simples",
+                    "layout": "auto",
+                    "pecas": [
+                        {"nome": "Porta", "largura_mm": 900, "altura_mm": 2100}
+                    ],
+                    "espessura_vidro_mm": 8.0,
+                    "tipo_vidro": "temperado",
+                }
+            ]
+        }
+    }
 
 
 class FerragemPosicionada(BaseModel):
+    """Ferragem com coordenadas absolutas no desenho técnico (mm)."""
+
     codigo: Optional[str] = None
     nome: str
     tipo: str
@@ -98,6 +156,8 @@ class FerragemPosicionada(BaseModel):
 
 
 class PecaRenderizada(BaseModel):
+    """Peça após render completo — classificação e ferragens posicionadas."""
+
     nome: str
     largura_mm: float
     altura_mm: float
@@ -106,6 +166,8 @@ class PecaRenderizada(BaseModel):
 
 
 class KitFerragem(BaseModel):
+    """Kit de ferragens recomendado para a tipologia renderizada."""
+
     codigo: str
     nome: str
     itens: List[dict] = []
@@ -113,6 +175,8 @@ class KitFerragem(BaseModel):
 
 
 class RegrasInterativas(BaseModel):
+    """Parâmetros para o componente interativo de ajuste de puxador no frontend."""
+
     puxador_centro_y_mm: Optional[float] = None
     puxador_centro_x_mm: Optional[float] = None
     formula_puxador: str = "centro_y ± eixo_mm / 2"
@@ -124,6 +188,8 @@ class RegrasInterativas(BaseModel):
 
 
 class RenderResponse(BaseModel):
+    """Resposta do pipeline de render — SVG + metadados + kit de ferragens."""
+
     svg: str
     pecas: List[PecaRenderizada] = []
     kit: Optional[KitFerragem] = None

@@ -1,25 +1,22 @@
-import os
+"""Router de feedback — recebe correções do vidraceiro e aplica à Constitution."""
 import logging
-from fastapi import APIRouter, Header, HTTPException
-from typing import Optional
+from fastapi import APIRouter, Depends, Request
 from app.models.feedback import FeedbackRequest, FeedbackResponse
 from app.services import feedback_service
+from app.core.auth import validate_api_key
+from app.core.limiter import limiter
 
 logger = logging.getLogger(__name__)
-
-_VDX_API_KEY = os.getenv("VDX_API_MASTER_KEY", "")
 
 router = APIRouter(prefix="/api/v1", tags=["feedback"])
 
 
 @router.post("/feedback", response_model=FeedbackResponse)
+@limiter.limit("10/minute")
 async def receber_feedback(
+    request: Request,
     body: FeedbackRequest,
-    x_vdx_key: Optional[str] = Header(None),
+    _auth: None = Depends(validate_api_key),
 ):
-    if not x_vdx_key:
-        raise HTTPException(status_code=401, detail="X-VDX-Key header obrigatório")
-    if _VDX_API_KEY and x_vdx_key != _VDX_API_KEY:
-        raise HTTPException(status_code=403, detail="X-VDX-Key inválida")
-
+    """Recebe correção de fórmula de posicionamento e aplica à Constitution."""
     return feedback_service.processar(body)

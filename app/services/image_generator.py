@@ -1,4 +1,4 @@
-import os
+"""Gerador de imagens realistas — Claude escreve o prompt, SD 1.5 renderiza."""
 import json
 import uuid
 import logging
@@ -7,17 +7,15 @@ from pathlib import Path
 from typing import Optional
 from anthropic import Anthropic, APIError
 from app.core import constitution
+from app.config import settings
 
 log = logging.getLogger(__name__)
 
-UPLOAD_DIR = os.getenv("APP_UPLOAD_DIR", "./uploads")
-IMAGEGEN_VENV = "/home/sw3innovation/vdx-imagegen/bin/python3"
 IMAGEGEN_SCRIPT = Path(__file__).parent.parent.parent / "scripts" / "generate_image.py"
 
 
 def _get_claude():
-    key = os.getenv("ANTHROPIC_API_KEY")
-    return Anthropic(api_key=key) if key else None
+    return Anthropic(api_key=settings.anthropic_api_key) if settings.anthropic_api_key else None
 
 
 def get_cached_image(chave: str) -> Optional[str]:
@@ -83,16 +81,18 @@ async def gerar_imagem(chave: str, tipologia_dados: dict) -> Optional[str]:
     prompt = gerar_prompt_imagem(chave, tipologia_dados)
     log.info(f"Prompt: {prompt[:100]}...")
 
+    upload_dir = settings.app_upload_dir
     filename = f"tipologia_{chave}_{uuid.uuid4().hex[:8]}.png"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    import os
+    filepath = os.path.join(upload_dir, filename)
+    os.makedirs(upload_dir, exist_ok=True)
 
     try:
         import asyncio
         result = await asyncio.get_event_loop().run_in_executor(
             None,
             lambda: subprocess.run(
-                [IMAGEGEN_VENV, str(IMAGEGEN_SCRIPT), prompt, filepath],
+                [settings.imagegen_venv_path, str(IMAGEGEN_SCRIPT), prompt, filepath],
                 capture_output=True, text=True, timeout=300
             )
         )
@@ -122,7 +122,7 @@ async def gerar_imagem(chave: str, tipologia_dados: dict) -> Optional[str]:
         return None
 
 
-def invalidar_cache_imagem(chave: str):
+def invalidar_cache_imagem(chave: str) -> None:
     conn = constitution._get_conn()
     conn.execute(
         "DELETE FROM constitution_entries WHERE tipo='tipologia_imagem' AND chave=?",

@@ -1,10 +1,13 @@
+"""Router de sincronização de tipologias — via Claude para atualizar a Constitution."""
 import asyncio
 import logging
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from typing import Optional
 from app.core.normalizer import normalizar_tipologia
 from app.services import claude_teacher, preview_generator, image_generator
+from app.core.auth import validate_api_key
+from app.core.limiter import limiter
 
 log = logging.getLogger(__name__)
 
@@ -12,11 +15,15 @@ router = APIRouter(prefix="/api/v1", tags=["tipologia-sync"])
 
 
 class SyncRequest(BaseModel):
+    """Request para sincronizar/descobrir uma tipologia."""
+
     nome: str
     id: Optional[int] = None
 
 
 class SyncResponse(BaseModel):
+    """Resultado da sincronização de tipologia."""
+
     chave: str
     status: str  # "existente", "nova_claude", "erro"
     preview_svg: bool = False
@@ -24,17 +31,16 @@ class SyncResponse(BaseModel):
 
 
 @router.post("/tipologia/sync", response_model=SyncResponse)
+@limiter.limit("10/minute")
 async def sync_tipologia(
-    request: SyncRequest,
-    x_vdx_key: str = Header(None, alias="X-VDX-Key"),
+    request: Request,
+    body: SyncRequest,
+    _auth: None = Depends(validate_api_key),
 ):
-    if not x_vdx_key:
-        raise HTTPException(status_code=401, detail="X-VDX-Key obrigatório")
-
-    chave, dados = normalizar_tipologia(request.nome)
+    """Sincroniza tipologia — usa Constitution se conhecida, Claude Teacher se nova."""
+    chave, dados = normalizar_tipologia(body.nome)
 
     if dados:
-        # Já existe na Constitution
         has_preview = preview_generator.get_cached_preview(chave) is not None
         has_image = image_generator.get_cached_image(chave) is not None
 
@@ -59,21 +65,20 @@ async def sync_tipologia(
         )
 
     else:
-        # Nova tipologia — Claude resolve e já dispara assets
         pecas_dummy = [{"nome": "Peça 1", "largura_mm": 1000, "altura_mm": 2000}]
         resultado = await claude_teacher.resolver_tipologia_desconhecida(
-            request.nome, pecas_dummy
+            body.nome, pecas_dummy
         )
 
         if resultado:
             return SyncResponse(
-                chave=chave or request.nome.lower().replace(" ", "_"),
+                chave=chave or body.nome.lower().replace(" ", "_"),
                 status="nova_claude",
                 preview_svg=True,
                 imagem="gerando",
             )
 
         return SyncResponse(
-            chave=chave or request.nome.lower().replace(" ", "_"),
+            chave=chave or body.nome.lower().replace(" ", "_"),
             status="erro",
         )

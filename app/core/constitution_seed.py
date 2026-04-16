@@ -1,12 +1,17 @@
 """
-Seed da Constitution Vidros — migra conhecimento hardcoded para o DB.
-Idempotente via ON CONFLICT — seguro rodar multiplas vezes.
+Seed da Constitution Vidros — conhecimento base de tipologias VDX.
+Idempotente via ON CONFLICT — seguro rodar múltiplas vezes.
+Assume que init_db() já rodou (chamado por main.py::startup_event, após init_db).
 """
-from app.core.constitution import init_db, registrar, registrar_alias
+import logging
+
+from app.core.constitution import registrar, registrar_alias
+
+log = logging.getLogger(__name__)
 
 
 def seed():
-    init_db()
+    # Assume que init_db() já rodou — não chamar aqui.
 
     # ═══ TIPOLOGIAS ═══
 
@@ -558,6 +563,71 @@ def seed():
         "normas": [{"nbr": "NBR 7199:2016", "espessura_min_mm": 6}]
     }, origem="catalogo_glasspecas", confianca=1.0)
 
+    # Porta de abrir — mesmas ferragens que porta pivotante simples
+    registrar("porta_abrir", tipo="tipologia", dados={
+        "nome_display": "Porta de Abrir",
+        "classificacao_pecas": {
+            "porta": "movel", "folha": "movel", "fixo": "fixa"
+        },
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                 "y_formula": "altura - 50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "y_formula": "50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1520", "nome": "Fechadura Central", "tipo": "fechadura",
+                 "y_formula": "altura * 0.50", "x_formula": "largura - 15",
+                 "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+            "puxador_config": {
+                "y_formula": "altura * 0.50", "x_formula": "largura - 35",
+                "lado": "direito", "aceita_eixo": True
+            }
+        },
+        "kit": {
+            "codigo": "KIT_01", "nome": "Kit Porta de Abrir",
+            "itens": [
+                {"codigo": "1101", "nome": "Dobradiça superior", "qtd": 1},
+                {"codigo": "1103", "nome": "Dobradiça inferior", "qtd": 1},
+                {"codigo": "1520", "nome": "Fechadura central", "qtd": 1},
+            ],
+            "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "espessura_min_mm": 8, "espessura_rec_mm": 10}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
+    # Vitrine — painel fixo comercial sem ferragens ativas
+    registrar("vitrine", tipo="tipologia", dados={
+        "nome_display": "Vitrine",
+        "classificacao_pecas": {
+            "painel": "fixa", "vidro": "fixa", "fixo": "fixa", "porta": "movel"
+        },
+        "ferragens_por_peca": {
+            "movel": [
+                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                 "y_formula": "altura - 50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "y_formula": "50", "x_formula": "15",
+                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                {"codigo": "1520", "nome": "Fechadura Central", "tipo": "fechadura",
+                 "y_formula": "altura * 0.50", "x_formula": "largura - 15",
+                 "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
+            ],
+        },
+        "kit": {
+            "codigo": "NENHUM", "nome": "Sem kit padrão — configuração sob medida",
+            "itens": [], "puxador_separado": True
+        },
+        "normas": [
+            {"nbr": "NBR 7199:2016", "espessura_min_mm": 8}
+        ]
+    }, origem="catalogo_glasspecas", confianca=1.0)
+
     # ═══ ALIASES ═══
     aliases_tipologia = {
         "porta_pivotante_simples": ["porta_pivotante", "pivotante_simples", "porta_de_vidro_pivotante"],
@@ -588,6 +658,9 @@ def seed():
         "box_frontal_2_folhas": ["box_de_banheiro"],
         "janela_basculante": ["janela_basculante_simples"],
         "porta_correr_3_folhas": ["porta_tres_folhas"],
+        "porta_abrir": ["porta_abrir", "porta_de_abrir", "abrir", "porta_vai_vem",
+                        "vai_vem", "porta_vaivem"],
+        "vitrine": ["vitrine", "vitrina", "frente_de_loja", "fachada_loja"],
     }
     for canonical, alias_list in aliases_tipologia.items():
         registrar_alias(canonical, canonical, "tipologia")
@@ -605,7 +678,7 @@ def seed():
         for alias in alias_list:
             registrar_alias(alias, canonical, "classificacao_peca")
 
-    print("Seed completo. Entries e aliases registrados.")
+    log.info("Seed completo. Entries e aliases registrados.")
 
 
 if __name__ == "__main__":

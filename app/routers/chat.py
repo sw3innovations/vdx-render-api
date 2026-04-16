@@ -2,18 +2,17 @@
 POST /api/v1/chat — Consultor técnico via Claude + Constitution.
 Modo público: sem autenticação de usuário, requer X-VDX-Key.
 """
-import os
 import logging
 from typing import Optional
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from app.core.limiter import limiter
 from app.core import constitution
 from app.core.normalizer import normalizar_tipologia
+from app.core.auth import validate_api_key
+from app.config import settings
 
 log = logging.getLogger(__name__)
-
-_VDX_API_KEY = os.getenv("VDX_API_MASTER_KEY", "")
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
 
@@ -46,12 +45,11 @@ class ChatResponse(BaseModel):
 
 
 def _get_anthropic_client():
-    key = os.getenv("ANTHROPIC_API_KEY")
-    if not key:
+    if not settings.anthropic_api_key:
         return None
     try:
         from anthropic import Anthropic
-        return Anthropic(api_key=key)
+        return Anthropic(api_key=settings.anthropic_api_key)
     except ImportError:
         return None
 
@@ -103,13 +101,9 @@ def _sugestoes_followup(resposta: str) -> list[str]:
 async def chat_endpoint(
     request: Request,
     body: ChatRequest,
-    x_vdx_key: Optional[str] = Header(None),
+    _auth: None = Depends(validate_api_key),
 ):
-    if not x_vdx_key:
-        raise HTTPException(status_code=401, detail="X-VDX-Key header obrigatório")
-    if _VDX_API_KEY and x_vdx_key != _VDX_API_KEY:
-        raise HTTPException(status_code=403, detail="X-VDX-Key inválida")
-
+    """Consulta o assistente técnico especializado em vidraçaria brasileira."""
     client = _get_anthropic_client()
     if not client:
         return ChatResponse(

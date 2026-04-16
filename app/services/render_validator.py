@@ -5,7 +5,6 @@ Se encontrar erro, corrige a Constitution. Próxima vez sai certo sem IA.
 """
 import json
 import logging
-import os
 
 from app.core import constitution
 from app.models.render import FerragemPosicionada, PecaRenderizada
@@ -117,10 +116,17 @@ Se tudo estiver correto, retorne {{"valido": true, "erros": []}}
             messages=[{"role": "user", "content": prompt}],
         )
         raw = message.content[0].text.strip()
+        # Strip markdown code fences (handles ```json, ```, etc.)
         if raw.startswith("```"):
             raw = "\n".join(raw.split("\n")[1:])
-        if raw.endswith("```"):
-            raw = "\n".join(raw.split("\n")[:-1])
+        if "```" in raw:
+            raw = raw[:raw.rfind("```")]
+        raw = raw.strip()
+        # Extract first JSON object even if Claude added trailing text
+        import re as _re
+        m = _re.search(r'\{.*\}', raw, _re.DOTALL)
+        if m:
+            raw = m.group(0)
 
         resultado = json.loads(raw)
 
@@ -155,9 +161,10 @@ Se tudo estiver correto, retorne {{"valido": true, "erros": []}}
 
 
 def _get_client():
-    key = os.getenv("ANTHROPIC_API_KEY")
-    if not key:
+    from app.config import settings
+    if not settings.anthropic_api_key:
         return None
+    key = settings.anthropic_api_key
     try:
         from anthropic import Anthropic
         return Anthropic(api_key=key)

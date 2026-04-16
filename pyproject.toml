@@ -1,0 +1,30 @@
+[project]
+name = "vdx-glass-engine"
+version = "2.0.0"
+description = "Motor de inteligência visual para vidraçaria — desenho técnico SVG, 3D interativo e pipeline de exportação"
+requires-python = ">=3.11"
+readme = "README.md"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "--tb=short -q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+exclude = ["app/_deprecated", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # line too long — handled by formatter
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = ["app/_deprecated", ".venv"]

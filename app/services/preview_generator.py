@@ -1,3 +1,4 @@
+"""Gerador e cache de previews SVG animados — renderizados por Claude Sonnet."""
 import asyncio
 import json
 import os
@@ -10,8 +11,8 @@ log = logging.getLogger(__name__)
 
 
 def _get_client():
-    key = os.getenv("ANTHROPIC_API_KEY")
-    return Anthropic(api_key=key) if key else None
+    from app.config import settings
+    return Anthropic(api_key=settings.anthropic_api_key) if settings.anthropic_api_key else None
 
 
 def get_cached_preview(chave: str) -> str:
@@ -296,7 +297,7 @@ async def gerar_preview_async(chave: str, tipologia_dados: dict) -> str:
     return await loop.run_in_executor(None, gerar_preview, chave, tipologia_dados)
 
 
-def invalidar_cache(chave: str):
+def invalidar_cache(chave: str) -> None:
     conn = constitution._get_conn()
     conn.execute("DELETE FROM constitution_entries WHERE tipo='preview' AND chave=?", (chave,))
     conn.commit()

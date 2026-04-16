@@ -7,3 +7,12 @@ venv/
 dist/
 .pytest_cache/
 data/
+logs/
+uploads/
+
+# Node
+node_modules/
+.next/
+frontend/.env.local
+*.tsbuildinfo
+frontend/sdk/dist/

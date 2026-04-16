@@ -1,21 +1,25 @@
-from fastapi import APIRouter, Header, HTTPException, Query
+"""Router de previews — serve SVG animado e listagem de tipologias."""
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from app.core.normalizer import normalizar_tipologia
 from app.services import preview_generator
 from app.core.constitution import listar_entries, buscar
+from app.core.auth import validate_api_key
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/api/v1", tags=["preview"])
 
 
 @router.get("/tipologia/{chave}/preview")
+@limiter.limit("60/minute")
 async def preview_tipologia(
+    request: Request,
     chave: str,
     regenerar: bool = Query(False, description="Forçar regeneração"),
     highlight: str = Query(None, description="Nome da peça pra destacar"),
-    x_vdx_key: str = Header(None, alias="X-VDX-Key"),
+    _auth: None = Depends(validate_api_key),
 ):
-    if not x_vdx_key:
-        raise HTTPException(status_code=401, detail="X-VDX-Key obrigatório")
+    """Retorna SVG animado do preview de uma tipologia."""
     chave_norm, dados = normalizar_tipologia(chave)
     if not dados:
         raise HTTPException(status_code=404, detail=f"Tipologia '{chave}' não encontrada")
@@ -30,32 +34,44 @@ async def preview_tipologia(
 
 
 @router.get("/tipologias/previews")
+@limiter.limit("30/minute")
 async def listar_previews(
-    x_vdx_key: str = Header(None, alias="X-VDX-Key"),
+    request: Request,
+    page: int = Query(1, ge=1, description="Número da página"),
+    per_page: int = Query(20, ge=1, le=100, description="Itens por página"),
+    _auth: None = Depends(validate_api_key),
 ):
-    if not x_vdx_key:
-        raise HTTPException(status_code=401, detail="X-VDX-Key obrigatório")
+    """Lista previews de tipologias disponíveis com paginação."""
     entries = listar_entries(tipo="tipologia")
-    resultado = []
+    all_items = []
     for e in entries:
         entry = buscar(e["chave"], tipo="tipologia")
         if entry:
             has_cache = preview_generator.get_cached_preview(e["chave"]) is not None
-            resultado.append({
+            all_items.append({
                 "chave": e["chave"],
                 "nome": entry["dados"].get("nome_display", e["chave"]),
                 "preview_url": f"/api/v1/tipologia/{e['chave']}/preview",
-                "cached": has_cache
+                "cached": has_cache,
             })
-    return resultado
+    total = len(all_items)
+    start = (page - 1) * per_page
+    return {
+        "items": all_items[start:start + per_page],
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": max(1, (total + per_page - 1) // per_page),
+    }
 
 
 @router.post("/tipologias/previews/regenerar")
+@limiter.limit("5/minute")
 async def regenerar_todos(
-    x_vdx_key: str = Header(None, alias="X-VDX-Key"),
+    request: Request,
+    _auth: None = Depends(validate_api_key),
 ):
-    if not x_vdx_key:
-        raise HTTPException(status_code=401, detail="X-VDX-Key obrigatório")
+    """Invalida e regenera os previews SVG de todas as tipologias cadastradas."""
     entries = listar_entries(tipo="tipologia")
     resultados = []
     for e in entries:
@@ -66,6 +82,6 @@ async def regenerar_todos(
             resultados.append({
                 "chave": e["chave"],
                 "bytes": len(svg),
-                "status": "ok" if "<svg" in svg else "fallback"
+                "status": "ok" if "<svg" in svg else "fallback",
             })
     return {"total": len(resultados), "previews": resultados}
