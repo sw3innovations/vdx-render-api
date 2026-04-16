@@ -370,6 +370,7 @@ window.addEventListener("load", () => {{
   loadScene(SCENE);
   animate();
   document.getElementById("loading").style.display = "none";
+  if (animatables.length === 0) document.getElementById("btn-door").style.display = "none";
 }});
 
 // ── Three.js setup ────────────────────────────────────────────────────────
@@ -584,7 +585,6 @@ function createHardware(f) {{
 
   const mesh = new THREE.Mesh(geom, mat);
   mesh.position.set(f.posicao.x, f.posicao.y, f.posicao.z);
-  if (g.tipo === "cylinder" && f.tipo === "puxador") mesh.rotation.z = Math.PI/2;
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
@@ -610,11 +610,13 @@ function createWall(vao) {{
     return m;
   }}
 
+  const sillH = 25;
   const grp = new THREE.Group();
   grp.add(box(wallThick, wallH, -(halfVW + wallThick/2), wallH/2));
   grp.add(box(wallThick, wallH,  (halfVW + wallThick/2), wallH/2));
   const lintelH = Math.max(80, wallH - vao.altura);
   grp.add(box(vao.largura + wallThick*2, lintelH, 0, vao.altura + lintelH/2));
+  grp.add(box(vao.largura, sillH, 0, -sillH/2));
   return grp;
 }}
 

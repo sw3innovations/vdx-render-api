@@ -23,12 +23,12 @@ def seed():
         },
         "ferragens_por_peca": {
             "movel": [
-                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                {"codigo": "1201", "nome": "Pivô Superior", "tipo": "pivo",
                  "y_formula": "altura - 50", "x_formula": "15",
-                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
-                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "padrao_sm"},
+                {"codigo": "1013", "nome": "Pivô Inferior", "tipo": "pivo",
                  "y_formula": "50", "x_formula": "15",
-                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "padrao_sm"},
                 {"codigo": "1520", "nome": "Fechadura Central", "tipo": "fechadura",
                  "y_formula": "altura * 0.50", "x_formula": "largura - 15",
                  "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
@@ -37,7 +37,8 @@ def seed():
                 "y_formula": "altura * 0.50",
                 "x_formula": "largura - 35",
                 "lado": "direito",
-                "aceita_eixo": True
+                "aceita_eixo": True,
+                "default": {"codigo": "1502", "nome": "Puxador Barra", "visual": "barra"}
             }
         },
         "kit": {
@@ -65,19 +66,20 @@ def seed():
         },
         "ferragens_por_peca": {
             "movel": [
-                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                {"codigo": "1201", "nome": "Pivô Superior", "tipo": "pivo",
                  "y_formula": "altura - 50", "x_formula": "15",
-                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
-                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "padrao_sm"},
+                {"codigo": "1013", "nome": "Pivô Inferior", "tipo": "pivo",
                  "y_formula": "50", "x_formula": "15",
-                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "padrao_sm"},
                 {"codigo": "1520", "nome": "Fechadura Central", "tipo": "fechadura",
                  "y_formula": "altura * 0.50", "x_formula": "largura - 15",
                  "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
             ],
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 35",
-                "lado": "direito", "aceita_eixo": True
+                "lado": "direito", "aceita_eixo": True,
+                "default": {"codigo": "1502", "nome": "Puxador Barra", "visual": "barra"}
             }
         },
         "kit": {
@@ -358,19 +360,20 @@ def seed():
         },
         "ferragens_por_peca": {
             "movel": [
-                {"codigo": "1101", "nome": "Dobradiça Superior", "tipo": "dobradica",
+                {"codigo": "1201", "nome": "Pivô Superior", "tipo": "pivo",
                  "y_formula": "altura - 50", "x_formula": "15",
-                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
-                {"codigo": "1103", "nome": "Dobradiça Inferior", "tipo": "dobradica",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "padrao_sm"},
+                {"codigo": "1013", "nome": "Pivô Inferior", "tipo": "pivo",
                  "y_formula": "50", "x_formula": "15",
-                 "lado": "esquerdo", "visual": "retangulo", "recorte": "padrao_sm"},
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "padrao_sm"},
                 {"codigo": "1520", "nome": "Fechadura Central", "tipo": "fechadura",
                  "y_formula": "altura * 0.50", "x_formula": "largura - 15",
                  "lado": "direito", "visual": "retangulo", "recorte": "padrao_sm"},
             ],
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 35",
-                "lado": "direito", "aceita_eixo": True
+                "lado": "direito", "aceita_eixo": True,
+                "default": {"codigo": "1502", "nome": "Puxador Barra", "visual": "barra"}
             }
         },
         "kit": {

@@ -185,13 +185,13 @@ class TestFerragens3D:
         for f in s["ferragens"]:
             assert f["posicao"]["z"] != 0.0, f"Ferragem '{f['nome']}' está em z=0 (dentro do vidro)"
 
-    def test_material_cromado_dobradica(self):
+    def test_material_cromado_pivo(self):
         s = _scene("porta_pivotante_simples")
-        dobradicas = [f for f in s["ferragens"] if f["tipo"] == "dobradica"]
-        assert len(dobradicas) >= 2
-        mat = dobradicas[0]["material"]
-        assert mat["metalness"] >= 0.9, f"Dobradiça metalness baixo: {mat['metalness']}"
-        assert mat["roughness"] <= 0.2, f"Dobradiça roughness alto: {mat['roughness']}"
+        pivos = [f for f in s["ferragens"] if f["tipo"] == "pivo"]
+        assert len(pivos) >= 2, f"Esperava >= 2 pivôs, obteve: {[f['tipo'] for f in s['ferragens']]}"
+        mat = pivos[0]["material"]
+        assert mat["metalness"] >= 0.9, f"Pivô metalness baixo: {mat['metalness']}"
+        assert mat["roughness"] <= 0.2, f"Pivô roughness alto: {mat['roughness']}"
 
     def test_geometria_presente(self):
         s = _scene("porta_pivotante_simples")
