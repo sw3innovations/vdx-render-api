@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --vdx-primary: #1a5276;
+  --vdx-bg: #F5F2EE;
+}
+
+body {
+  background: var(--vdx-bg);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
