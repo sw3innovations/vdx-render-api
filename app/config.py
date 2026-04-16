@@ -15,6 +15,18 @@ _log = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).parent.parent
 
+# Carrega variáveis do arquivo .env sem sobrescrever o que já está no ambiente
+# (systemd Environment= tem prioridade; .env é fallback para vars não definidas)
+_env_file = _ROOT / ".env"
+if _env_file.exists():
+    with open(_env_file) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                if _k not in os.environ:
+                    os.environ[_k] = _v
+
 
 def _env(key: str, default: str = "") -> str:
     return os.getenv(key, default)
