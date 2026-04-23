@@ -302,18 +302,87 @@ class TestSmartVisionEndpoints:
 
     def test_photo_router_registrado(self, client):
         """Rota está registrada no app."""
-        # OpenAPI deve listar o endpoint
         resp = client.get("/openapi.json")
         assert resp.status_code == 200
         paths = resp.json()["paths"]
         assert "/api/v1/smart/photo-to-project" in paths
         assert "/api/v1/smart/sketch-to-project" in paths
+        assert "/api/v1/smart/text-to-project" in paths
 
 
-# ── 3. Dual-engine tests (Ollama local + Claude API fallback) ─────────────────
+# ── 3. Endpoint text-to-project ──────────────────────────────────────────────
+
+class TestTextToProjectEndpoint:
+    """Testa POST /api/v1/smart/text-to-project."""
+
+    _DESCRICAO = "Porta pivotante de vidro verde 8mm, vão de 90cm por 210cm, puxador tubular"
+
+    def _mock_texto_available(self, monkeypatch):
+        from app.routers import smart_vision as sv
+        fake_result = VisionResult(
+            tipologia_sugerida="porta_pivotante_simples",
+            largura_mm=900,
+            altura_mm=2100,
+            tipo_abertura="pivotante",
+            num_folhas=1,
+            espessura_vidro_mm=8,
+            cor_vidro="verde",
+            observacoes="mock texto",
+            confianca=0.85,
+            raw=_valid_vision_json(),
+            engine="gemma3_local",
+        )
+        monkeypatch.setattr(sv._vision, "_disponivel", True)
+        monkeypatch.setattr(
+            sv._vision,
+            "analisar_descricao_texto",
+            lambda desc, contexto="": fake_result,
+        )
+        return fake_result
+
+    def test_text_sem_auth_401(self, client):
+        resp = client.post(
+            "/api/v1/smart/text-to-project",
+            json={"descricao": self._DESCRICAO},
+        )
+        assert resp.status_code == 401
+
+    def test_text_body_vazio_422(self, client):
+        resp = client.post("/api/v1/smart/text-to-project", json={}, headers=_HEADERS)
+        assert resp.status_code == 422
+
+    def test_text_503_quando_engine_indisponivel(self, client, monkeypatch):
+        from app.routers import smart_vision as sv
+        monkeypatch.setattr(sv._vision, "_disponivel", False)
+        resp = client.post(
+            "/api/v1/smart/text-to-project",
+            json={"descricao": self._DESCRICAO},
+            headers=_HEADERS,
+        )
+        assert resp.status_code == 503
+
+    def test_text_pipeline_200(self, client, monkeypatch):
+        """Pipeline completo retorna 200 com SmartProjectResponse válido."""
+        self._mock_texto_available(monkeypatch)
+        resp = client.post(
+            "/api/v1/smart/text-to-project",
+            json={"descricao": self._DESCRICAO, "fabricante": "HE"},
+            headers=_HEADERS,
+        )
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert body["analise"]["tipologia_sugerida"] == "porta_pivotante_simples"
+        assert body["analise"]["confianca"] == 0.85
+        assert body["svg"].startswith("<")
+        assert "scene" in body and body["scene"]["dimensoes"]["largura"] > 0
+        assert isinstance(body["pecas"], list)
+        assert body["engine"] == "gemma3_local"
+
+
+# ── 4. Dual-engine tests (Ollama local + Claude API fallback) ─────────────────
 
 class TestDualEngine:
-    """Testa a orquestração dual-engine: Ollama primário, Claude fallback."""
+    """Testa a orquestração tri-engine: Moondream/Gemma3 primário, Claude fallback."""
 
     def _fresh_svc(self) -> VisionService:
         """Cria VisionService com Claude configurado (via mock) para testes."""
@@ -324,14 +393,14 @@ class TestDualEngine:
         return svc
 
     def test_usa_ollama_quando_disponivel(self):
-        """Ollama up + retorno válido → engine='ollama_local' e Claude NÃO é chamado."""
+        """Moondream up + retorno válido → engine='moondream_local' e Claude NÃO é chamado."""
         svc = self._fresh_svc()
         ollama_text = json.dumps(_valid_vision_json())
         with patch.object(svc, "_check_ollama", return_value=True), \
              patch.object(svc, "_analisar_via_ollama", return_value=ollama_text) as m_ollama, \
              patch.object(svc, "_analisar_via_claude") as m_claude:
             res = svc.analisar_foto_vao(_PNG_1x1, contexto="cozinha")
-            assert res.engine == "ollama_local"
+            assert res.engine == "moondream_local"
             assert res.tipologia_sugerida == "porta_pivotante_simples"
             assert m_ollama.called
             assert not m_claude.called
@@ -415,3 +484,113 @@ class TestDualEngine:
         )
         assert resp.status_code == 200, resp.text
         assert resp.json().get("engine") == "ollama_local"
+
+
+# ── 4. Tri-engine: texto (Gemma3 local + Claude fallback) ─────────────────────
+
+class TestTriEngine:
+    """Testa o pipeline de texto (analisar_descricao_texto): Gemma3 → Claude."""
+
+    def _fresh_svc(self) -> VisionService:
+        svc = VisionService()
+        svc._client = MagicMock()
+        svc._claude_ok = True
+        svc._disponivel = None
+        return svc
+
+    def test_gemma3_texto_quando_disponivel(self):
+        """Gemma3 up + JSON válido → engine='gemma3_local', Claude não chamado."""
+        svc = self._fresh_svc()
+        texto_json = json.dumps(_valid_vision_json())
+        with patch.object(svc, "_check_ollama_text", return_value=True), \
+             patch.object(svc, "_analisar_via_ollama_texto", return_value=texto_json) as m_g, \
+             patch.object(svc, "_analisar_via_claude_texto") as m_c:
+            res = svc.analisar_descricao_texto("vão 90cm na sala, porta pivotante")
+            assert res.engine == "gemma3_local"
+            assert res.tipologia_sugerida == "porta_pivotante_simples"
+            assert m_g.called
+            assert not m_c.called
+
+    def test_fallback_claude_texto_quando_gemma3_offline(self):
+        """Gemma3 down → usa Claude texto; engine='claude_api'."""
+        svc = self._fresh_svc()
+        claude_text = json.dumps(_valid_vision_json())
+        with patch.object(svc, "_check_ollama_text", return_value=False), \
+             patch.object(svc, "_analisar_via_ollama_texto") as m_g, \
+             patch.object(svc, "_analisar_via_claude_texto", return_value=claude_text) as m_c:
+            res = svc.analisar_descricao_texto("porta de correr 180cm")
+            assert res.engine == "claude_api"
+            assert not m_g.called
+            assert m_c.called
+
+    def test_fallback_automatico_quando_gemma3_falha(self):
+        """Gemma3 up mas falha → fallback transparente para Claude."""
+        svc = self._fresh_svc()
+        claude_text = json.dumps(_valid_vision_json())
+        with patch.object(svc, "_check_ollama_text", return_value=True), \
+             patch.object(svc, "_analisar_via_ollama_texto", side_effect=RuntimeError("timeout")) as m_g, \
+             patch.object(svc, "_analisar_via_claude_texto", return_value=claude_text) as m_c:
+            res = svc.analisar_descricao_texto("janela basculante cozinha")
+            assert res.engine == "claude_api"
+            assert m_g.called
+            assert m_c.called
+
+    def test_runtime_error_texto_ambos_indisponiveis(self):
+        """Sem Gemma3 e sem Claude → RuntimeError."""
+        svc = VisionService()
+        svc._client = None
+        svc._claude_ok = False
+        svc._disponivel = None
+        with patch.object(svc, "_check_ollama_text", return_value=False):
+            with pytest.raises(RuntimeError):
+                svc.analisar_descricao_texto("porta pivotante 90cm")
+
+    def test_disponivel_texto_com_claude(self):
+        """disponivel_texto=True quando Claude disponível."""
+        svc = VisionService()
+        svc._claude_ok = True
+        svc._disponivel = None
+        assert svc.disponivel_texto is True
+
+    def test_disponivel_texto_sem_engines(self):
+        """disponivel_texto=False sem Claude e sem Gemma3."""
+        svc = VisionService()
+        svc._client = None
+        svc._claude_ok = False
+        svc._disponivel = None
+        with patch.object(svc, "_check_ollama_text", return_value=False):
+            assert svc.disponivel_texto is False
+
+    def test_check_ollama_text_cache(self):
+        """_check_ollama_text deve cachear resultado (1 chamada HTTP)."""
+        svc = VisionService()
+        call_count = {"n": 0}
+
+        def fake_urlopen(req, timeout=3):
+            call_count["n"] += 1
+            raise Exception("down")
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            svc._ollama_text_cache_at = 0.0
+            r1 = svc._check_ollama_text()
+            r2 = svc._check_ollama_text()
+            r3 = svc._check_ollama_text()
+            assert r1 is False and r2 is False and r3 is False
+            assert call_count["n"] == 1
+
+    def test_vision_timeout_cap(self):
+        """_ollama_vision_timeout é sempre <= _OLLAMA_VISION_TIMEOUT_CAP (60s)."""
+        from app.services.vision_service import _OLLAMA_VISION_TIMEOUT_CAP
+        svc = VisionService()
+        assert svc._ollama_vision_timeout <= _OLLAMA_VISION_TIMEOUT_CAP
+        assert svc._ollama_vision_timeout <= 60
+
+    def test_texto_parse_json_com_fence(self):
+        """analisar_descricao_texto suporta resposta com ```json``` fence."""
+        svc = self._fresh_svc()
+        fenced = f"```json\n{json.dumps(_valid_vision_json())}\n```"
+        with patch.object(svc, "_check_ollama_text", return_value=False), \
+             patch.object(svc, "_analisar_via_claude_texto", return_value=fenced):
+            res = svc.analisar_descricao_texto("vão 90cm")
+            assert res.tipologia_sugerida == "porta_pivotante_simples"
+            assert res.largura_mm == 900

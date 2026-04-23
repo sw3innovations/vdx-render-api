@@ -34,6 +34,26 @@ class SketchToProjectRequest(BaseModel):
     espessura_vidro_mm: Optional[float] = Field(None, ge=3, le=25)
 
 
+class TextToProjectRequest(BaseModel):
+    """Descrição verbal do projeto de vidraçaria (sem imagem)."""
+
+    descricao: str = Field(..., min_length=5, max_length=1000, description="Descrição do projeto")
+    fabricante: Optional[str] = Field(None, max_length=50, description="Fabricante preferido (ex: HE, Dorma)")
+    cor_vidro: Optional[str] = Field(None, description="Sobrescreve cor sugerida pela IA")
+    espessura_vidro_mm: Optional[float] = Field(None, ge=3, le=25)
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "descricao": "Porta pivotante de vidro verde 8mm, vão de 90cm por 210cm, puxador tubular",
+                    "fabricante": "HE",
+                }
+            ]
+        }
+    }
+
+
 class VisionAnalysis(BaseModel):
     """Resultado estruturado da análise Claude Vision."""
 

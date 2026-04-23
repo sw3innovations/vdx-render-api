@@ -1,8 +1,9 @@
-"""Router Smart Vision — foto/croqui → projeto completo.
+"""Router Smart Vision — foto/croqui/texto → projeto completo.
 
 Endpoints:
   POST /api/v1/smart/photo-to-project   → analisa foto real de vão
   POST /api/v1/smart/sketch-to-project  → analisa croqui/desenho a mão
+  POST /api/v1/smart/text-to-project    → interpreta descrição textual
 
 Pipeline:
   Claude Vision (VisionService) → VisionResult
@@ -26,6 +27,7 @@ from app.models.vision import (
     PhotoToProjectRequest,
     SketchToProjectRequest,
     SmartProjectResponse,
+    TextToProjectRequest,
     VisionAnalysis,
 )
 from app.renderers.scene_builder import SceneBuilder
@@ -47,6 +49,14 @@ def _require_vision() -> None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Smart Vision indisponível — ANTHROPIC_API_KEY não configurada no servidor",
+        )
+
+
+def _require_vision_texto() -> None:
+    if not _vision.disponivel_texto:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Smart Vision texto indisponível — nenhum engine de texto acessível",
         )
 
 
@@ -208,5 +218,32 @@ async def sketch_to_project(
     except Exception as e:
         log.exception("sketch-to-project: erro ao chamar Claude Vision")
         raise HTTPException(status_code=502, detail=f"Erro Claude Vision: {e}")
+
+    return await _run_pipeline(request, vr, body.cor_vidro, body.espessura_vidro_mm)
+
+
+@router.post("/text-to-project", response_model=SmartProjectResponse)
+@limiter.limit("15/minute")
+async def text_to_project(
+    request: Request,
+    body: TextToProjectRequest,
+    _auth: None = Depends(validate_api_key),
+) -> SmartProjectResponse:
+    """Descrição verbal do projeto → projeto completo (sem necessidade de imagem)."""
+    _require_vision_texto()
+    contexto = f"Fabricante: {body.fabricante}" if body.fabricante else ""
+    log.info(
+        "POST /api/v1/smart/text-to-project descricao_len=%d fabricante=%s",
+        len(body.descricao), body.fabricante or "",
+    )
+    try:
+        vr = _vision.analisar_descricao_texto(body.descricao, contexto=contexto)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Falha ao interpretar descrição: {e}")
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        log.exception("text-to-project: erro ao analisar descrição")
+        raise HTTPException(status_code=502, detail=f"Erro ao analisar descrição: {e}")
 
     return await _run_pipeline(request, vr, body.cor_vidro, body.espessura_vidro_mm)
