@@ -318,7 +318,15 @@ body{{background:#F5F2EE;overflow:hidden;font-family:'Segoe UI',system-ui,sans-s
   <div class="info-row"><span>Ferragens</span><span class="info-val">{n_ferr}</span></div>
 
   <hr>
-  <button id="btn-door" class="btn btn-primary" onclick="toggleDoor()">&#x1F6AA; Abrir porta</button>
+  <button id="toggleBtn" class="btn btn-primary" onclick="toggleDoor()">&#x1F6AA; Abrir porta</button>
+  <div id="angleWrap" style="margin-top:6px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="label" style="margin:0">Ângulo</span>
+      <span id="angleLabel" style="font-size:11px;color:#333;font-weight:600">0°</span>
+    </div>
+    <input type="range" id="angleSlider" min="0" max="90" value="0" step="1"
+      style="width:100%;margin-top:4px;accent-color:#1a5276">
+  </div>
 
   <hr>
   <div class="label">Cor do vidro</div>
@@ -370,7 +378,23 @@ window.addEventListener("load", () => {{
   loadScene(SCENE);
   animate();
   document.getElementById("loading").style.display = "none";
-  if (animatables.length === 0) document.getElementById("btn-door").style.display = "none";
+  if (animatables.length === 0) {{
+    document.getElementById("toggleBtn").style.display = "none";
+    document.getElementById("angleWrap").style.display = "none";
+  }} else {{
+    const slider = document.getElementById("angleSlider");
+    const label  = document.getElementById("angleLabel");
+    slider.addEventListener("input", () => {{
+      const deg = Number(slider.value);
+      label.textContent = deg + "\u00B0";
+      const frac = deg / 90;  // 0..1
+      animatables.forEach(a => {{ a.target = a.openVal * frac; }});
+      const btn = document.getElementById("toggleBtn");
+      isDoorOpen = deg > 0;
+      btn.textContent = isDoorOpen ? "\U0001F6AA Fechar" : "\U0001F6AA Abrir porta";
+      btn.classList.toggle("active", isDoorOpen);
+    }});
+  }}
 }});
 
 // ── Three.js setup ────────────────────────────────────────────────────────
@@ -640,10 +664,14 @@ function animate() {{
 // ── Controles UI ──────────────────────────────────────────────────────────
 window.toggleDoor = function() {{
   isDoorOpen = !isDoorOpen;
-  const btn = document.getElementById("btn-door");
+  const btn = document.getElementById("toggleBtn");
   animatables.forEach(a => {{ a.target = isDoorOpen ? a.openVal : 0; }});
-  btn.textContent = isDoorOpen ? "🚪 Fechar" : "🚪 Abrir porta";
+  btn.textContent = isDoorOpen ? "\U0001F6AA Fechar" : "\U0001F6AA Abrir porta";
   btn.classList.toggle("active", isDoorOpen);
+  // Sync slider to state (90° for open, 0° for closed)
+  const slider = document.getElementById("angleSlider");
+  const label  = document.getElementById("angleLabel");
+  if (slider) {{ slider.value = isDoorOpen ? 90 : 0; label.textContent = (isDoorOpen?90:0)+"\u00B0"; }}
 }};
 
 window.setGlassColor = function(key, el) {{

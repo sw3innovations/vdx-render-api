@@ -144,7 +144,7 @@ CORES_VIDRO: dict[str, dict] = {
         "attenuationDistance": 200,
         "clearcoat": 1.0,
         "clearcoatRoughness": 0.03,
-        "envMapIntensity": 0.5,
+        "envMapIntensity": 0.3,
     },
     "verde": {
         "cor": "#4A7A5B",
@@ -214,7 +214,7 @@ CORES_VIDRO: dict[str, dict] = {
         "attenuationDistance": 150,
         "clearcoat": 1.0,
         "clearcoatRoughness": 0.03,
-        "envMapIntensity": 0.5,
+        "envMapIntensity": 0.3,
     },
 }
 
@@ -367,7 +367,7 @@ class SceneBuilder:
                 "metalness":          vidro_mat_base.get("metalness", 0.0),
                 "clearcoat":          vidro_mat_base.get("clearcoat", 1.0),
                 "clearcoatRoughness": vidro_mat_base.get("clearcoatRoughness", 0.03),
-                "envMapIntensity":    vidro_mat_base.get("envMapIntensity", 0.5),
+                "envMapIntensity":    vidro_mat_base.get("envMapIntensity", 0.3),
                 "attenuationColor":   vidro_mat_base.get("attenuationColor", "#FFFFFF"),
                 "attenuationDistance":vidro_mat_base.get("attenuationDistance", 150),
             }
@@ -484,9 +484,14 @@ class SceneBuilder:
     # ── Vão e ambiente ────────────────────────────────────────────────────────
 
     def _build_vao(self, largura: float, altura: float) -> dict:
+        # Folgas NBR / Glasspeças: movel_alvenaria=5mm (lateral/topo), movel_piso=8mm (base).
+        # Garante que o vidro preenche o vão com folga real (ratio ~98.9%).
+        folga_lat  = 5.0
+        folga_topo = 5.0
+        folga_base = 8.0
         return {
-            "largura":      _r(largura + 60),
-            "altura":       _r(altura + 100),
+            "largura":      _r(largura + 2 * folga_lat),
+            "altura":       _r(altura + folga_topo + folga_base),
             "profundidade": 150,
             "material": {
                 "tipo":      "alvenaria",
