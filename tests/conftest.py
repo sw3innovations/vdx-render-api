@@ -8,6 +8,26 @@ from app.models.render import PecaInput, RenderRequest
 from app.services.render_orchestrator import executar
 
 
+# ── Ambiente de teste ─────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def _force_test_env(monkeypatch):
+    """Força modo dev em runtime: master_key vazia aceita qualquer X-VDX-Key.
+
+    Evita que o .env de produção (VDX_API_MASTER_KEY=vdx-render-prod-2026)
+    invalide os headers hardcoded test-key nos testes de proposal e view_token.
+    Também garante view_token_secret estável para testes de encode/decode.
+    """
+    from app.config import settings
+    monkeypatch.setattr(settings, "vdx_api_master_key", "", raising=False)
+    monkeypatch.setattr(
+        settings,
+        "view_token_secret",
+        "test-secret-32chars-xxxxxxxxxx",
+        raising=False,
+    )
+
+
 # ── DB ────────────────────────────────────────────────────────────────────────
 
 @pytest.fixture(scope="session", autouse=True)
