@@ -20,7 +20,7 @@ from app import __version__
 from app.config import settings
 from app.core.limiter import limiter
 from app.models.error import ErrorResponse, status_to_code
-from app.routers import render, chat, feedback, preview, tipologia_image, tipologia_sync, export, viewer_3d, proposal
+from app.routers import render, chat, feedback, preview, tipologia_image, tipologia_sync, export, viewer_3d, proposal, smart_vision
 from app.core.constitution import init_db
 from app.core.constitution_seed import seed as _constitution_seed
 
@@ -96,6 +96,7 @@ _TAGS_METADATA = [
     {"name": "feedback",        "description": "Correções de fórmulas de posicionamento pelo vidraceiro"},
     {"name": "chat",            "description": "Consultor técnico via Claude + Constitution"},
     {"name": "proposal",        "description": "Geração de proposta comercial em PDF white-label"},
+    {"name": "Smart Vision",     "description": "Foto/croqui para projeto completo via Claude Vision (3D + ferragens + viewer)"},
     {"name": "infra",           "description": "Health check e métricas operacionais"},
 ]
 
@@ -149,6 +150,7 @@ app.include_router(tipologia_sync.router)
 app.include_router(export.router)
 app.include_router(viewer_3d.router)
 app.include_router(proposal.router)
+app.include_router(smart_vision.router)
 
 
 # ─── Middlewares ──────────────────────────────────────────────────────────────
