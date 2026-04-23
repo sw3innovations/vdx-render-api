@@ -61,4 +61,5 @@ class SmartProjectResponse(BaseModel):
     viewer_url: Optional[str] = None
     viewer_token: Optional[str] = None
     viewer_expires_in: Optional[int] = None
+    engine: str = ""
     versao_api: str = "1.0.0"

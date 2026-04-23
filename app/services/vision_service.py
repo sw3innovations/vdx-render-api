@@ -1,14 +1,21 @@
-"""VisionService — Claude Vision para interpretar fotos e croquis de vãos.
+"""VisionService — dual-engine (Ollama local + Claude API fallback).
 
 Transforma imagens (foto de vão ou croqui) em especificações estruturadas
 (tipologia sugerida, dimensões estimadas, tipo de abertura, notas técnicas).
+
+Estratégia:
+  1. Tenta Ollama local (Gemma/Qwen com visão) — custo R$0
+  2. Se Ollama indisponível ou falha, cai no Claude Vision API (fallback)
+  3. Response inclui campo `engine` ("ollama_local" ou "claude_api")
 
 Uso:
     svc = VisionService()
     if svc.disponivel:
         res = svc.analisar_foto_vao(image_base64, contexto="cozinha aberta")
+        print(res.engine)  # "ollama_local" ou "claude_api"
 
-Se ANTHROPIC_API_KEY ausente, `disponivel=False` e chamadas levantam RuntimeError.
+`disponivel=True` se Ollama OU Claude estiverem acessíveis.
+Chamadas levantam RuntimeError somente se AMBOS falharem.
 """
 from __future__ import annotations
 
@@ -16,6 +23,9 @@ import base64
 import json
 import logging
 import re
+import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -23,10 +33,12 @@ from app.config import settings
 
 log = logging.getLogger(__name__)
 
-_MODEL = "claude-sonnet-4-20250514"
+_CLAUDE_MODEL = "claude-sonnet-4-20250514"
 _MAX_TOKENS = 1500
 
-_PROMPT_FOTO = """Você é o VDX Vision — engenheiro de vidraçaria analisando uma FOTO REAL de vão.
+_OLLAMA_CHECK_CACHE_TTL = 60.0  # segundos
+
+_PROMPT_FOTO_TMPL = """Você é o VDX Vision — engenheiro de vidraçaria analisando uma FOTO REAL de vão.
 
 Analise a imagem e retorne APENAS um JSON (sem texto extra, sem markdown) com os campos:
 {
@@ -46,7 +58,7 @@ Contexto adicional do cliente: {CONTEXTO}
 IMPORTANTE: Se não for possível estimar dimensões, use valores típicos da tipologia.
 Retorne SOMENTE o JSON, nada mais."""
 
-_PROMPT_CROQUI = """Você é o VDX Vision — engenheiro lendo um CROQUI/DESENHO A MÃO de projeto de vidraçaria.
+_PROMPT_CROQUI_TMPL = """Você é o VDX Vision — engenheiro lendo um CROQUI/DESENHO A MÃO de projeto de vidraçaria.
 
 Interprete o desenho e retorne APENAS um JSON (sem texto extra, sem markdown):
 {
@@ -80,56 +92,184 @@ class VisionResult:
     observacoes: str
     confianca: float
     raw: dict[str, Any] = field(default_factory=dict)
+    engine: str = ""  # "ollama_local" | "claude_api" | ""
 
 
 class VisionService:
-    """Wrapper do Claude Vision para foto/croqui → spec de projeto."""
+    """Dual-engine: Ollama local primário + Claude API fallback."""
 
     def __init__(self) -> None:
         self._client = None
-        self._disponivel = False
+        self._claude_ok = False
+        # Compat/override. Se setado explicitamente (True/False), sobrepõe a lógica dual.
+        self._disponivel: Optional[bool] = None
+        self._ollama_url = getattr(settings, "ollama_url", "http://localhost:11434").rstrip("/")
+        self._ollama_model = getattr(settings, "ollama_vision_model", "gemma3")
+        self._ollama_timeout = int(getattr(settings, "ollama_timeout_seconds", 60))
+        # cache do status do Ollama
+        self._ollama_cache_at: float = 0.0
+        self._ollama_cache_value: bool = False
+
         if settings.anthropic_api_key:
             try:
                 import anthropic  # type: ignore
                 self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-                self._disponivel = True
+                self._claude_ok = True
             except Exception as e:
                 log.warning("VisionService: falha ao instanciar cliente Anthropic: %s", e)
-                self._disponivel = False
+                self._claude_ok = False
+
+    # ── Status ───────────────────────────────────────────────────────────────
 
     @property
     def disponivel(self) -> bool:
-        return self._disponivel
+        """True se Ollama OU Claude estiverem disponíveis.
+
+        Se `_disponivel` foi setado explicitamente (compat com testes antigos),
+        respeita esse valor.
+        """
+        if self._disponivel is not None:
+            return bool(self._disponivel)
+        return self._claude_ok or self._check_ollama()
+
+    def _check_ollama(self) -> bool:
+        """Verifica se Ollama local está rodando e tem o modelo disponível.
+
+        Cacheia resultado por 60s para evitar checagens excessivas.
+        """
+        now = time.time()
+        if now - self._ollama_cache_at < _OLLAMA_CHECK_CACHE_TTL:
+            return self._ollama_cache_value
+
+        ok = False
+        try:
+            req = urllib.request.Request(f"{self._ollama_url}/api/tags", method="GET")
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                body = resp.read().decode("utf-8", errors="replace")
+                data = json.loads(body)
+                models = [m.get("name", "") for m in data.get("models", []) or []]
+                # match exato ou pelo prefixo (ex: "gemma3" casa com "gemma3:latest")
+                wanted = self._ollama_model
+                ok = any(m == wanted or m.startswith(f"{wanted}:") for m in models)
+                if not ok:
+                    log.info(
+                        "VisionService: Ollama up mas modelo '%s' não encontrado (disponíveis: %s)",
+                        wanted, models,
+                    )
+        except Exception as e:
+            log.debug("VisionService: Ollama indisponível: %s", e)
+            ok = False
+
+        self._ollama_cache_at = now
+        self._ollama_cache_value = ok
+        return ok
 
     # ── Public API ───────────────────────────────────────────────────────────
 
     def analisar_foto_vao(self, image_base64: str, contexto: str = "") -> VisionResult:
-        """Analisa foto real de vão. Levanta RuntimeError se indisponível."""
-        if not self._disponivel:
-            raise RuntimeError("VisionService indisponível — ANTHROPIC_API_KEY não configurada")
-        prompt = _PROMPT_FOTO.replace("{CONTEXTO}", contexto or "nenhum")
-        log.info("VisionService.analisar_foto_vao: contexto_len=%d img_len=%d", len(contexto or ""), len(image_base64))
-        return self._analisar(image_base64, prompt)
+        """Analisa foto real de vão. Levanta RuntimeError se ambos engines indisponíveis."""
+        prompt = self._build_prompt_foto(contexto)
+        log.info(
+            "VisionService.analisar_foto_vao: contexto_len=%d img_len=%d",
+            len(contexto or ""), len(image_base64),
+        )
+        return self._analisar_dual(image_base64, prompt, tipo_input="foto")
 
     def analisar_croqui(self, image_base64: str, notas: str = "") -> VisionResult:
-        """Analisa croqui/desenho a mão. Levanta RuntimeError se indisponível."""
-        if not self._disponivel:
-            raise RuntimeError("VisionService indisponível — ANTHROPIC_API_KEY não configurada")
-        prompt = _PROMPT_CROQUI.replace("{NOTAS}", notas or "nenhuma")
-        log.info("VisionService.analisar_croqui: notas_len=%d img_len=%d", len(notas or ""), len(image_base64))
-        return self._analisar(image_base64, prompt)
+        """Analisa croqui/desenho a mão. Levanta RuntimeError se ambos engines indisponíveis."""
+        prompt = self._build_prompt_croqui(notas)
+        log.info(
+            "VisionService.analisar_croqui: notas_len=%d img_len=%d",
+            len(notas or ""), len(image_base64),
+        )
+        return self._analisar_dual(image_base64, prompt, tipo_input="croqui")
 
-    # ── Internals ────────────────────────────────────────────────────────────
+    # ── Prompts ──────────────────────────────────────────────────────────────
 
-    def _analisar(self, image_base64: str, prompt: str) -> VisionResult:
-        media_type = self._detect_media_type(image_base64)
-        # Se veio data URL, strip prefix
+    @staticmethod
+    def _build_prompt_foto(contexto: str) -> str:
+        return _PROMPT_FOTO_TMPL.replace("{CONTEXTO}", contexto or "nenhum")
+
+    @staticmethod
+    def _build_prompt_croqui(notas: str) -> str:
+        return _PROMPT_CROQUI_TMPL.replace("{NOTAS}", notas or "nenhuma")
+
+    # ── Dual engine orchestration ────────────────────────────────────────────
+
+    def _analisar_dual(self, image_base64: str, prompt: str, tipo_input: str) -> VisionResult:
+        """Tenta Ollama local primeiro; se falhar, cai no Claude API."""
+        # Respeita override explícito de _disponivel=False
+        if self._disponivel is False:
+            raise RuntimeError(
+                "VisionService indisponível — nem Ollama local nem Claude API estão acessíveis"
+            )
+
+        # Normaliza data URL prefix
         b64 = image_base64
         if "," in b64 and b64.lstrip().startswith("data:"):
             b64 = b64.split(",", 1)[1]
 
+        # 1) Ollama local
+        if self._check_ollama():
+            try:
+                text = self._analisar_via_ollama(b64, prompt)
+                result = self._parse_text_to_result(text, tipo_input)
+                result.engine = "ollama_local"
+                log.info("VisionService: engine=ollama_local OK")
+                return result
+            except Exception as e:
+                log.warning(
+                    "VisionService: Ollama falhou (%s) — fallback para Claude API", e,
+                )
+
+        # 2) Claude API fallback
+        if self._claude_ok:
+            text = self._analisar_via_claude(b64, prompt)
+            result = self._parse_text_to_result(text, tipo_input)
+            result.engine = "claude_api"
+            log.info("VisionService: engine=claude_api OK")
+            return result
+
+        raise RuntimeError(
+            "VisionService indisponível — nem Ollama local nem Claude API estão acessíveis"
+        )
+
+    # ── Ollama ───────────────────────────────────────────────────────────────
+
+    def _analisar_via_ollama(self, image_b64: str, prompt: str) -> str:
+        """Chama Ollama /api/generate com imagem base64. Retorna texto cru."""
+        payload = json.dumps({
+            "model": self._ollama_model,
+            "prompt": prompt,
+            "images": [image_b64],
+            "stream": False,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"{self._ollama_url}/api/generate",
+            data=payload,
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=self._ollama_timeout) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+        data = json.loads(body)
+        if "error" in data:
+            raise RuntimeError(f"Ollama error: {data['error']}")
+        text = data.get("response", "") or ""
+        log.info("VisionService.ollama: resposta raw_len=%d", len(text))
+        if not text.strip():
+            raise RuntimeError("Ollama retornou resposta vazia")
+        return text
+
+    # ── Claude ───────────────────────────────────────────────────────────────
+
+    def _analisar_via_claude(self, image_b64: str, prompt: str) -> str:
+        """Chama Claude Vision API. Retorna texto cru concatenado dos blocks."""
+        if self._client is None:
+            raise RuntimeError("Claude client não inicializado")
+        media_type = self._detect_media_type(image_b64)
         msg = self._client.messages.create(
-            model=_MODEL,
+            model=_CLAUDE_MODEL,
             max_tokens=_MAX_TOKENS,
             messages=[
                 {
@@ -140,7 +280,7 @@ class VisionService:
                             "source": {
                                 "type": "base64",
                                 "media_type": media_type,
-                                "data": b64,
+                                "data": image_b64,
                             },
                         },
                         {"type": "text", "text": prompt},
@@ -148,14 +288,18 @@ class VisionService:
                 }
             ],
         )
-
         raw_text = ""
         for block in msg.content:
             if getattr(block, "type", None) == "text":
                 raw_text += block.text
-        log.info("VisionService: resposta raw_len=%d", len(raw_text))
+        log.info("VisionService.claude: resposta raw_len=%d", len(raw_text))
+        return raw_text
 
-        data = self._parse_json(raw_text)
+    # ── Parsing ──────────────────────────────────────────────────────────────
+
+    def _parse_text_to_result(self, text: str, tipo_input: str) -> VisionResult:
+        """Parseia texto cru (string) em VisionResult."""
+        data = self._parse_json(text)
         return self._to_result(data)
 
     @staticmethod
@@ -163,12 +307,10 @@ class VisionService:
         """Detecta media type pelo header base64. Default image/jpeg."""
         b = image_base64.lstrip()
         if b.startswith("data:"):
-            # data:image/png;base64,...
             try:
                 return b.split(";", 1)[0].split(":", 1)[1]
             except Exception:
                 return "image/jpeg"
-        # Base64 puro: primeiros chars identificam o formato
         prefixes = {
             "iVBORw0KGgo": "image/png",
             "/9j/": "image/jpeg",
@@ -184,12 +326,10 @@ class VisionService:
     def _parse_json(text: str) -> dict[str, Any]:
         """Parse tolerante — remove fences ```json``` e tenta achar JSON no texto."""
         s = text.strip()
-        # Fences
         fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", s, re.DOTALL | re.IGNORECASE)
         if fence:
             s = fence.group(1)
         else:
-            # Pega primeiro bloco { ... }
             m = re.search(r"\{.*\}", s, re.DOTALL)
             if m:
                 s = m.group(0)

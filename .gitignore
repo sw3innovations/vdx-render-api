@@ -16,3 +16,4 @@ node_modules/
 frontend/.env.local
 *.tsbuildinfo
 frontend/sdk/dist/
+.env.backup*

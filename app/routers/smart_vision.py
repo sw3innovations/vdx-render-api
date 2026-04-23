@@ -160,6 +160,7 @@ async def _run_pipeline(
         viewer_url=viewer_url,
         viewer_token=viewer_token,
         viewer_expires_in=viewer_ttl,
+        engine=getattr(vr, "engine", ""),
     )
 
 

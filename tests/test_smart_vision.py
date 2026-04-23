@@ -129,14 +129,16 @@ class TestVisionServiceHelpers:
 
 class TestVisionServiceDisponivel:
     def test_disponivel_sem_key(self):
-        """Sem ANTHROPIC_API_KEY, disponivel=False e chamada levanta RuntimeError."""
+        """Sem ANTHROPIC_API_KEY e sem Ollama, disponivel=False e chamada levanta RuntimeError."""
         with patch.object(settings, "anthropic_api_key", ""):
             svc = VisionService()
-            assert svc.disponivel is False
-            with pytest.raises(RuntimeError):
-                svc.analisar_foto_vao(_PNG_1x1)
-            with pytest.raises(RuntimeError):
-                svc.analisar_croqui(_PNG_1x1)
+            # Força Ollama off para teste determinístico
+            with patch.object(svc, "_check_ollama", return_value=False):
+                assert svc.disponivel is False
+                with pytest.raises(RuntimeError):
+                    svc.analisar_foto_vao(_PNG_1x1)
+                with pytest.raises(RuntimeError):
+                    svc.analisar_croqui(_PNG_1x1)
 
     def test_disponivel_com_key(self):
         """Com key configurada (no .env), disponivel=True."""
@@ -306,3 +308,110 @@ class TestSmartVisionEndpoints:
         paths = resp.json()["paths"]
         assert "/api/v1/smart/photo-to-project" in paths
         assert "/api/v1/smart/sketch-to-project" in paths
+
+
+# ── 3. Dual-engine tests (Ollama local + Claude API fallback) ─────────────────
+
+class TestDualEngine:
+    """Testa a orquestração dual-engine: Ollama primário, Claude fallback."""
+
+    def _fresh_svc(self) -> VisionService:
+        """Cria VisionService com Claude configurado (via mock) para testes."""
+        svc = VisionService()
+        svc._client = MagicMock()
+        svc._claude_ok = True
+        svc._disponivel = None  # delega para property
+        return svc
+
+    def test_usa_ollama_quando_disponivel(self):
+        """Ollama up + retorno válido → engine='ollama_local' e Claude NÃO é chamado."""
+        svc = self._fresh_svc()
+        ollama_text = json.dumps(_valid_vision_json())
+        with patch.object(svc, "_check_ollama", return_value=True), \
+             patch.object(svc, "_analisar_via_ollama", return_value=ollama_text) as m_ollama, \
+             patch.object(svc, "_analisar_via_claude") as m_claude:
+            res = svc.analisar_foto_vao(_PNG_1x1, contexto="cozinha")
+            assert res.engine == "ollama_local"
+            assert res.tipologia_sugerida == "porta_pivotante_simples"
+            assert m_ollama.called
+            assert not m_claude.called
+
+    def test_fallback_claude_quando_ollama_offline(self):
+        """Ollama down → usa Claude direto; engine='claude_api'."""
+        svc = self._fresh_svc()
+        claude_text = json.dumps(_valid_vision_json())
+        with patch.object(svc, "_check_ollama", return_value=False), \
+             patch.object(svc, "_analisar_via_ollama") as m_ollama, \
+             patch.object(svc, "_analisar_via_claude", return_value=claude_text) as m_claude:
+            res = svc.analisar_foto_vao(_PNG_1x1)
+            assert res.engine == "claude_api"
+            assert res.tipologia_sugerida == "porta_pivotante_simples"
+            assert not m_ollama.called
+            assert m_claude.called
+
+    def test_fallback_automatico_quando_ollama_falha(self):
+        """Ollama up mas chamada real falha → fallback transparente para Claude."""
+        svc = self._fresh_svc()
+        claude_text = json.dumps(_valid_vision_json())
+        with patch.object(svc, "_check_ollama", return_value=True), \
+             patch.object(svc, "_analisar_via_ollama", side_effect=Exception("timeout")) as m_ollama, \
+             patch.object(svc, "_analisar_via_claude", return_value=claude_text) as m_claude:
+            res = svc.analisar_croqui(_PNG_1x1, notas="vão 900x2100")
+            assert res.engine == "claude_api"
+            assert m_ollama.called
+            assert m_claude.called
+
+    def test_runtime_error_quando_ambos_indisponiveis(self):
+        """Sem Ollama e sem Claude → RuntimeError."""
+        svc = VisionService()
+        svc._client = None
+        svc._claude_ok = False
+        svc._disponivel = None
+        with patch.object(svc, "_check_ollama", return_value=False):
+            assert svc.disponivel is False
+            with pytest.raises(RuntimeError):
+                svc.analisar_foto_vao(_PNG_1x1)
+
+    def test_check_ollama_cache(self):
+        """_check_ollama deve cachear resultado por ~60s (1 única chamada HTTP)."""
+        svc = VisionService()
+        call_count = {"n": 0}
+
+        def fake_urlopen(req, timeout=3):
+            call_count["n"] += 1
+            raise Exception("simulated down")
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            svc._ollama_cache_at = 0.0  # força primeira call
+            r1 = svc._check_ollama()
+            r2 = svc._check_ollama()
+            r3 = svc._check_ollama()
+            assert r1 is False and r2 is False and r3 is False
+            # Só deve ter feito 1 chamada HTTP (cache)
+            assert call_count["n"] == 1
+
+    def test_engine_propagado_na_response_http(self, client, monkeypatch):
+        """Router propaga vr.engine para SmartProjectResponse.engine."""
+        from app.routers import smart_vision as sv
+
+        def fake_analisar(img, contexto=""):
+            return VisionResult(
+                tipologia_sugerida="porta_pivotante_simples",
+                largura_mm=900, altura_mm=2100,
+                tipo_abertura="pivotante", num_folhas=1,
+                espessura_vidro_mm=8, cor_vidro="incolor",
+                observacoes="mock", confianca=0.9,
+                raw=_valid_vision_json(),
+                engine="ollama_local",
+            )
+
+        monkeypatch.setattr(sv._vision, "_disponivel", True)
+        monkeypatch.setattr(sv._vision, "analisar_foto_vao", fake_analisar)
+
+        resp = client.post(
+            "/api/v1/smart/photo-to-project",
+            json={"image_base64": _PNG_1x1, "contexto": "teste"},
+            headers=_HEADERS,
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json().get("engine") == "ollama_local"
