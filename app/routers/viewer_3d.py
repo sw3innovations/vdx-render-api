@@ -673,3 +673,45 @@ window.screenshot = function() {{
 </body>
 </html>"""
 
+
+# ─── Fotorrealista ────────────────────────────────────────────────────────────
+
+@router.get("/api/v1/tipologia/{chave}/fotorrealista")
+@limiter.limit("10/minute")
+async def tipologia_fotorrealista(
+    request: Request,
+    chave: str,
+    largura: float = Query(..., ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Largura em mm"),
+    altura: float = Query(..., ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Altura em mm"),
+    _auth: None = Depends(validate_api_key),
+):
+    """Retorna imagem fotorrealista da tipologia (JPEG cache ou FLUX.1 ControlNet Canny).
+
+    Cache permanente em disco por {chave}_{largura}x{altura}. Fallback: PNG técnico.
+    """
+    from fastapi.responses import Response as FastAPIResponse
+    from app.models.render import PecaInput, RenderRequest
+    from app.services import photorealistic_pipeline as foto
+
+    nome_peca = "Porta" if "porta" in chave.lower() else "Fixo"
+    req = RenderRequest(
+        tipologia_nome=chave,
+        pecas=[PecaInput(nome=nome_peca, largura_mm=largura, altura_mm=altura)],
+    )
+    render_resp = await executar(req)
+    svg = render_resp.svg
+
+    image_bytes, mime = await foto.gerar_fotorrealista(
+        svg=svg,
+        chave=chave,
+        largura_mm=largura,
+        altura_mm=altura,
+        upload_dir=settings.app_upload_dir,
+    )
+
+    ext = "jpg" if mime == "image/jpeg" else "png"
+    return FastAPIResponse(
+        content=image_bytes,
+        media_type=mime,
+        headers={"Content-Disposition": f'inline; filename="{chave}_{int(largura)}x{int(altura)}.{ext}"'},
+    )

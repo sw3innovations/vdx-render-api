@@ -85,6 +85,9 @@ class Settings:
     app_upload_dir: str = field(
         default_factory=lambda: _env("APP_UPLOAD_DIR", str(_ROOT / "uploads"))
     )
+    hf_token: str = field(
+        default_factory=lambda: _env("HF_TOKEN", "")
+    )
     imagegen_venv_path: str = field(
         default_factory=lambda: _env(
             "IMAGEGEN_VENV_PATH",
