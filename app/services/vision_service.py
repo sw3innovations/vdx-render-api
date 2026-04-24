@@ -39,7 +39,7 @@ _MAX_TOKENS = 1500
 
 _OLLAMA_CHECK_CACHE_TTL = 60.0  # segundos
 # Timeout curto para visão no CPU — fail-fast para Claude se Moondream travar
-_OLLAMA_VISION_TIMEOUT_CAP = 60
+_OLLAMA_VISION_TIMEOUT_CAP = 45
 
 _PROMPT_FOTO_TMPL = """Você é o VDX Vision — engenheiro de vidraçaria analisando uma FOTO REAL de vão.
 

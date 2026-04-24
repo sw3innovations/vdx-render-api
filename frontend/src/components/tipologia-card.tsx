@@ -22,7 +22,7 @@ export default function TipologiaCard({ tipologia, onClick }: TipologiaCardProps
 
   const categoria = tipologia.categoria ?? categoriaFromChave(tipologia.chave)
   const label = tipologia.nome || tipologiaLabel(tipologia.chave)
-  const previewUrl = `/api/vdx/v1/tipologia/${tipologia.chave}/preview`
+  const previewUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia.chave)}/preview`
 
   return (
     <button

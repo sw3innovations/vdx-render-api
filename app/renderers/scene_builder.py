@@ -402,7 +402,7 @@ class SceneBuilder:
                 "angulo_max": 90,
                 "angulo_min": -90 if vai_vem else 0,
             }
-        if any(k in t for k in ("correr", "box", "sacada")):
+        if any(k in t for k in ("correr", "box", "sacada", "quatro_folhas")):
             return {"tipo": "deslizante", "eixo": "x"}
         if "basculante" in t:
             return {"tipo": "basculante", "eixo": "x", "angulo_max": 45}

@@ -110,6 +110,9 @@ def _auto_pecas(tipologia: str, largura: float, altura: float) -> list[PecaInput
             PecaInput(nome="Bandeira", largura_mm=largura, altura_mm=min(400.0, altura * 0.16)),
             PecaInput(nome="Porta",    largura_mm=largura, altura_mm=altura),
         ]
+    if any(k in t for k in ("quatro_folhas", "4_folhas", "4folhas")):
+        w = largura / 4
+        return [PecaInput(nome=f"Folha {i+1}", largura_mm=w, altura_mm=altura) for i in range(4)]
     return [PecaInput(nome="Porta", largura_mm=largura, altura_mm=altura)]
 
 

@@ -19,6 +19,7 @@ interface AnimState {
   targetAngle: number
   currentPos: ThreeTypes.Vector3
   targetPos: ThreeTypes.Vector3
+  originalPos: ThreeTypes.Vector3
 }
 
 export default function Viewer3D({ scene, className = '', onScreenshot, onReady }: Viewer3DProps) {
@@ -58,7 +59,13 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         state.targetAngle = (angleDeg * Math.PI) / 180
       } else if (state.animacao.tipo === 'deslizante') {
         const pct = angleDeg / 90
-        state.targetPos.setX(pct * (state.animacao.distancia_max ?? 500) / 1000)
+        const delta = pct * (state.animacao.distancia_max ?? 500) / 1000
+        const dir = state.originalPos.x < 0 ? -1 : 1
+        state.targetPos.set(
+          state.originalPos.x + dir * delta,
+          state.originalPos.y,
+          state.originalPos.z
+        )
       }
     })
   }, [])
@@ -200,7 +207,7 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         color: new THREE.Color(vaoData.material.cor),
         roughness: vaoData.material.roughness,
         metalness: vaoData.material.metalness,
-        side: THREE.BackSide,
+        side: THREE.DoubleSide,
       })
       const vW = vaoData.largura * scale
       const vH = vaoData.altura * scale
@@ -272,7 +279,7 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
           const pivo = anim.ponto_pivo
           mesh.position.set(
             -pivo.x * scale + vidro.posicao.x * scale,
-            (vidro.posicao.y - vidro.altura / 2) * scale,
+            vidro.posicao.y * scale,
             vidro.posicao.z * scale
           )
           group.position.set(pivo.x * scale, pivo.y * scale, pivo.z * scale)
@@ -295,8 +302,9 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
             animacao: anim,
             currentAngle: 0,
             targetAngle: 0,
-            currentPos: new THREE.Vector3(),
-            targetPos: new THREE.Vector3(),
+            currentPos: group.position.clone(),
+            targetPos: group.position.clone(),
+            originalPos: group.position.clone(),
           })
         }
       }
@@ -385,7 +393,7 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
             state.group.rotation.x = state.currentAngle
           } else if (state.animacao.tipo === 'deslizante') {
             state.currentPos.lerp(state.targetPos, LERP)
-            state.group.position.x = state.currentPos.x
+            state.group.position.copy(state.currentPos)
           }
         }
 

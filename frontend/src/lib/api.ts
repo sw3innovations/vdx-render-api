@@ -88,6 +88,14 @@ function autoPecas(tipologia: string, largura: number, altura: number): PecaRequ
     ]
   }
 
+  if (t.includes('quatro_folhas') || t.includes('4_folhas') || t.includes('4folhas')) {
+    return Array.from({ length: 4 }, (_, i) => ({
+      nome: `Folha ${i + 1}`,
+      largura_mm: largura / 4,
+      altura_mm: altura,
+    }))
+  }
+
   const nome = t.includes('janela') ? 'Folha 1' : 'Porta'
   return [{ nome, largura_mm: largura, altura_mm: altura }]
 }
