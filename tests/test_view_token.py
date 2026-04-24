@@ -211,7 +211,7 @@ def test_viewer_modo_header_retorna_html(client):
     )
     assert res.status_code == 200
     assert "text/html" in res.headers["content-type"]
-    assert "three" in res.text.lower()
+    assert "babylon" in res.text.lower()
 
 
 def test_viewer_modo_token_retorna_html(client):
@@ -227,7 +227,7 @@ def test_viewer_modo_token_retorna_html(client):
     res = client.get("/api/v1/3d/viewer", params={"t": token})
     assert res.status_code == 200
     assert "text/html" in res.headers["content-type"]
-    assert "three" in res.text.lower()
+    assert "babylon" in res.text.lower()
 
 
 def test_viewer_sem_auth_retorna_html_401(client):

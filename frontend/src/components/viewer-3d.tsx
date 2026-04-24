@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import type * as ThreeTypes from 'three'
+import type { Engine, Scene, TransformNode, PBRMaterial, Vector3 } from '@babylonjs/core'
 import type { SceneJSON, VidroScene } from '@/lib/types'
 
 const GLASS_COLORS: Record<string, string> = {
@@ -32,25 +32,30 @@ interface Viewer3DProps {
 
 interface AnimState {
   vidroId: string
-  group: ThreeTypes.Group
+  pivotNode: TransformNode
   animacao: NonNullable<VidroScene['animacao']>
   currentAngle: number
   targetAngle: number
-  currentPos: ThreeTypes.Vector3
-  targetPos: ThreeTypes.Vector3
-  originalPos: ThreeTypes.Vector3
+  currentPos: Vector3
+  targetPos: Vector3
+  originalPos: Vector3
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  return [r, g, b]
 }
 
 export default function Viewer3D({ scene, className = '', onScreenshot, onReady, corVidro, acabamento }: Viewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const rendererRef = useRef<ThreeTypes.WebGLRenderer | null>(null)
-  const sceneRef = useRef<ThreeTypes.Scene | null>(null)
-  const cameraRef = useRef<ThreeTypes.PerspectiveCamera | null>(null)
-  const controlsRef = useRef<ThreeTypes.EventDispatcher | null>(null)
-  const animFrameRef = useRef<number>(0)
+  const engineRef = useRef<Engine | null>(null)
+  const babylonSceneRef = useRef<Scene | null>(null)
+  const canvasElemRef = useRef<HTMLCanvasElement | null>(null)
   const animStatesRef = useRef<AnimState[]>([])
-  const glassMeshesRef = useRef<ThreeTypes.MeshPhysicalMaterial[]>([])
-  const hardwareMeshesRef = useRef<(ThreeTypes.MeshPhysicalMaterial | ThreeTypes.MeshStandardMaterial)[]>([])
+  const glassMatsRef = useRef<PBRMaterial[]>([])
+  const hardwareMatsRef = useRef<PBRMaterial[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
   const [sliderAngle, setSliderAngle] = useState(0)
@@ -59,16 +64,15 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
   const mountedRef = useRef(false)
 
   const takeScreenshot = useCallback(() => {
-    if (!rendererRef.current || !onScreenshot) return
-    rendererRef.current.domElement.toBlob((blob) => {
+    if (!canvasElemRef.current || !onScreenshot) return
+    canvasElemRef.current.toBlob((blob) => {
       if (blob) onScreenshot(blob)
     }, 'image/png')
   }, [onScreenshot])
 
   useEffect(() => {
     if (containerRef.current) {
-      (containerRef.current as HTMLDivElement & { takeScreenshot?: () => void }).takeScreenshot =
-        takeScreenshot
+      (containerRef.current as HTMLDivElement & { takeScreenshot?: () => void }).takeScreenshot = takeScreenshot
     }
   }, [takeScreenshot])
 
@@ -80,12 +84,12 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
         state.targetAngle = (angleDeg * Math.PI) / 180
       } else if (state.animacao.tipo === 'deslizante') {
         const pct = angleDeg / 90
-        const delta = pct * (state.animacao.distancia_max ?? 500) / 1000
+        const delta = (pct * (state.animacao.distancia_max ?? 500)) / 1000
         const dir = state.originalPos.x < 0 ? -1 : 1
         state.targetPos.set(
           state.originalPos.x + dir * delta,
           state.originalPos.y,
-          state.originalPos.z
+          state.originalPos.z,
         )
       }
     })
@@ -117,274 +121,199 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
     setIsAnimating(false)
 
     async function init() {
-      const THREE = await import('three')
-      const oc = await import('three/examples/jsm/controls/OrbitControls.js')
-      const re = await import('three/examples/jsm/environments/RoomEnvironment.js')
-      const OrbitControls = oc.OrbitControls
-      const RoomEnvironment = re.RoomEnvironment
+      const {
+        Engine, Scene, ArcRotateCamera, Vector3, Color3, Color4,
+        HemisphericLight, DirectionalLight, MeshBuilder,
+        PBRMaterial, StandardMaterial, TransformNode, Texture,
+      } = await import('@babylonjs/core')
 
       if (!mountedRef.current || !containerRef.current) return
 
-      if (rendererRef.current) {
-        cancelAnimationFrame(animFrameRef.current)
-        rendererRef.current.dispose()
-        rendererRef.current.domElement.remove()
-        rendererRef.current = null
+      // Cleanup previous instance
+      if (engineRef.current) {
+        engineRef.current.stopRenderLoop()
+        babylonSceneRef.current?.dispose()
+        babylonSceneRef.current = null
+        engineRef.current.dispose()
+        engineRef.current = null
+      }
+      if (canvasElemRef.current) {
+        canvasElemRef.current.remove()
+        canvasElemRef.current = null
       }
 
       const container = containerRef.current
-      const width = container.clientWidth || 800
-      const height = container.clientHeight || 600
+      const canvas = document.createElement('canvas')
+      canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;'
+      container.appendChild(canvas)
+      canvasElemRef.current = canvas
 
-      // ── Renderer ──────────────────────────────────────────────────────────
-      const renderer = new THREE.WebGLRenderer({
-        antialias: sceneData.ambiente.antialias ?? true,
+      const S = 0.001  // mm → meters
+
+      // ── Engine ─────────────────────────────────────────────────────────────
+      const engine = new Engine(canvas, true, {
         preserveDrawingBuffer: true,
-        alpha: false,
+        stencil: true,
+        antialias: sceneData.ambiente.antialias ?? true,
       })
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-      renderer.setSize(width, height)
-      renderer.outputColorSpace = THREE.SRGBColorSpace
-      renderer.toneMapping = THREE.ACESFilmicToneMapping
-      renderer.toneMappingExposure = sceneData.ambiente.toneMappingExposure ?? 1.2
-      renderer.shadowMap.enabled = true
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap
-      container.appendChild(renderer.domElement)
-      rendererRef.current = renderer
+      engineRef.current = engine
 
-      // ── Scene ─────────────────────────────────────────────────────────────
-      const threeScene = new THREE.Scene()
-      threeScene.background = new THREE.Color('#D6D0C8')
-      sceneRef.current = threeScene
+      // ── Scene ──────────────────────────────────────────────────────────────
+      const bScene = new Scene(engine)
+      bScene.useRightHandedSystem = true
+      bScene.clearColor = new Color4(0.839, 0.816, 0.784, 1)  // #D6D0C8
+      babylonSceneRef.current = bScene
 
-      const pmremGenerator = new THREE.PMREMGenerator(renderer)
-      pmremGenerator.compileEquirectangularShader()
-      const envTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture
-      threeScene.environment = envTexture
-      pmremGenerator.dispose()
+      // ── Camera ─────────────────────────────────────────────────────────────
+      const camData = sceneData.ambiente.camera_inicial
+      const targetV = new Vector3(camData.target.x * S, camData.target.y * S, camData.target.z * S)
+      const posV = new Vector3(camData.posicao.x * S, camData.posicao.y * S, camData.posicao.z * S)
+      const camera = new ArcRotateCamera('cam', 0, Math.PI / 2, 3, targetV, bScene)
+      camera.setPosition(posV)
+      camera.lowerRadiusLimit = 0.3
+      camera.upperRadiusLimit = 20
+      camera.wheelPrecision = 100
+      camera.panningSensibility = 500
+      camera.attachControl(canvas, true)
 
-      // ── Camera ────────────────────────────────────────────────────────────
-      const cam = sceneData.ambiente.camera_inicial
-      const scale = 0.001
+      // ── Lights ─────────────────────────────────────────────────────────────
+      const hemi = new HemisphericLight('hemi', new Vector3(0, 1, 0), bScene)
+      hemi.intensity = 0.7
+      hemi.groundColor = new Color3(0.4, 0.4, 0.4)
 
-      const camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 100)
-      camera.position.set(cam.posicao.x * scale, cam.posicao.y * scale, cam.posicao.z * scale)
-      camera.lookAt(cam.target.x * scale, cam.target.y * scale, cam.target.z * scale)
-      cameraRef.current = camera
+      const key = new DirectionalLight('key', new Vector3(-1, -2, -1.5).normalize(), bScene)
+      key.intensity = 2.5
+      key.diffuse = new Color3(1, 0.97, 0.9)
 
-      // ── Controls ──────────────────────────────────────────────────────────
-      const controls = new OrbitControls(camera, renderer.domElement)
-      controls.target.set(cam.target.x * scale, cam.target.y * scale, cam.target.z * scale)
-      controls.enableDamping = true
-      controls.dampingFactor = 0.06
-      controls.minDistance = 0.3
-      controls.maxDistance = 20
-      controls.update()
-      controlsRef.current = controls as unknown as ThreeTypes.EventDispatcher
+      const fill = new DirectionalLight('fill', new Vector3(1.5, -0.5, 0.5).normalize(), bScene)
+      fill.intensity = 1.0
+      fill.diffuse = new Color3(0.8, 0.88, 1.0)
 
-      // ── Lighting ──────────────────────────────────────────────────────────
-      threeScene.add(new THREE.AmbientLight(0xffffff, 0.4))
+      const rim = new DirectionalLight('rim', new Vector3(0, -1, 2).normalize(), bScene)
+      rim.intensity = 0.6
+      rim.diffuse = new Color3(1, 0.9, 0.7)
 
-      const keyLight = new THREE.DirectionalLight(0xfff5e0, 2.0)
-      keyLight.position.set(2, 4, 3)
-      keyLight.castShadow = true
-      keyLight.shadow.mapSize.width = 2048
-      keyLight.shadow.mapSize.height = 2048
-      keyLight.shadow.camera.near = 0.01
-      keyLight.shadow.camera.far = 20
-      keyLight.shadow.camera.left = -3
-      keyLight.shadow.camera.right = 3
-      keyLight.shadow.camera.top = 3
-      keyLight.shadow.camera.bottom = -3
-      keyLight.shadow.bias = -0.0005
-      threeScene.add(keyLight)
-
-      const fillLight = new THREE.DirectionalLight(0xc8d8ff, 0.8)
-      fillLight.position.set(-3, 1, -1)
-      threeScene.add(fillLight)
-
-      const rimLight = new THREE.DirectionalLight(0xffddaa, 0.6)
-      rimLight.position.set(0, 2, -4)
-      threeScene.add(rimLight)
-
-      // ── Floor (CanvasTexture tile) ─────────────────────────────────────────
-      const pisoData = sceneData.ambiente.piso
+      // ── Floor ──────────────────────────────────────────────────────────────
       {
+        const pisoData = sceneData.ambiente.piso
         const sz = 512, grid = 64
-        const cv = document.createElement("canvas")
+        const cv = document.createElement('canvas')
         cv.width = sz; cv.height = sz
-        const ctx = cv.getContext("2d")!
+        const ctx = cv.getContext('2d')!
         ctx.fillStyle = pisoData.cor
         ctx.fillRect(0, 0, sz, sz)
-        ctx.strokeStyle = "rgba(180,160,140,0.22)"
+        ctx.strokeStyle = 'rgba(180,160,140,0.22)'
         ctx.lineWidth = 1
         for (let i = 0; i <= sz; i += grid) {
           ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, sz); ctx.stroke()
           ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(sz, i); ctx.stroke()
         }
-        const tex = new THREE.CanvasTexture(cv)
-        tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-        tex.repeat.set(20, 20)
-        const floor = new THREE.Mesh(
-          new THREE.PlaneGeometry(20, 20),
-          new THREE.MeshStandardMaterial({
-            map: tex, roughness: 0.85, metalness: 0.0,
-            envMapIntensity: pisoData.envMapIntensity,
-          })
-        )
-        floor.rotation.x = -Math.PI / 2
-        floor.receiveShadow = true
-        threeScene.add(floor)
+        const floorTex = new Texture(cv.toDataURL(), bScene)
+        floorTex.uScale = 20; floorTex.vScale = 20
+        const floorMat = new StandardMaterial('floorMat', bScene)
+        floorMat.diffuseTexture = floorTex
+        floorMat.specularColor = new Color3(0, 0, 0)
+        const floor = MeshBuilder.CreateGround('floor', { width: 20, height: 20 }, bScene)
+        floor.material = floorMat
       }
 
-      // ── Walls ─────────────────────────────────────────────────────────────
-      if (sceneData.vao && sceneData.vao.presente !== false) {
+      // ── Walls / Vão ────────────────────────────────────────────────────────
+      if (sceneData.vao?.presente !== false) {
         const vaoData = sceneData.vao
-        const wallTex = (() => {
-          const sz = 256
-          const cv = document.createElement("canvas")
-          cv.width = sz; cv.height = sz
-          const ctx = cv.getContext("2d")!
-          ctx.fillStyle = vaoData.material.cor
-          ctx.fillRect(0, 0, sz, sz)
-          const id = ctx.getImageData(0, 0, sz, sz)
-          for (let i = 0; i < id.data.length; i += 4) {
-            const n = (Math.random() - 0.5) * 16
-            id.data[i]   = Math.min(255, Math.max(0, id.data[i]   + n))
-            id.data[i+1] = Math.min(255, Math.max(0, id.data[i+1] + n))
-            id.data[i+2] = Math.min(255, Math.max(0, id.data[i+2] + n))
-          }
-          ctx.putImageData(id, 0, 0)
-          const t = new THREE.CanvasTexture(cv)
-          t.wrapS = t.wrapT = THREE.RepeatWrapping
-          t.repeat.set(3, 3)
-          return t
-        })()
-        const wallMat = new THREE.MeshStandardMaterial({
-          map: wallTex,
-          roughness: vaoData.material.roughness,
-          metalness: vaoData.material.metalness,
-          side: THREE.DoubleSide,
-        })
-        const vW = vaoData.largura * scale
-        const vH = vaoData.altura * scale
-        const vD = vaoData.profundidade * scale
-  
-        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(vW + 0.6, vH + 0.3), wallMat)
-        backWall.position.set(0, vH / 2, -vD / 2)
-        backWall.receiveShadow = true
-        threeScene.add(backWall)
-  
+        const vW = vaoData.largura * S
+        const vH = vaoData.altura * S
+        const vD = vaoData.profundidade * S
         const sideThick = 0.3
-        const pillarMat = new THREE.MeshStandardMaterial({
-          map: wallTex,
-          roughness: vaoData.material.roughness,
-          metalness: vaoData.material.metalness,
-        })
-        const pillarGeo = new THREE.BoxGeometry(sideThick, vH, vD)
-        const leftPillar = new THREE.Mesh(pillarGeo, pillarMat)
+
+        const wallMat = new StandardMaterial('wallMat', bScene)
+        wallMat.diffuseColor = Color3.FromHexString(vaoData.material.cor)
+        wallMat.specularColor = new Color3(0.03, 0.03, 0.03)
+        wallMat.backFaceCulling = false
+
+        const backWall = MeshBuilder.CreateBox('backWall', { width: vW + 0.6, height: vH + 0.3, depth: 0.01 }, bScene)
+        backWall.position.set(0, vH / 2, -vD / 2)
+        backWall.material = wallMat
+
+        const leftPillar = MeshBuilder.CreateBox('leftPillar', { width: sideThick, height: vH, depth: vD }, bScene)
         leftPillar.position.set(-vW / 2 - sideThick / 2, vH / 2, 0)
-        leftPillar.receiveShadow = true
-        leftPillar.castShadow = true
-        threeScene.add(leftPillar)
-  
-        const rightPillar = new THREE.Mesh(pillarGeo, pillarMat)
+        leftPillar.material = wallMat
+
+        const rightPillar = MeshBuilder.CreateBox('rightPillar', { width: sideThick, height: vH, depth: vD }, bScene)
         rightPillar.position.set(vW / 2 + sideThick / 2, vH / 2, 0)
-        rightPillar.receiveShadow = true
-        rightPillar.castShadow = true
-        threeScene.add(rightPillar)
-  
-        const topBeam = new THREE.Mesh(new THREE.BoxGeometry(vW + sideThick * 2, 0.2, vD), pillarMat)
+        rightPillar.material = wallMat
+
+        const topBeam = MeshBuilder.CreateBox('topBeam', { width: vW + sideThick * 2, height: 0.2, depth: vD }, bScene)
         topBeam.position.set(0, vH + 0.1, 0)
-        topBeam.receiveShadow = true
-        threeScene.add(topBeam)
-  
-  
+        topBeam.material = wallMat
       }
 
-      // ── Vidros ────────────────────────────────────────────────────────────
+      // ── Vidros ─────────────────────────────────────────────────────────────
       animStatesRef.current = []
-      glassMeshesRef.current = []
-      hardwareMeshesRef.current = []
-      const pivotGroupMap = new Map<string, { group: ThreeTypes.Group; pivoX: number }>()
+      glassMatsRef.current = []
+      hardwareMatsRef.current = []
+      const pivotNodeMap = new Map<string, { node: TransformNode; pivoX: number }>()
 
       for (const vidro of sceneData.vidros) {
         const mat = vidro.material
-        const vidroMat = new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color(mat.cor),
-          transparent: true,
-          opacity: mat.opacidade,
-          transmission: mat.transmission,
-          ior: mat.ior,
-          thickness: mat.thickness * scale,
-          roughness: mat.roughness,
-          metalness: mat.metalness,
-          clearcoat: mat.clearcoat,
-          clearcoatRoughness: mat.clearcoatRoughness,
-          envMapIntensity: mat.envMapIntensity,
-          attenuationColor: new THREE.Color(mat.attenuationColor),
-          attenuationDistance: mat.attenuationDistance * scale,
-          side: THREE.DoubleSide,
-        })
-
-        glassMeshesRef.current.push(vidroMat)
-        const geo = new THREE.BoxGeometry(
-          vidro.largura * scale,
-          vidro.altura * scale,
-          vidro.espessura * scale
-        )
-        const mesh = new THREE.Mesh(geo, vidroMat)
-        mesh.castShadow = true
-        mesh.receiveShadow = true
-        if (vidro.rotacao) {
-          mesh.rotation.set(
-            THREE.MathUtils.degToRad(vidro.rotacao.x || 0),
-            THREE.MathUtils.degToRad(vidro.rotacao.y || 0),
-            THREE.MathUtils.degToRad(vidro.rotacao.z || 0)
-          )
+        const glassMat = new PBRMaterial(`glass_${vidro.id}`, bScene)
+        glassMat.albedoColor = Color3.FromHexString(mat.cor)
+        glassMat.metallic = mat.metalness
+        glassMat.roughness = mat.roughness
+        glassMat.alpha = mat.opacidade
+        glassMat.needDepthPrePass = true
+        glassMat.subSurface.isRefractionEnabled = true
+        glassMat.subSurface.indexOfRefraction = mat.ior ?? 1.52
+        glassMat.subSurface.linkRefractionWithTransparency = true
+        glassMat.environmentIntensity = mat.envMapIntensity ?? 1.2
+        if (mat.clearcoat > 0) {
+          glassMat.clearCoat.isEnabled = true
+          glassMat.clearCoat.intensity = mat.clearcoat
+          glassMat.clearCoat.roughness = mat.clearcoatRoughness ?? 0.03
         }
+        glassMatsRef.current.push(glassMat)
 
-        const group = new THREE.Group()
+        const glassMesh = MeshBuilder.CreateBox(`vidro_${vidro.id}`, {
+          width: vidro.largura * S,
+          height: vidro.altura * S,
+          depth: vidro.espessura * S,
+        }, bScene)
+        glassMesh.material = glassMat
+
+        const pivotNode = new TransformNode(`pivot_${vidro.nome}`, bScene)
         const anim = vidro.animacao
+
         if (anim && anim.tipo !== 'fixo' && anim.ponto_pivo) {
           const pivo = anim.ponto_pivo
-          mesh.position.set(
-            -pivo.x * scale + vidro.posicao.x * scale,
-            vidro.posicao.y * scale,
-            vidro.posicao.z * scale
+          pivotNode.position.set(pivo.x * S, pivo.y * S, pivo.z * S)
+          glassMesh.position.set(
+            (-pivo.x + vidro.posicao.x) * S,
+            vidro.posicao.y * S,
+            vidro.posicao.z * S,
           )
-          group.position.set(pivo.x * scale, pivo.y * scale, pivo.z * scale)
         } else {
-          mesh.position.set(0, 0, 0)
-          group.position.set(
-            vidro.posicao.x * scale,
-            vidro.posicao.y * scale,
-            vidro.posicao.z * scale
-          )
+          pivotNode.position.set(vidro.posicao.x * S, vidro.posicao.y * S, vidro.posicao.z * S)
+          glassMesh.position.set(0, 0, 0)
         }
+        glassMesh.parent = pivotNode
 
-        group.add(mesh)
-        threeScene.add(group)
-
-        if (anim && anim.ponto_pivo) {
-          pivotGroupMap.set(vidro.nome, { group, pivoX: anim.ponto_pivo.x * scale })
+        if (anim?.ponto_pivo) {
+          pivotNodeMap.set(vidro.nome, { node: pivotNode, pivoX: anim.ponto_pivo.x * S })
         }
 
         if (anim && anim.tipo !== 'fixo') {
           animStatesRef.current.push({
             vidroId: vidro.id,
-            group,
+            pivotNode,
             animacao: anim,
             currentAngle: 0,
             targetAngle: 0,
-            currentPos: group.position.clone(),
-            targetPos: group.position.clone(),
-            originalPos: group.position.clone(),
+            currentPos: pivotNode.position.clone(),
+            targetPos: pivotNode.position.clone(),
+            originalPos: pivotNode.position.clone(),
           })
         }
       }
 
-      // Derive anim metadata for UI
       const firstAnim = animStatesRef.current[0]?.animacao
       if (firstAnim) {
         const isDeslizante = firstAnim.tipo === 'deslizante'
@@ -392,100 +321,144 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
         setMaxAngle(isDeslizante ? 90 : (firstAnim.angulo_max ?? 90))
       }
 
-      // ── Ferragens ─────────────────────────────────────────────────────────
-      for (const ferragem of sceneData.ferragens) {
-        const mat = ferragem.material
-        let ferragemMat: ThreeTypes.MeshPhysicalMaterial | ThreeTypes.MeshStandardMaterial
+      // ── Ferragens ──────────────────────────────────────────────────────────
+      type FerragemMat = typeof sceneData.ferragens[0]['material']
 
-        if ((mat.clearcoat ?? 0) > 0) {
-          ferragemMat = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(mat.cor),
-            roughness: mat.roughness,
-            metalness: mat.metalness,
-            clearcoat: mat.clearcoat ?? 0,
-            clearcoatRoughness: mat.clearcoatRoughness ?? 0.1,
-            envMapIntensity: mat.envMapIntensity ?? 1.0,
-          })
-        } else {
-          ferragemMat = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(mat.cor),
-            roughness: mat.roughness,
-            metalness: mat.metalness,
-            envMapIntensity: mat.envMapIntensity ?? 1.0,
-          })
+      function makeHardwareMat(m: FerragemMat, name: string): PBRMaterial {
+        const mat = new PBRMaterial(name, bScene)
+        mat.albedoColor = Color3.FromHexString(m.cor)
+        mat.metallic = m.metalness
+        mat.roughness = m.roughness
+        if ((m.clearcoat ?? 0) > 0) {
+          mat.clearCoat.isEnabled = true
+          mat.clearCoat.intensity = m.clearcoat ?? 0
+          mat.clearCoat.roughness = m.clearcoatRoughness ?? 0.1
         }
+        mat.environmentIntensity = m.envMapIntensity ?? 1.0
+        return mat
+      }
+
+      function createHinge(f: typeof sceneData.ferragens[0]): TransformNode {
+        const hingeRoot = new TransformNode(`hinge_${f.id}`, bScene)
+        const g = f.geometria; const m = f.material
+        const w = (g.largura ?? 30) * S
+        const h = (g.altura ?? 50) * S
+        const d = (g.profundidade ?? 8) * S
+
+        const body = MeshBuilder.CreateBox(`hinge_body_${f.id}`, { width: w, height: h, depth: d }, bScene)
+        body.material = makeHardwareMat(m, `hinge_body_mat_${f.id}`)
+        body.parent = hingeRoot
+
+        const pinMat = new PBRMaterial(`hinge_pin_mat_${f.id}`, bScene)
+        pinMat.albedoColor = new Color3(0.831, 0.686, 0.216)  // #D4AF37 gold
+        pinMat.metallic = 1.0; pinMat.roughness = 0.1
+        pinMat.clearCoat.isEnabled = true; pinMat.clearCoat.intensity = 0.5
+        const pin = MeshBuilder.CreateCylinder(`hinge_pin_${f.id}`, {
+          diameter: 5 * S, height: h + 4 * S, tessellation: 16,
+        }, bScene)
+        pin.material = pinMat
+        pin.parent = hingeRoot
+
+        const screwMat = new PBRMaterial(`hinge_screw_mat_${f.id}`, bScene)
+        screwMat.albedoColor = new Color3(0.667, 0.667, 0.667)
+        screwMat.metallic = 1.0; screwMat.roughness = 0.2
+        screwMat.clearCoat.isEnabled = true; screwMat.clearCoat.intensity = 0.3
+
+        const offsets: [number, number][] = [
+          [-w * 0.28, h * 0.3], [w * 0.28, h * 0.3],
+          [-w * 0.28, -h * 0.3], [w * 0.28, -h * 0.3],
+        ]
+        offsets.forEach(([sx, sy], i) => {
+          const sc = MeshBuilder.CreateCylinder(`hinge_screw_${f.id}_${i}`, {
+            diameter: 3.6 * S, height: d + S, tessellation: 8,
+          }, bScene)
+          sc.rotation.x = Math.PI / 2
+          sc.position.set(sx, sy, 0)
+          sc.parent = hingeRoot
+          sc.material = screwMat
+        })
+        return hingeRoot
+      }
+
+      for (const ferragem of sceneData.ferragens) {
+        if (ferragem.tipo === 'dobradica') {
+          const hingeNode = createHinge(ferragem)
+          const pm = pivotNodeMap.get(ferragem.peca_nome)
+          if (pm) {
+            hingeNode.position.set(
+              ferragem.posicao.x * S - pm.pivoX,
+              ferragem.posicao.y * S,
+              ferragem.posicao.z * S,
+            )
+            hingeNode.parent = pm.node
+          } else {
+            hingeNode.position.set(ferragem.posicao.x * S, ferragem.posicao.y * S, ferragem.posicao.z * S)
+          }
+          continue
+        }
+
+        const fMat = makeHardwareMat(ferragem.material, `ferr_mat_${ferragem.id}`)
+        hardwareMatsRef.current.push(fMat)
 
         const geo = ferragem.geometria
-        let geometry: ThreeTypes.BufferGeometry
-        if (geo.tipo === 'cylinder') {
-          geometry = new THREE.CylinderGeometry(
-            (geo.raio ?? 5) * scale,
-            (geo.raio ?? 5) * scale,
-            (geo.comprimento ?? geo.altura ?? 30) * scale,
-            16
-          )
-        } else if (geo.tipo === 'sphere') {
-          geometry = new THREE.SphereGeometry((geo.raio ?? 5) * scale, 16, 16)
-        } else {
-          geometry = new THREE.BoxGeometry(
-            (geo.largura ?? 10) * scale,
-            (geo.altura ?? 10) * scale,
-            (geo.profundidade ?? 10) * scale
-          )
-        }
+        const mesh = geo.tipo === 'cylinder'
+          ? MeshBuilder.CreateCylinder(`ferr_${ferragem.id}`, {
+              diameter: (geo.raio ?? 5) * 2 * S,
+              height: (geo.comprimento ?? geo.altura ?? 30) * S,
+              tessellation: 16,
+            }, bScene)
+          : geo.tipo === 'sphere'
+          ? MeshBuilder.CreateSphere(`ferr_${ferragem.id}`, {
+              diameter: (geo.raio ?? 5) * 2 * S,
+              segments: 16,
+            }, bScene)
+          : MeshBuilder.CreateBox(`ferr_${ferragem.id}`, {
+              width: (geo.largura ?? 10) * S,
+              height: (geo.altura ?? 10) * S,
+              depth: (geo.profundidade ?? 10) * S,
+            }, bScene)
 
-        hardwareMeshesRef.current.push(ferragemMat)
-        const mesh = new THREE.Mesh(geometry, ferragemMat)
+        mesh.material = fMat
         mesh.rotation.set(ferragem.rotacao.x, ferragem.rotacao.y, ferragem.rotacao.z)
-        mesh.castShadow = true
-        const pm = pivotGroupMap.get(ferragem.peca_nome)
+
+        const pm = pivotNodeMap.get(ferragem.peca_nome)
         if (pm) {
           mesh.position.set(
-            ferragem.posicao.x * scale - pm.pivoX,
-            ferragem.posicao.y * scale,
-            ferragem.posicao.z * scale
+            ferragem.posicao.x * S - pm.pivoX,
+            ferragem.posicao.y * S,
+            ferragem.posicao.z * S,
           )
-          pm.group.add(mesh)
+          mesh.parent = pm.node
         } else {
-          mesh.position.set(ferragem.posicao.x * scale, ferragem.posicao.y * scale, ferragem.posicao.z * scale)
-          threeScene.add(mesh)
+          mesh.position.set(ferragem.posicao.x * S, ferragem.posicao.y * S, ferragem.posicao.z * S)
         }
       }
 
-      // ── Resize handler ────────────────────────────────────────────────────
-      const handleResize = () => {
-        if (!containerRef.current || !rendererRef.current || !cameraRef.current) return
-        const w = containerRef.current.clientWidth
-        const h = containerRef.current.clientHeight
-        renderer.setSize(w, h)
-        camera.aspect = w / h
-        camera.updateProjectionMatrix()
-      }
-      window.addEventListener('resize', handleResize)
-
-      // ── Animation loop ────────────────────────────────────────────────────
+      // ── Animation LERP ─────────────────────────────────────────────────────
       const LERP = 0.05
-
-      function animate() {
-        animFrameRef.current = requestAnimationFrame(animate)
-        controls.update()
-
+      bScene.registerBeforeRender(() => {
         for (const state of animStatesRef.current) {
           if (state.animacao.tipo === 'pivotante') {
             state.currentAngle += (state.targetAngle - state.currentAngle) * LERP
-            state.group.rotation.y = state.currentAngle
+            state.pivotNode.rotation.y = state.currentAngle
           } else if (state.animacao.tipo === 'basculante') {
             state.currentAngle += (state.targetAngle - state.currentAngle) * LERP
-            state.group.rotation.x = state.currentAngle
+            state.pivotNode.rotation.x = state.currentAngle
           } else if (state.animacao.tipo === 'deslizante') {
-            state.currentPos.lerp(state.targetPos, LERP)
-            state.group.position.copy(state.currentPos)
+            state.currentPos = Vector3.Lerp(state.currentPos, state.targetPos, LERP)
+            state.pivotNode.position.copyFrom(state.currentPos)
           }
         }
+      })
 
-        renderer.render(threeScene, camera)
-      }
-      animate()
+      // ── Resize ─────────────────────────────────────────────────────────────
+      const handleResize = () => engine.resize()
+      window.addEventListener('resize', handleResize)
+
+      // ── Render loop ────────────────────────────────────────────────────────
+      engine.runRenderLoop(() => {
+        if (mountedRef.current) bScene.render()
+      })
 
       setIsLoading(false)
       onReady?.()
@@ -500,11 +473,16 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
 
     return () => {
       mountedRef.current = false
-      cancelAnimationFrame(animFrameRef.current)
-      if (rendererRef.current) {
-        rendererRef.current.dispose()
-        rendererRef.current.domElement.remove()
-        rendererRef.current = null
+      if (engineRef.current) {
+        engineRef.current.stopRenderLoop()
+        babylonSceneRef.current?.dispose()
+        babylonSceneRef.current = null
+        engineRef.current.dispose()
+        engineRef.current = null
+      }
+      if (canvasElemRef.current) {
+        canvasElemRef.current.remove()
+        canvasElemRef.current = null
       }
       cleanup?.()
     }
@@ -512,10 +490,12 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
 
   useEffect(() => {
     if (!corVidro) return
-    const hexColor = GLASS_COLORS[corVidro] ?? corVidro
-    glassMeshesRef.current.forEach((mat) => {
-      mat.color.set(hexColor)
-      mat.needsUpdate = true
+    const hex = GLASS_COLORS[corVidro] ?? corVidro
+    const [r, g, b] = hexToRgb(hex)
+    glassMatsRef.current.forEach((mat) => {
+      mat.albedoColor.r = r
+      mat.albedoColor.g = g
+      mat.albedoColor.b = b
     })
   }, [corVidro])
 
@@ -523,11 +503,13 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
     if (!acabamento) return
     const finish = HARDWARE_FINISHES[acabamento]
     if (!finish) return
-    hardwareMeshesRef.current.forEach((mat) => {
-      mat.color.set(finish.color)
+    const [r, g, b] = hexToRgb(finish.color)
+    hardwareMatsRef.current.forEach((mat) => {
+      mat.albedoColor.r = r
+      mat.albedoColor.g = g
+      mat.albedoColor.b = b
+      mat.metallic = finish.metalness
       mat.roughness = finish.roughness
-      mat.metalness = finish.metalness
-      mat.needsUpdate = true
     })
   }, [acabamento])
 
@@ -556,7 +538,6 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
 
       {hasAnim && (
         <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
-          {/* Slider de abertura */}
           <div className="bg-black/50 backdrop-blur-sm rounded-xl px-4 py-2.5 flex items-center gap-3">
             <span className="text-white text-xs font-mono w-10 shrink-0">
               {animType === 'deslizante'
@@ -576,7 +557,6 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
               {animType === 'deslizante' ? '100%' : `${maxAngle}°`}
             </span>
           </div>
-          {/* Botão rápido */}
           <div className="flex justify-end">
             <button
               onClick={toggleAnimation}

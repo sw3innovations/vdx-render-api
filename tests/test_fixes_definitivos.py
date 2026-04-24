@@ -54,10 +54,10 @@ class TestViewerDeslizanteDirection:
             return resp.text
 
     def test_viewer_html_contem_direction_field(self):
-        """O HTML gerado deve conter campo direction no entry deslizante."""
+        """O HTML gerado deve conter cálculo de dir e openVal no deslizante."""
         html = self._get_viewer_html()
-        assert "direction:dir" in html, (
-            "JS de inicialização deslizante não contém campo 'direction:dir'. "
+        assert "* dir" in html or "*dir" in html, (
+            "JS deslizante não multiplica openVal por dir. "
             "A fix do CRÍTICO-1 não foi aplicada corretamente."
         )
 
@@ -71,7 +71,7 @@ class TestViewerDeslizanteDirection:
     def test_viewer_html_openval_multiplicado_por_dir(self):
         """openVal deve ser multiplicado por dir (valor assinado)."""
         html = self._get_viewer_html()
-        assert ")*dir}" in html or ")*dir}}" in html, (
+        assert "* dir" in html, (
             "openVal não é multiplicado por dir no HTML. Folhas esquerdas vão na direção errada."
         )
 

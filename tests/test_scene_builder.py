@@ -274,13 +274,13 @@ class TestEndpoints:
         assert "viewer_3d" in main
 
     def test_html_gerado(self):
-        """_gerar_viewer_html deve retornar HTML válido com Three.js."""
+        """_gerar_viewer_html deve retornar HTML válido com BabylonJS."""
         from app.routers.viewer_3d import _gerar_viewer_html
         scene = _scene("porta_pivotante_simples")
         html = _gerar_viewer_html(scene)
         assert "<!DOCTYPE html>" in html
-        assert "three@0.165.0" in html or "three@0.128.0" in html  # r165 fotorrealista ou r128
-        assert "OrbitControls" in html
+        assert "babylon.js" in html  # migrado para BabylonJS
+        assert "ArcRotateCamera" in html
         assert "SCENE_DATA" not in html  # data embutida como `const SCENE =`
         assert "const SCENE =" in html
         assert "toggleDoor" in html
