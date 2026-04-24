@@ -39,7 +39,8 @@ _MAX_TOKENS = 1500
 
 _OLLAMA_CHECK_CACHE_TTL = 60.0  # segundos
 # Timeout curto para visão no CPU — fail-fast para Claude se Moondream travar
-_OLLAMA_VISION_TIMEOUT_CAP = 45
+_OLLAMA_VISION_TIMEOUT_CAP = 25  # 25s cap: fail-fast → Claude (25+25=50 < 60s nginx)
+_OLLAMA_TEXT_TIMEOUT = 30          # 30s text cap: gemma3 slow on CPU (30+20=50 < 60s nginx)
 
 _PROMPT_FOTO_TMPL = """Você é o VDX Vision — engenheiro de vidraçaria analisando uma FOTO REAL de vão.
 
@@ -120,6 +121,7 @@ class VisionResult:
     confianca: float
     raw: dict[str, Any] = field(default_factory=dict)
     engine: str = ""  # "moondream_local" | "gemma3_local" | "claude_api" | ""
+    dimensoes_normalizadas: bool = False  # True when AI returned out-of-range dimensions
 
 
 class VisionService:
@@ -379,13 +381,15 @@ class VisionService:
             method="POST",
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=self._ollama_timeout) as resp:
+        # Text timeout capped at _OLLAMA_TEXT_TIMEOUT (30s) so total pipeline < nginx 60s
+        _text_to = min(_OLLAMA_TEXT_TIMEOUT, self._ollama_timeout)
+        with urllib.request.urlopen(req, timeout=_text_to) as resp:
             body = resp.read().decode("utf-8", errors="replace")
         data = json.loads(body)
         if "error" in data:
             raise RuntimeError(f"Ollama error: {data['error']}")
         text = data.get("response", "") or ""
-        log.info("VisionService.ollama_texto: resposta raw_len=%d", len(text))
+        log.info("VisionService.ollama_texto: resposta raw_len=%d timeout=%ds", len(text), _text_to)
         if not text.strip():
             raise RuntimeError("Ollama retornou resposta vazia")
         return text
@@ -400,6 +404,7 @@ class VisionService:
         msg = self._client.messages.create(
             model=_CLAUDE_MODEL,
             max_tokens=_MAX_TOKENS,
+            timeout=25.0,  # 25s so vision pipeline (25+25) < nginx 60s
             messages=[
                 {
                     "role": "user",
@@ -433,6 +438,7 @@ class VisionService:
         msg = self._client.messages.create(
             model=_CLAUDE_MODEL,
             max_tokens=_MAX_TOKENS,
+            timeout=20.0,  # 20s so text pipeline (30+20) < nginx 60s
             messages=[
                 {
                     "role": "user",
@@ -492,6 +498,40 @@ class VisionService:
             raise ValueError(f"Resposta Vision não é JSON válido: {e}") from e
 
     @staticmethod
+    def _normalizar_dim(value: int, label: str) -> tuple[int, bool]:
+        """Normalizes AI-returned dimensions to a valid mm range [100, 6000].
+
+        Common AI errors:
+          > 10000 → likely cm*100 (e.g. 90000 from "900cm * 100") → divide by 100
+          < 100   → likely cm without conversion (e.g. 90cm) → multiply by 10
+          After correction: clamp [100, 6000] with warning.
+
+        Returns (corrected_value, was_normalized).
+        """
+        original = value
+        normalized = False
+
+        if value > 10000:
+            value = round(value / 100)
+            normalized = True
+            log.info("VisionService._normalizar_dim: %s %d→%d (dividiu por 100, era cm*100)", label, original, value)
+        elif value < 100:
+            value = round(value * 10)
+            normalized = True
+            log.info("VisionService._normalizar_dim: %s %d→%d (multiplicou por 10, era cm)", label, original, value)
+
+        if value > 6000:
+            log.warning("VisionService._normalizar_dim: %s %d>6000 → clampando em 6000", label, value)
+            value = 6000
+            normalized = True
+        elif value < 100:
+            log.warning("VisionService._normalizar_dim: %s %d<100 → clampando em 100", label, value)
+            value = 100
+            normalized = True
+
+        return value, normalized
+
+    @staticmethod
     def _to_result(data: dict[str, Any]) -> VisionResult:
         def _i(key: str, default: int) -> int:
             try:
@@ -509,10 +549,15 @@ class VisionService:
             except (TypeError, ValueError):
                 return default
 
+        largura_raw = _i("largura_mm", 900)
+        altura_raw  = _i("altura_mm", 2100)
+        largura_norm, norm_l = VisionService._normalizar_dim(largura_raw, "largura_mm")
+        altura_norm,  norm_a = VisionService._normalizar_dim(altura_raw,  "altura_mm")
+
         return VisionResult(
             tipologia_sugerida=_s("tipologia_sugerida", "porta_pivotante_simples"),
-            largura_mm=_i("largura_mm", 900),
-            altura_mm=_i("altura_mm", 2100),
+            largura_mm=largura_norm,
+            altura_mm=altura_norm,
             tipo_abertura=_s("tipo_abertura", "pivotante"),
             num_folhas=_i("num_folhas", 1),
             espessura_vidro_mm=_i("espessura_vidro_mm", 8),
@@ -520,4 +565,5 @@ class VisionService:
             observacoes=_s("observacoes", ""),
             confianca=max(0.0, min(1.0, _f("confianca", 0.5))),
             raw=data,
+            dimensoes_normalizadas=norm_l or norm_a,
         )

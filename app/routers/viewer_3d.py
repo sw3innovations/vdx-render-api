@@ -562,7 +562,8 @@ function addGlass(vidro) {{
   }} else if (anim.tipo === "deslizante") {{
     mesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);
     threeScene.add(mesh);
-    const entry = {{type:"deslizante", mesh, current:0, target:0, originX:vidro.posicao.x, openVal:anim.distancia_max||vidro.largura}};
+    const dir = vidro.posicao.x < 0 ? -1 : 1;
+    const entry = {{type:"deslizante", mesh, current:0, target:0, originX:vidro.posicao.x, direction:dir, openVal:(anim.distancia_max||vidro.largura)*dir}};
     animatables.push(entry);
     return entry;
 

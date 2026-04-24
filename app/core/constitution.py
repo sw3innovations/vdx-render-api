@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import unicodedata
+from urllib.parse import unquote as _url_unquote
 from pathlib import Path
 from typing import Optional, List
 
@@ -299,6 +300,7 @@ def migrate() -> None:
 # ─── CRUD original (tipologias) ───────────────────────────────────────────────
 
 def buscar(chave: str, tipo: str = "tipologia", nicho: str = "vidros") -> Optional[dict]:
+    chave = _url_unquote(chave)  # normalize URL-encoded keys
     conn = _get_conn()
     row = conn.execute(
         "SELECT dados, confianca, origem FROM constitution_entries WHERE nicho=? AND tipo=? AND chave=?",
@@ -317,6 +319,7 @@ def buscar(chave: str, tipo: str = "tipologia", nicho: str = "vidros") -> Option
 def registrar(chave: str, dados: dict, tipo: str = "tipologia",
               nicho: str = "vidros", origem: str = "claude_inferido",
               confianca: float = 0.7, validado_por: str = None) -> None:
+    chave = _url_unquote(chave)  # normalize URL-encoded keys before any DB write
     conn = _get_conn()
     conn.execute("""
         INSERT INTO constitution_entries (nicho, tipo, chave, dados, origem, confianca, validado_por)
