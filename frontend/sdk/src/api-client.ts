@@ -13,6 +13,10 @@ import type {
   FeedbackResponse,
   HealthResponse,
   HealthDetailedResponse,
+  SmartProjectResponse,
+  PhotoToProjectRequest,
+  SketchToProjectRequest,
+  TextToProjectRequest,
 } from './types'
 
 export interface VDXClientOptions {
@@ -205,7 +209,6 @@ export class VDXClient {
 
   /**
    * Get the base URL for the server-side 3D viewer HTML page.
-   * Use `createShareableUrl()` to get a shareable link without exposing the API key.
    */
   get3DViewerUrl(): string {
     return `${this.baseUrl}/api/v1/3d/viewer`
@@ -216,19 +219,6 @@ export class VDXClient {
    *
    * The URL embeds a signed JWT view token — recipients can open it in a browser,
    * send it via WhatsApp, or embed it in an iframe without the API key being exposed.
-   *
-   * @param tipologia - tipologia key (e.g. "porta_pivotante_simples")
-   * @param largura   - width in mm (100–6000)
-   * @param altura    - height in mm (100–6000)
-   * @param options   - optional cor_vidro, espessura, fabricante, ttl_seconds
-   * @returns         - { token, url, expires_in } — use `url` to share
-   *
-   * @example
-   * ```ts
-   * const { url } = await client.createShareableUrl('porta_pivotante_simples', 900, 2100)
-   * // → https://your-api/api/v1/3d/viewer?t=eyJ...
-   * window.open(url)  // opens in browser without API key
-   * ```
    */
   async createShareableUrl(
     tipologia: string,
@@ -331,6 +321,29 @@ export class VDXClient {
    */
   async generateAllImages(): Promise<unknown> {
     return this.request<unknown>('POST', '/api/v1/tipologias/images/gerar-todas')
+  }
+
+  // ─── Smart Vision ──────────────────────────────────────────────────────────
+
+  /**
+   * Analyze a real photo of a vão and generate a complete project.
+   */
+  async photoToProject(req: PhotoToProjectRequest): Promise<SmartProjectResponse> {
+    return this.request<SmartProjectResponse>('POST', '/api/v1/smart/photo-to-project', req)
+  }
+
+  /**
+   * Analyze a hand-drawn sketch and generate a complete project.
+   */
+  async sketchToProject(req: SketchToProjectRequest): Promise<SmartProjectResponse> {
+    return this.request<SmartProjectResponse>('POST', '/api/v1/smart/sketch-to-project', req)
+  }
+
+  /**
+   * Interpret a text description and generate a complete project (no image needed).
+   */
+  async textToProject(req: TextToProjectRequest): Promise<SmartProjectResponse> {
+    return this.request<SmartProjectResponse>('POST', '/api/v1/smart/text-to-project', req)
   }
 
   // ─── Proposal ──────────────────────────────────────────────────────────────

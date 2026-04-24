@@ -191,6 +191,56 @@ export interface RenderRequest {
   espessura_vidro_mm?: number
 }
 
+// ─── Smart Vision ─────────────────────────────────────────────────────────────
+
+export interface VisionAnalysis {
+  tipologia_sugerida: string
+  largura_mm: number
+  altura_mm: number
+  tipo_abertura: string
+  num_folhas: number
+  espessura_vidro_mm: number
+  cor_vidro: string
+  observacoes: string
+  confianca: number
+}
+
+export interface SmartProjectResponse {
+  analise: VisionAnalysis
+  tipologia_chave: string
+  svg: string
+  scene: SceneJSON
+  pecas: Record<string, unknown>[]
+  ferragens: Record<string, unknown>[]
+  kit?: Record<string, unknown> | null
+  viewer_url?: string | null
+  viewer_token?: string | null
+  viewer_expires_in?: number | null
+  engine: string
+  versao_api: string
+}
+
+export interface PhotoToProjectRequest {
+  image_base64: string
+  contexto?: string
+  cor_vidro?: string
+  espessura_vidro_mm?: number
+}
+
+export interface SketchToProjectRequest {
+  image_base64: string
+  notas?: string
+  cor_vidro?: string
+  espessura_vidro_mm?: number
+}
+
+export interface TextToProjectRequest {
+  descricao: string
+  fabricante?: string
+  cor_vidro?: string
+  espessura_vidro_mm?: number
+}
+
 // ─── Proposal types ───────────────────────────────────────────────────────────
 
 export interface ProposalItem {

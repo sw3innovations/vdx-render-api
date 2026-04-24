@@ -189,3 +189,134 @@ export interface RenderRequest {
   cor_vidro?: string
   espessura_vidro_mm?: number
 }
+
+// ─── Smart Vision ─────────────────────────────────────────────────────────────
+
+export interface VisionAnalysis {
+  tipologia_sugerida: string
+  largura_mm: number
+  altura_mm: number
+  tipo_abertura: string
+  num_folhas: number
+  espessura_vidro_mm: number
+  cor_vidro: string
+  observacoes: string
+  confianca: number
+}
+
+export interface SmartProjectResponse {
+  analise: VisionAnalysis
+  tipologia_chave: string
+  svg: string
+  scene: SceneJSON
+  pecas: Record<string, unknown>[]
+  ferragens: Record<string, unknown>[]
+  kit?: Record<string, unknown> | null
+  viewer_url?: string | null
+  viewer_token?: string | null
+  viewer_expires_in?: number | null
+  engine: string
+  versao_api: string
+}
+
+export interface PhotoToProjectRequest {
+  image_base64: string
+  contexto?: string
+  cor_vidro?: string
+  espessura_vidro_mm?: number
+}
+
+export interface SketchToProjectRequest {
+  image_base64: string
+  notas?: string
+  cor_vidro?: string
+  espessura_vidro_mm?: number
+}
+
+export interface TextToProjectRequest {
+  descricao: string
+  fabricante?: string
+  cor_vidro?: string
+  espessura_vidro_mm?: number
+}
+
+// ─── Proposal ─────────────────────────────────────────────────────────────────
+
+export interface ProposalItem {
+  descricao: string
+  tipologia?: string
+  largura_mm?: number
+  altura_mm?: number
+  espessura_vidro_mm?: number
+  cor_vidro?: string
+  quantidade?: number
+  valor_unitario?: number
+  valor_total?: number
+  notas?: string
+}
+
+export interface Empresa {
+  nome: string
+  cnpj?: string
+  endereco?: string
+  telefone?: string
+  email?: string
+  website?: string
+  logo_base64?: string
+}
+
+export interface Cliente {
+  nome: string
+  email?: string
+  telefone?: string
+  cpf_cnpj?: string
+  endereco?: string
+}
+
+export interface ProposalRequest {
+  numero_proposta?: string
+  empresa: Empresa
+  cliente: Cliente
+  itens: ProposalItem[]
+  observacoes?: string
+  validade_dias?: number
+  condicoes_pagamento?: string
+  prazo_entrega?: string
+}
+
+export interface ProposalResponse {
+  numero_proposta: string
+  total_itens: number
+  valor_total: number | null
+  pdf_bytes: number
+  validade_ate: string
+}
+
+// ─── Chat / Feedback ──────────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface ChatRequest {
+  messages: ChatMessage[]
+  tipologia_contexto?: string
+}
+
+export interface ChatResponse {
+  reply: string
+  sugestoes?: string[]
+}
+
+export interface FeedbackRequest {
+  tipologia: string
+  rating: number
+  comentario?: string
+  dados_renderizacao?: Record<string, unknown>
+}
+
+export interface FeedbackResponse {
+  id: number
+  recebido: boolean
+}

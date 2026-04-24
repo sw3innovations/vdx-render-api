@@ -31,6 +31,9 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
   const animStatesRef = useRef<AnimState[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [sliderAngle, setSliderAngle] = useState(0)
+  const [maxAngle, setMaxAngle] = useState(90)
+  const [animType, setAnimType] = useState<'rotacional' | 'deslizante' | null>(null)
   const mountedRef = useRef(false)
 
   const takeScreenshot = useCallback(() => {
@@ -40,7 +43,6 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
     }, 'image/png')
   }, [onScreenshot])
 
-  // Expose takeScreenshot on the container element for external access
   useEffect(() => {
     if (containerRef.current) {
       (containerRef.current as HTMLDivElement & { takeScreenshot?: () => void }).takeScreenshot =
@@ -48,34 +50,43 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
     }
   }, [takeScreenshot])
 
+  const applyAngle = useCallback((angleDeg: number) => {
+    animStatesRef.current.forEach((state) => {
+      if (state.animacao.tipo === 'pivotante') {
+        state.targetAngle = (angleDeg * Math.PI) / 180
+      } else if (state.animacao.tipo === 'basculante') {
+        state.targetAngle = (angleDeg * Math.PI) / 180
+      } else if (state.animacao.tipo === 'deslizante') {
+        const pct = angleDeg / 90
+        state.targetPos.setX(pct * (state.animacao.distancia_max ?? 500) / 1000)
+      }
+    })
+  }, [])
+
+  const handleSliderChange = useCallback((val: number) => {
+    setSliderAngle(val)
+    setIsAnimating(val > 0)
+    applyAngle(val)
+  }, [applyAngle])
+
   const toggleAnimation = useCallback(() => {
     setIsAnimating((prev) => {
       const next = !prev
-      animStatesRef.current.forEach((state) => {
-        if (state.animacao.tipo === 'pivotante') {
-          state.targetAngle = next
-            ? ((state.animacao.angulo_max ?? 90) * Math.PI) / 180
-            : 0
-        } else if (state.animacao.tipo === 'basculante') {
-          state.targetAngle = next
-            ? ((state.animacao.angulo_max ?? 45) * Math.PI) / 180
-            : 0
-        } else if (state.animacao.tipo === 'deslizante') {
-          state.targetPos.setX(next ? (state.animacao.distancia_max ?? 500) / 1000 : 0)
-        }
-      })
+      const target = next ? maxAngle : 0
+      setSliderAngle(target)
+      applyAngle(target)
       return next
     })
-  }, [])
+  }, [maxAngle, applyAngle])
 
   useEffect(() => {
     if (!containerRef.current || !scene) return
 
-    // Capture non-null scene for use inside async init
     const sceneData: SceneJSON = scene
-
     mountedRef.current = true
     setIsLoading(true)
+    setSliderAngle(0)
+    setIsAnimating(false)
 
     async function init() {
       const THREE = await import('three')
@@ -86,7 +97,6 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
 
       if (!mountedRef.current || !containerRef.current) return
 
-      // Clean up previous renderer
       if (rendererRef.current) {
         cancelAnimationFrame(animFrameRef.current)
         rendererRef.current.dispose()
@@ -119,7 +129,6 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
       threeScene.background = new THREE.Color('#D6D0C8')
       sceneRef.current = threeScene
 
-      // ── Environment (PMREMGenerator + RoomEnvironment) ─────────────────────
       const pmremGenerator = new THREE.PMREMGenerator(renderer)
       pmremGenerator.compileEquirectangularShader()
       const envTexture = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture
@@ -128,14 +137,10 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
 
       // ── Camera ────────────────────────────────────────────────────────────
       const cam = sceneData.ambiente.camera_inicial
-      const scale = 0.001 // mm → m
+      const scale = 0.001
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 100)
-      camera.position.set(
-        cam.posicao.x * scale,
-        cam.posicao.y * scale,
-        cam.posicao.z * scale
-      )
+      camera.position.set(cam.posicao.x * scale, cam.posicao.y * scale, cam.posicao.z * scale)
       camera.lookAt(cam.target.x * scale, cam.target.y * scale, cam.target.z * scale)
       cameraRef.current = camera
 
@@ -150,10 +155,8 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
       controlsRef.current = controls as unknown as ThreeTypes.EventDispatcher
 
       // ── Lighting ──────────────────────────────────────────────────────────
-      const ambient = new THREE.AmbientLight(0xffffff, 0.4)
-      threeScene.add(ambient)
+      threeScene.add(new THREE.AmbientLight(0xffffff, 0.4))
 
-      // Key light (warm, directional, casts shadows)
       const keyLight = new THREE.DirectionalLight(0xfff5e0, 2.0)
       keyLight.position.set(2, 4, 3)
       keyLight.castShadow = true
@@ -168,31 +171,30 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
       keyLight.shadow.bias = -0.0005
       threeScene.add(keyLight)
 
-      // Fill light (cool blue)
       const fillLight = new THREE.DirectionalLight(0xc8d8ff, 0.8)
       fillLight.position.set(-3, 1, -1)
       threeScene.add(fillLight)
 
-      // Rim light (warm orange)
       const rimLight = new THREE.DirectionalLight(0xffddaa, 0.6)
       rimLight.position.set(0, 2, -4)
       threeScene.add(rimLight)
 
       // ── Floor ─────────────────────────────────────────────────────────────
       const pisoData = sceneData.ambiente.piso
-      const floorGeo = new THREE.PlaneGeometry(20, 20)
-      const floorMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(pisoData.cor),
-        roughness: pisoData.roughness,
-        metalness: pisoData.metalness,
-        envMapIntensity: pisoData.envMapIntensity,
-      })
-      const floor = new THREE.Mesh(floorGeo, floorMat)
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(20, 20),
+        new THREE.MeshStandardMaterial({
+          color: new THREE.Color(pisoData.cor),
+          roughness: pisoData.roughness,
+          metalness: pisoData.metalness,
+          envMapIntensity: pisoData.envMapIntensity,
+        })
+      )
       floor.rotation.x = -Math.PI / 2
       floor.receiveShadow = true
       threeScene.add(floor)
 
-      // ── Walls (vão) ───────────────────────────────────────────────────────
+      // ── Walls ─────────────────────────────────────────────────────────────
       const vaoData = sceneData.vao
       const wallMat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(vaoData.material.cor),
@@ -200,26 +202,22 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         metalness: vaoData.material.metalness,
         side: THREE.BackSide,
       })
-
       const vW = vaoData.largura * scale
       const vH = vaoData.altura * scale
       const vD = vaoData.profundidade * scale
 
-      // Back wall
-      const backWallGeo = new THREE.PlaneGeometry(vW + 0.6, vH + 0.3)
-      const backWall = new THREE.Mesh(backWallGeo, wallMat)
+      const backWall = new THREE.Mesh(new THREE.PlaneGeometry(vW + 0.6, vH + 0.3), wallMat)
       backWall.position.set(0, vH / 2, -vD / 2)
       backWall.receiveShadow = true
       threeScene.add(backWall)
 
-      // Left wall panel (pillar left)
       const sideThick = 0.3
-      const pillarGeo = new THREE.BoxGeometry(sideThick, vH, vD)
       const pillarMat = new THREE.MeshStandardMaterial({
         color: new THREE.Color(vaoData.material.cor),
         roughness: vaoData.material.roughness,
         metalness: vaoData.material.metalness,
       })
+      const pillarGeo = new THREE.BoxGeometry(sideThick, vH, vD)
       const leftPillar = new THREE.Mesh(pillarGeo, pillarMat)
       leftPillar.position.set(-vW / 2 - sideThick / 2, vH / 2, 0)
       leftPillar.receiveShadow = true
@@ -232,9 +230,7 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
       rightPillar.castShadow = true
       threeScene.add(rightPillar)
 
-      // Top beam
-      const beamGeo = new THREE.BoxGeometry(vW + sideThick * 2, 0.2, vD)
-      const topBeam = new THREE.Mesh(beamGeo, pillarMat)
+      const topBeam = new THREE.Mesh(new THREE.BoxGeometry(vW + sideThick * 2, 0.2, vD), pillarMat)
       topBeam.position.set(0, vH + 0.1, 0)
       topBeam.receiveShadow = true
       threeScene.add(topBeam)
@@ -271,19 +267,9 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         mesh.receiveShadow = true
 
         const group = new THREE.Group()
-
-        // Apply pivot offset if animatable
         const anim = vidro.animacao
         if (anim && anim.tipo !== 'fixo' && anim.ponto_pivo) {
           const pivo = anim.ponto_pivo
-          // mesh is offset from group origin by pivot
-          mesh.position.set(
-            (vidro.posicao.x - pivo.x) * scale,
-            (vidro.posicao.y - pivo.y) * scale - (vidro.altura / 2) * scale,
-            (vidro.posicao.z - pivo.z) * scale
-          )
-          // For pivotante (door pivot): mesh x-center is at -width/2 from pivot
-          // Re-position mesh so pivot is at group origin
           mesh.position.set(
             -pivo.x * scale + vidro.posicao.x * scale,
             (vidro.posicao.y - vidro.altura / 2) * scale,
@@ -315,6 +301,14 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         }
       }
 
+      // Derive anim metadata for UI
+      const firstAnim = animStatesRef.current[0]?.animacao
+      if (firstAnim) {
+        const isDeslizante = firstAnim.tipo === 'deslizante'
+        setAnimType(isDeslizante ? 'deslizante' : 'rotacional')
+        setMaxAngle(isDeslizante ? 90 : (firstAnim.angulo_max ?? 90))
+      }
+
       // ── Ferragens ─────────────────────────────────────────────────────────
       for (const ferragem of sceneData.ferragens) {
         const mat = ferragem.material
@@ -340,7 +334,6 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
 
         const geo = ferragem.geometria
         let geometry: ThreeTypes.BufferGeometry
-
         if (geo.tipo === 'cylinder') {
           geometry = new THREE.CylinderGeometry(
             (geo.raio ?? 5) * scale,
@@ -359,16 +352,8 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         }
 
         const mesh = new THREE.Mesh(geometry, ferragemMat)
-        mesh.position.set(
-          ferragem.posicao.x * scale,
-          ferragem.posicao.y * scale,
-          ferragem.posicao.z * scale
-        )
-        mesh.rotation.set(
-          ferragem.rotacao.x,
-          ferragem.rotacao.y,
-          ferragem.rotacao.z
-        )
+        mesh.position.set(ferragem.posicao.x * scale, ferragem.posicao.y * scale, ferragem.posicao.z * scale)
+        mesh.rotation.set(ferragem.rotacao.x, ferragem.rotacao.y, ferragem.rotacao.z)
         mesh.castShadow = true
         threeScene.add(mesh)
       }
@@ -391,7 +376,6 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         animFrameRef.current = requestAnimationFrame(animate)
         controls.update()
 
-        // Smooth animation interpolation
         for (const state of animStatesRef.current) {
           if (state.animacao.tipo === 'pivotante') {
             state.currentAngle += (state.targetAngle - state.currentAngle) * LERP
@@ -432,6 +416,8 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
     }
   }, [scene, onReady])
 
+  const hasAnim = !isLoading && animStatesRef.current.length > 0
+
   return (
     <div className={`relative overflow-hidden bg-gray-800 ${className}`}>
       <div ref={containerRef} className="w-full h-full" />
@@ -443,15 +429,6 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         </div>
       )}
 
-      {!isLoading && animStatesRef.current.length > 0 && (
-        <button
-          onClick={toggleAnimation}
-          className="absolute bottom-4 right-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
-        >
-          {isAnimating ? '⏸ Fechar' : '▶ Abrir'}
-        </button>
-      )}
-
       {!isLoading && onScreenshot && (
         <button
           onClick={takeScreenshot}
@@ -460,6 +437,40 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         >
           📷
         </button>
+      )}
+
+      {hasAnim && (
+        <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
+          {/* Slider de abertura */}
+          <div className="bg-black/50 backdrop-blur-sm rounded-xl px-4 py-2.5 flex items-center gap-3">
+            <span className="text-white text-xs font-mono w-10 shrink-0">
+              {animType === 'deslizante'
+                ? `${Math.round((sliderAngle / 90) * 100)}%`
+                : `${sliderAngle}°`}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={maxAngle}
+              step={1}
+              value={sliderAngle}
+              onChange={(e) => handleSliderChange(Number(e.target.value))}
+              className="flex-1 accent-white h-1.5 cursor-pointer"
+            />
+            <span className="text-white/50 text-xs shrink-0">
+              {animType === 'deslizante' ? '100%' : `${maxAngle}°`}
+            </span>
+          </div>
+          {/* Botão rápido */}
+          <div className="flex justify-end">
+            <button
+              onClick={toggleAnimation}
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            >
+              {isAnimating ? '⏸ Fechar' : '▶ Abrir'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

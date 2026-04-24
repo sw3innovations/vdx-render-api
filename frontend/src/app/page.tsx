@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { fetchTipologias } from '@/lib/api'
 import { categoriaFromChave } from '@/lib/utils'
 import type { Tipologia } from '@/lib/types'
@@ -53,8 +54,16 @@ export default function HomePage() {
               Configurador de esquadrias de vidro — visualização 3D fotorrealista
             </p>
           </div>
-          <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
-            {tipologias.length > 0 && `${tipologias.length} tipologias disponíveis`}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/smart"
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
+            >
+              ✨ Smart Vision
+            </Link>
+            <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
+              {tipologias.length > 0 && `${tipologias.length} tipologias`}
+            </div>
           </div>
         </div>
       </header>
@@ -121,7 +130,7 @@ export default function HomePage() {
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
             </svg>
-            <p className="text-sm">Nenhuma tipologia encontrada para "{search}"</p>
+            <p className="text-sm">Nenhuma tipologia encontrada para &quot;{search}&quot;</p>
           </div>
         )}
       </main>
