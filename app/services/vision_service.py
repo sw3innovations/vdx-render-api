@@ -39,8 +39,9 @@ _MAX_TOKENS = 1500
 
 _OLLAMA_CHECK_CACHE_TTL = 60.0  # segundos
 # Timeout curto para visão no CPU — fail-fast para Claude se Moondream travar
-_OLLAMA_VISION_TIMEOUT_CAP = 25  # 25s cap: fail-fast → Claude (25+25=50 < 60s nginx)
-_OLLAMA_TEXT_TIMEOUT = 30          # 30s text cap: gemma3 slow on CPU (30+20=50 < 60s nginx)
+_OLLAMA_VISION_TIMEOUT_CAP = 15  # fail-fast → Claude (15+12=27 < 30s budget)
+_OLLAMA_TEXT_TIMEOUT = 15         # gemma3 text cap (15+12=27 < 30s budget)
+MAX_PIPELINE_BUDGET = 27          # hard upper bound for any engine combo
 
 _PROMPT_FOTO_TMPL = """Você é o VDX Vision — engenheiro de vidraçaria analisando uma FOTO REAL de vão.
 
@@ -404,7 +405,7 @@ class VisionService:
         msg = self._client.messages.create(
             model=_CLAUDE_MODEL,
             max_tokens=_MAX_TOKENS,
-            timeout=25.0,  # 25s so vision pipeline (25+25) < nginx 60s
+            timeout=12.0,  # 12s so vision pipeline (15+12=27) < 30s budget
             messages=[
                 {
                     "role": "user",
@@ -438,7 +439,7 @@ class VisionService:
         msg = self._client.messages.create(
             model=_CLAUDE_MODEL,
             max_tokens=_MAX_TOKENS,
-            timeout=20.0,  # 20s so text pipeline (30+20) < nginx 60s
+            timeout=12.0,  # 12s so text pipeline (15+12=27) < 30s budget
             messages=[
                 {
                     "role": "user",

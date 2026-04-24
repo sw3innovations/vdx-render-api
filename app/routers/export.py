@@ -92,8 +92,7 @@ async def preview_tipologia_png(
     chave: str,
     scale: float = Query(2.0, ge=0.5, le=4.0),
     regenerar: bool = Query(False),
-    _auth: None = Depends(validate_api_key),
-):
+):  # public: browser <img src="...preview/png"> cannot send auth headers
     """Retorna o preview SVG da tipologia convertido para PNG."""
     chave_norm, dados = normalizar_tipologia(chave)
     if not dados:

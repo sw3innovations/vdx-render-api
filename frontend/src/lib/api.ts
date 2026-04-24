@@ -74,7 +74,7 @@ function autoPecas(tipologia: string, largura: number, altura: number): PecaRequ
     }))
   }
 
-  if (t.includes('2_folhas') || t.includes('2folhas') || t.includes('box')) {
+  if (t.includes('duas_folhas') || t.includes('2_folhas') || t.includes('2folhas') || t.includes('box')) {
     return [
       { nome: 'Folha 1', largura_mm: largura / 2, altura_mm: altura },
       { nome: 'Folha 2', largura_mm: largura / 2, altura_mm: altura },

@@ -25,6 +25,7 @@ from app.services.vision_service import (
     VisionResult,
     _OLLAMA_VISION_TIMEOUT_CAP,
     _OLLAMA_TEXT_TIMEOUT,
+    MAX_PIPELINE_BUDGET,
 )
 from app.core.constitution import registrar, buscar, listar_entries
 
@@ -224,36 +225,36 @@ class TestNormalizarDimensoes:
         assert r.dimensoes_normalizadas is False
 
 
-# ── MÉDIO-1: Pipeline total < 60s nginx ──────────────────────────────────────
+# ── MÉDIO-1: Pipeline total < 30s budget ────────────────────────────────────
 
 class TestTimeoutPipeline:
-    """Verifica que os timeouts configurados garantem pipeline < 60s."""
+    """Verifica que os timeouts configurados garantem pipeline < 30s (nginx /api/vdx/* = 30s)."""
 
-    def test_vision_timeout_cap_e_25(self):
-        """Cap de visão deve ser 25s (não 45s)."""
-        assert _OLLAMA_VISION_TIMEOUT_CAP == 25, (
-            f"Vision timeout cap é {_OLLAMA_VISION_TIMEOUT_CAP}s, esperado 25s. "
-            "Pipeline vision (25+25=50) deve ficar abaixo do nginx 60s."
+    def test_vision_timeout_cap_e_15(self):
+        """Cap de visão deve ser 15s — fail-fast para Claude."""
+        assert _OLLAMA_VISION_TIMEOUT_CAP == 15, (
+            f"Vision timeout cap é {_OLLAMA_VISION_TIMEOUT_CAP}s, esperado 15s. "
+            "Pipeline vision (15+12=27) deve ficar abaixo do budget 30s."
         )
 
-    def test_text_timeout_e_30(self):
-        """Cap de texto deve ser 30s."""
-        assert _OLLAMA_TEXT_TIMEOUT == 30, (
-            f"Text timeout é {_OLLAMA_TEXT_TIMEOUT}s, esperado 30s. "
-            "Pipeline texto (30+20=50) deve ficar abaixo do nginx 60s."
+    def test_text_timeout_e_15(self):
+        """Cap de texto deve ser 15s."""
+        assert _OLLAMA_TEXT_TIMEOUT == 15, (
+            f"Text timeout é {_OLLAMA_TEXT_TIMEOUT}s, esperado 15s. "
+            "Pipeline texto (15+12=27) deve ficar abaixo do budget 30s."
         )
 
-    def test_pipeline_visao_total_menor_60s(self):
-        """Vision pipeline max: Moondream(25) + Claude(25) = 50 < 60."""
-        claude_timeout = 25.0
+    def test_pipeline_visao_total_menor_30s(self):
+        """Vision pipeline max: Moondream(15) + Claude(12) = 27 < 30."""
+        claude_timeout = 12.0
         total = _OLLAMA_VISION_TIMEOUT_CAP + claude_timeout
-        assert total < 60, f"Pipeline visão = {total}s >= 60s nginx timeout"
+        assert total < 30, f"Pipeline visão = {total}s >= 30s budget"
 
-    def test_pipeline_texto_total_menor_60s(self):
-        """Text pipeline max: Gemma3(30) + Claude(20) = 50 < 60."""
-        claude_timeout = 20.0
+    def test_pipeline_texto_total_menor_30s(self):
+        """Text pipeline max: Gemma3(15) + Claude(12) = 27 < 30."""
+        claude_timeout = 12.0
         total = _OLLAMA_TEXT_TIMEOUT + claude_timeout
-        assert total < 60, f"Pipeline texto = {total}s >= 60s nginx timeout"
+        assert total < 30, f"Pipeline texto = {total}s >= 30s budget"
 
     def test_vision_service_usa_cap_correto(self):
         """VisionService._ollama_vision_timeout <= _OLLAMA_VISION_TIMEOUT_CAP."""
@@ -261,21 +262,29 @@ class TestTimeoutPipeline:
         assert svc._ollama_vision_timeout <= _OLLAMA_VISION_TIMEOUT_CAP
 
     def test_claude_vision_timeout_no_source(self):
-        """Código-fonte do VisionService contém timeout=25.0 para Claude Vision."""
+        """Código-fonte do VisionService contém timeout=12.0 para Claude Vision."""
         import inspect
         src = inspect.getsource(VisionService._analisar_via_claude)
-        assert "timeout=25.0" in src, (
-            "Claude Vision não tem timeout=25.0. "
-            "Pipeline pode exceder 60s nginx."
+        assert "timeout=12.0" in src, (
+            "Claude Vision não tem timeout=12.0. "
+            "Pipeline pode exceder 30s budget."
         )
 
     def test_claude_texto_timeout_no_source(self):
-        """Código-fonte do VisionService contém timeout=20.0 para Claude Text."""
+        """Código-fonte do VisionService contém timeout=12.0 para Claude Text."""
         import inspect
         src = inspect.getsource(VisionService._analisar_via_claude_texto)
-        assert "timeout=20.0" in src, (
-            "Claude Text não tem timeout=20.0. "
-            "Pipeline pode exceder 60s nginx."
+        assert "timeout=12.0" in src, (
+            "Claude Text não tem timeout=12.0. "
+            "Pipeline pode exceder 30s budget."
+        )
+
+
+    def test_pipeline_budget_menor_que_30s(self):
+        """MAX_PIPELINE_BUDGET < 30s — nginx /api/vdx/* via catch-all tem proxy_read_timeout 30s."""
+        assert MAX_PIPELINE_BUDGET < 30, (
+            f"MAX_PIPELINE_BUDGET={MAX_PIPELINE_BUDGET}s >= 30s: "
+            "Smart Vision via /api/vdx/v1/smart/* timeout no nginx antes de responder."
         )
 
 
@@ -283,6 +292,14 @@ class TestTimeoutPipeline:
 
 class TestConstitutionUrlNormalization:
     """Verifica que registrar() e buscar() normalizam URL-encoding."""
+
+    @pytest.fixture(autouse=True)
+    def _isolated_db(self, tmp_path, monkeypatch):
+        """Redirect all constitution writes to a temp DB — never pollute production."""
+        import app.core.constitution as c_mod
+        from pathlib import Path
+        monkeypatch.setattr(c_mod, "DB_PATH", Path(tmp_path) / "test_constitution.db")
+        c_mod.init_db()
 
     _CHAVE_ENCODED = "balc%c3%a3o_de_pia_quatro_folhas"
     _CHAVE_UNICODE = "balcão_de_pia_quatro_folhas"
@@ -354,3 +371,120 @@ class TestConstitutionUrlNormalization:
         # Não deve levantar exceção
         result = buscar("chave com espacos", tipo="tipologia")
         assert result is not None
+
+
+# ── CRÍTICO-1: Preview endpoints públicos ────────────────────────────────────
+
+class TestPreviewPublico:
+    """Verifica que os endpoints de preview não exigem autenticação."""
+
+    def test_preview_svg_sem_auth_retorna_200(self):
+        """GET /api/v1/tipologia/{chave}/preview sem X-VDX-Key deve retornar 200."""
+        from fastapi.testclient import TestClient
+        from app.main import app
+        with TestClient(app) as c:
+            resp = c.get("/api/v1/tipologia/porta_pivotante_simples/preview")
+            assert resp.status_code == 200, (
+                f"Preview SVG retornou {resp.status_code} sem auth. "
+                "CRÍTICO-1 não aplicado: validate_api_key ainda protege GET preview."
+            )
+            assert "image/svg+xml" in resp.headers.get("content-type", "")
+
+    def test_preview_png_sem_auth_retorna_200(self):
+        """GET /api/v1/tipologia/{chave}/preview/png sem X-VDX-Key deve retornar 200."""
+        from fastapi.testclient import TestClient
+        from app.main import app
+        with TestClient(app) as c:
+            resp = c.get("/api/v1/tipologia/porta_pivotante_simples/preview/png")
+            assert resp.status_code in (200, 500), (
+                f"Preview PNG retornou {resp.status_code} sem auth. "
+                "CRÍTICO-1 não aplicado: endpoint exige autenticação."
+            )
+            assert resp.status_code != 401, (
+                "Preview PNG retornou 401 — endpoint ainda exige X-VDX-Key. "
+                "Browser não consegue carregar <img src> sem auth."
+            )
+
+    def test_listar_previews_sem_auth_retorna_200(self):
+        """GET /api/v1/tipologias/previews sem X-VDX-Key deve retornar 200."""
+        from fastapi.testclient import TestClient
+        from app.main import app
+        with TestClient(app) as c:
+            resp = c.get("/api/v1/tipologias/previews")
+            assert resp.status_code == 200, (
+                f"Listagem de previews retornou {resp.status_code} sem auth. "
+                "CRÍTICO-1 não aplicado."
+            )
+            data = resp.json()
+            assert "items" in data
+
+    def test_render_sem_auth_continua_retornando_401(self):
+        """POST /api/v1/render/export/3d com sem X-VDX-Key deve retornar 401."""
+        from fastapi.testclient import TestClient
+        from app.main import app
+        with TestClient(app) as c:
+            resp = c.post("/api/v1/render/export/3d", json={
+                "tipologia_nome": "porta_pivotante_simples",
+                "pecas": [{"nome": "Porta", "largura_mm": 900, "altura_mm": 2100}]
+            })
+            assert resp.status_code == 401, (
+                f"Render retornou {resp.status_code} sem auth — deveria ser 401. "
+                "Endpoints de render devem permanecer protegidos."
+            )
+
+
+# ── MÉDIO-1: duas_folhas em auto_pecas ───────────────────────────────────────
+
+class TestAutoPecasDuasFolhas:
+    """Verifica que 'duas_folhas' é reconhecido como padrão de 2 folhas."""
+
+    def test_viewer_3d_reconhece_duas_folhas(self):
+        """_auto_pecas com 'balcão_de_pia_duas_folhas' deve gerar 2 peças."""
+        from app.routers.viewer_3d import _auto_pecas
+        pecas = _auto_pecas("balcão_de_pia_duas_folhas", 1200, 800)
+        assert len(pecas) == 2, (
+            f"_auto_pecas retornou {len(pecas)} peças para 'duas_folhas', esperado 2. "
+            "MÉDIO-1 não aplicado em viewer_3d.py."
+        )
+
+    def test_viewer_3d_reconhece_balcao_quatro_folhas(self):
+        """_auto_pecas com 'balcão_de_pia_quatro_folhas' deve gerar 4 peças."""
+        from app.routers.viewer_3d import _auto_pecas
+        pecas = _auto_pecas("balcão_de_pia_quatro_folhas", 2000, 800)
+        assert len(pecas) == 4, (
+            f"_auto_pecas retornou {len(pecas)} peças para 'quatro_folhas', esperado 4."
+        )
+
+
+# ── ALTO-1: DB sem lixo de testes ────────────────────────────────────────────
+
+class TestDbSemLixoTestes:
+    """Verifica que o DB de produção não contém entradas geradas por testes."""
+
+    def test_db_sem_origens_test(self):
+        """Nenhuma entry no DB deve ter origem com prefixo 'test_'."""
+        import sqlite3
+        from app.core.constitution import DB_PATH
+        conn = sqlite3.connect(str(DB_PATH))
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM constitution_entries WHERE origem LIKE 'test_%'")
+        count = cur.fetchone()[0]
+        conn.close()
+        assert count == 0, (
+            f"Há {count} entry(ies) com origem 'test_*' no DB de produção. "
+            "Execute fix_alto1_db.py para limpar."
+        )
+
+    def test_db_sem_chaves_com_espacos(self):
+        """Nenhuma entry no DB deve ter espaço na chave."""
+        import sqlite3
+        from app.core.constitution import DB_PATH
+        conn = sqlite3.connect(str(DB_PATH))
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM constitution_entries WHERE instr(chave, ' ') > 0")
+        count = cur.fetchone()[0]
+        conn.close()
+        assert count == 0, (
+            f"Há {count} entry(ies) com espaço na chave no DB. "
+            "registrar() deve normalizar espaços."
+        )

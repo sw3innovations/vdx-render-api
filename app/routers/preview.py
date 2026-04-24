@@ -17,8 +17,7 @@ async def preview_tipologia(
     chave: str,
     regenerar: bool = Query(False, description="Forçar regeneração"),
     highlight: str = Query(None, description="Nome da peça pra destacar"),
-    _auth: None = Depends(validate_api_key),
-):
+):  # public: browser <img> cannot send headers
     """Retorna SVG animado do preview de uma tipologia."""
     chave_norm, dados = normalizar_tipologia(chave)
     if not dados:
@@ -39,8 +38,7 @@ async def listar_previews(
     request: Request,
     page: int = Query(1, ge=1, description="Número da página"),
     per_page: int = Query(20, ge=1, le=100, description="Itens por página"),
-    _auth: None = Depends(validate_api_key),
-):
+):  # public: gallery listing used by unauthenticated browser
     """Lista previews de tipologias disponíveis com paginação."""
     entries = listar_entries(tipo="tipologia")
     all_items = []

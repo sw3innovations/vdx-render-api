@@ -99,7 +99,7 @@ def _auto_pecas(tipologia: str, largura: float, altura: float) -> list[PecaInput
     if any(k in t for k in ("3_folhas", "3folhas")):
         w = largura / 3
         return [PecaInput(nome=f"Folha {i+1}", largura_mm=w, altura_mm=altura) for i in range(3)]
-    if any(k in t for k in ("2_folhas", "2folhas", "box")):
+    if any(k in t for k in ("duas_folhas", "2_folhas", "2folhas", "box")):
         w = largura / 2
         return [
             PecaInput(nome="Folha 1", largura_mm=w, altura_mm=altura),
