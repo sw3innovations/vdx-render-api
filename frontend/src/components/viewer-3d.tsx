@@ -261,15 +261,10 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
         glassMat.roughness = mat.roughness
         glassMat.alpha = mat.opacidade
         glassMat.needDepthPrePass = true
-        glassMat.subSurface.isRefractionEnabled = true
-        glassMat.subSurface.indexOfRefraction = mat.ior ?? 1.52
-        glassMat.subSurface.linkRefractionWithTransparency = true
-        glassMat.environmentIntensity = mat.envMapIntensity ?? 1.2
-        if (mat.clearcoat > 0) {
-          glassMat.clearCoat.isEnabled = true
-          glassMat.clearCoat.intensity = mat.clearcoat
-          glassMat.clearCoat.roughness = mat.clearcoatRoughness ?? 0.03
-        }
+        glassMat.environmentIntensity = 0.3
+        glassMat.clearCoat.isEnabled = true
+        glassMat.clearCoat.intensity = mat.clearcoat > 0 ? mat.clearcoat : 1.0
+        glassMat.clearCoat.roughness = mat.clearcoatRoughness ?? 0.03
         glassMatsRef.current.push(glassMat)
 
         const glassMesh = MeshBuilder.CreateBox(`vidro_${vidro.id}`, {

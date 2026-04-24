@@ -495,16 +495,10 @@ function makeGlassMat(m, id) {{
   mat.roughness = m.roughness || 0;
   mat.alpha = m.opacidade || 0.10;
   mat.needDepthPrePass = true;
-  mat.subSurface.isRefractionEnabled = true;
-  mat.subSurface.indexOfRefraction = m.ior || 1.52;
-  mat.subSurface.linkRefractionWithTransparency = true;
-  mat.environmentIntensity = m.envMapIntensity || 1.2;
-  if ((m.clearcoat || 0) > 0) {{
-    mat.clearCoat.isEnabled = true;
-    mat.clearCoat.intensity = m.clearcoat;
-    mat.clearCoat.roughness = m.clearcoatRoughness || 0.03;
-  }}
-  return mat;
+  mat.environmentIntensity = 0.3;
+  mat.clearCoat.isEnabled = true;
+  mat.clearCoat.intensity = (m.clearcoat > 0) ? m.clearcoat : 1.0;
+  mat.clearCoat.roughness = m.clearcoatRoughness || 0.03;
 }}
 
 function addGlass(vidro) {{
@@ -652,7 +646,6 @@ window.setGlassColor = function(key, el) {{
     mesh.material.albedoColor.b = b;
     mesh.material.alpha = c.alpha || 0.1;
     mesh.material.metallic = c.metal || 0;
-    mesh.material.subSurface.isRefractionEnabled = c.refracao !== false;
   }});
   document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
   if (el) el.classList.add("active");
