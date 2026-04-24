@@ -306,6 +306,7 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
       animStatesRef.current = []
       glassMeshesRef.current = []
       hardwareMeshesRef.current = []
+      const pivotGroupMap = new Map<string, { group: ThreeTypes.Group; pivoX: number }>()
 
       for (const vidro of sceneData.vidros) {
         const mat = vidro.material
@@ -364,6 +365,10 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
 
         group.add(mesh)
         threeScene.add(group)
+
+        if (anim && anim.ponto_pivo) {
+          pivotGroupMap.set(vidro.nome, { group, pivoX: anim.ponto_pivo.x * scale })
+        }
 
         if (anim && anim.tipo !== 'fixo') {
           animStatesRef.current.push({
@@ -431,10 +436,20 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady,
 
         hardwareMeshesRef.current.push(ferragemMat)
         const mesh = new THREE.Mesh(geometry, ferragemMat)
-        mesh.position.set(ferragem.posicao.x * scale, ferragem.posicao.y * scale, ferragem.posicao.z * scale)
         mesh.rotation.set(ferragem.rotacao.x, ferragem.rotacao.y, ferragem.rotacao.z)
         mesh.castShadow = true
-        threeScene.add(mesh)
+        const pm = pivotGroupMap.get(ferragem.peca_nome)
+        if (pm) {
+          mesh.position.set(
+            ferragem.posicao.x * scale - pm.pivoX,
+            ferragem.posicao.y * scale,
+            ferragem.posicao.z * scale
+          )
+          pm.group.add(mesh)
+        } else {
+          mesh.position.set(ferragem.posicao.x * scale, ferragem.posicao.y * scale, ferragem.posicao.z * scale)
+          threeScene.add(mesh)
+        }
       }
 
       // ── Resize handler ────────────────────────────────────────────────────

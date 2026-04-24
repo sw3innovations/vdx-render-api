@@ -529,13 +529,22 @@ class SceneBuilder:
 
     def _animacao_para_tipologia(self, tipologia: str) -> Optional[dict]:
         t = tipologia.lower()
-        if any(k in t for k in ("pivotante", "abrir")):
+        if "pivotante" in t:
             vai_vem = "vai_vem" in t or "vaivem" in t
             return {
                 "tipo": "pivotante",
                 "eixo": "y",
                 "angulo_max": 90,
                 "angulo_min": -90 if vai_vem else 0,
+                "_pivot_offset": 15,
+            }
+        elif "abrir" in t:
+            return {
+                "tipo": "pivotante",
+                "eixo": "y",
+                "angulo_max": 90,
+                "angulo_min": 0,
+                "_pivot_offset": 0,
             }
         if any(k in t for k in ("correr", "box", "sacada", "quatro_folhas")):
             return {"tipo": "deslizante", "eixo": "x"}
@@ -552,9 +561,11 @@ class SceneBuilder:
         offset: dict,
         center_x: float,
     ) -> dict:
-        anim = dict(base)
+        anim = {k: v for k, v in base.items() if not k.startswith("_")}
         if base["tipo"] == "pivotante":
-            pivo_x = _r(offset["x"] - center_x)
+            pivot_offset = base.get("_pivot_offset", 0)
+            left_edge_x = _r(offset["x"] - center_x)
+            pivo_x = _r(left_edge_x + pivot_offset)
             anim["ponto_pivo"] = {"x": pivo_x, "y": 0.0, "z": 0.0}
         elif base["tipo"] == "deslizante":
             anim["distancia_max"] = peca.largura_mm

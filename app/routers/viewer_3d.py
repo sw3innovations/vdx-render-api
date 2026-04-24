@@ -513,13 +513,26 @@ function loadScene(s) {{
   }}
 
   // Vidros
+  const pivotGroupMap = {{}};
   s.vidros.forEach(v => {{
     const obj = addGlass(v);
-    if (obj) glassMeshes.push(obj.mesh || obj);
+    if (obj) {{
+      glassMeshes.push(obj.mesh || obj);
+      if (obj.type === "pivotante") pivotGroupMap[v.nome] = {{group: obj.group, pivoX: obj.pivoX || 0}};
+    }}
   }});
 
   // Ferragens
-  s.ferragens.forEach(f => threeScene.add(createHardware(f)));
+  s.ferragens.forEach(f => {{
+    const hw = createHardware(f);
+    const pm = pivotGroupMap[f.peca_nome];
+    if (pm) {{
+      hw.position.set(f.posicao.x - pm.pivoX, f.posicao.y, f.posicao.z);
+      pm.group.add(hw);
+    }} else {{
+      threeScene.add(hw);
+    }}
+  }});
 }}
 
 // ── Vidro fotorrealista — MeshPhysicalMaterial completo ───────────────────
@@ -571,11 +584,11 @@ function addGlass(vidro) {{
   if (anim.tipo === "pivotante") {{
     const pivo = anim.ponto_pivo || {{x: vidro.posicao.x - vidro.largura/2, y:0, z:0}};
     const grp = new THREE.Group();
-    grp.position.set(pivo.x, vidro.posicao.y, 0);
-    mesh.position.set(vidro.largura/2, 0, 0);
+    grp.position.set(pivo.x, 0, 0);
+    mesh.position.set(vidro.posicao.x - pivo.x, vidro.posicao.y, 0);
     grp.add(mesh);
     threeScene.add(grp);
-    const entry = {{type:"pivotante", group:grp, mesh, current:0, target:0, openVal:(anim.angulo_max||90)*Math.PI/180}};
+    const entry = {{type:"pivotante", group:grp, mesh, pivoX:pivo.x, current:0, target:0, openVal:(anim.angulo_max||90)*Math.PI/180}};
     animatables.push(entry);
     return entry;
 
