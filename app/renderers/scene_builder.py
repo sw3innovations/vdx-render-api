@@ -219,6 +219,36 @@ CORES_VIDRO: dict[str, dict] = {
 }
 
 
+# ─── Family detection ─────────────────────────────────────────────────────────
+
+# Order matters: more specific patterns first
+_FAMILIA_KEYWORDS: list[tuple[str, list[str]]] = [
+    ("box_canto",    ["box_canto"]),
+    ("cobertura",    ["cobertura"]),
+    ("sacada",       ["sacada"]),
+    ("guarda_corpo", ["guarda_corpo"]),
+    ("balcao",       ["balcao", "balcão", "pia"]),
+    ("divisoria",    ["divisoria", "divisória", "painel"]),
+    ("vitrine",      ["vitrine"]),
+    ("janela",       ["janela", "maxim"]),
+    ("especial",     ["diâmetro", "diametro"]),
+]
+
+# Families that appear embedded in a wall (show vao frame)
+_FAMILIA_VAO_PRESENTE: frozenset[str] = frozenset({"porta", "janela"})
+
+# mm from floor: default cobertura installation height
+_COBERTURA_INSTALL_H = 2200
+
+
+def _detectar_familia(tipologia: str) -> str:
+    t = tipologia.lower()
+    for familia, keywords in _FAMILIA_KEYWORDS:
+        if any(k in t for k in keywords):
+            return familia
+    return "porta"
+
+
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _r(v: float) -> float:
@@ -229,7 +259,6 @@ def _pbr_material(tipo_ferragem: str) -> dict:
     finish = _TIPO_ACABAMENTO.get(tipo_ferragem, "default")
     m = MATERIAIS_PBR.get(finish, MATERIAIS_PBR["default"])
     result = {"tipo": finish, "cor": m["cor"], "roughness": m["roughness"], "metalness": m["metalness"]}
-    # Incluir campos PBR extras se presentes
     for key in ("clearcoat", "clearcoatRoughness", "envMapIntensity"):
         if key in m:
             result[key] = m[key]
@@ -264,12 +293,20 @@ class SceneBuilder:
         """
         tipologia = resp.metadata.get("tipologia_chave", "")
         layout    = resp.metadata.get("layout_usado", "paralelas")
+        familia   = _detectar_familia(tipologia)
 
         pecas = list(resp.pecas)
         offsets, total_largura, total_altura = self._compute_layout(pecas, layout)
-
-        vidros    = self._build_vidros(pecas, offsets, tipologia, espessura_vidro, cor_vidro, total_largura)
         ferragens = self._build_ferragens(pecas, offsets, espessura_vidro, total_largura)
+
+        vao_presente = familia in _FAMILIA_VAO_PRESENTE
+
+        if familia == "box_canto":
+            vidros = self._build_vidros_box_canto(pecas, tipologia, espessura_vidro, cor_vidro)
+        elif familia == "cobertura":
+            vidros = self._build_vidros_cobertura(pecas, tipologia, espessura_vidro, cor_vidro)
+        else:
+            vidros = self._build_vidros(pecas, offsets, tipologia, espessura_vidro, cor_vidro, total_largura)
 
         return {
             "version":   "2.0",
@@ -283,7 +320,7 @@ class SceneBuilder:
             "unidade":   "mm",
             "vidros":    vidros,
             "ferragens": ferragens,
-            "vao":       self._build_vao(total_largura, total_altura),
+            "vao":       self._build_vao(total_largura, total_altura, presente=vao_presente),
             "ambiente":  self._build_ambiente(total_largura, total_altura),
         }
 
@@ -335,7 +372,26 @@ class SceneBuilder:
                 x += p.largura_mm
             return offsets, x, max_h
 
-    # ── Vidros ────────────────────────────────────────────────────────────────
+    # ── Material helper ───────────────────────────────────────────────────────
+
+    def _mat_vidro(self, base: dict, espessura: float) -> dict:
+        return {
+            "tipo":               "vidro_temperado",
+            "cor":                base["cor"],
+            "opacidade":          base["opacidade"],
+            "transmission":       base.get("transmission", 0.92),
+            "ior":                base.get("ior", 1.52),
+            "thickness":          base.get("thickness", espessura),
+            "roughness":          base.get("roughness", 0.0),
+            "metalness":          base.get("metalness", 0.0),
+            "clearcoat":          base.get("clearcoat", 1.0),
+            "clearcoatRoughness": base.get("clearcoatRoughness", 0.03),
+            "envMapIntensity":    base.get("envMapIntensity", 0.3),
+            "attenuationColor":   base.get("attenuationColor", "#FFFFFF"),
+            "attenuationDistance":base.get("attenuationDistance", 150),
+        }
+
+    # ── Vidros — generic (vertical XY plane) ─────────────────────────────────
 
     def _build_vidros(
         self,
@@ -355,22 +411,7 @@ class SceneBuilder:
             x_3d = _r(offset["x"] + peca.largura_mm / 2 - center_x)
             y_3d = _r(offset["y"] + peca.altura_mm / 2)
 
-            # Material completo com todos os campos PBR
-            mat = {
-                "tipo":               "vidro_temperado",
-                "cor":                vidro_mat_base["cor"],
-                "opacidade":          vidro_mat_base["opacidade"],
-                "transmission":       vidro_mat_base.get("transmission", 0.92),
-                "ior":                vidro_mat_base.get("ior", 1.52),
-                "thickness":          vidro_mat_base.get("thickness", espessura),
-                "roughness":          vidro_mat_base.get("roughness", 0.0),
-                "metalness":          vidro_mat_base.get("metalness", 0.0),
-                "clearcoat":          vidro_mat_base.get("clearcoat", 1.0),
-                "clearcoatRoughness": vidro_mat_base.get("clearcoatRoughness", 0.03),
-                "envMapIntensity":    vidro_mat_base.get("envMapIntensity", 0.3),
-                "attenuationColor":   vidro_mat_base.get("attenuationColor", "#FFFFFF"),
-                "attenuationDistance":vidro_mat_base.get("attenuationDistance", 150),
-            }
+            mat = self._mat_vidro(vidro_mat_base, espessura)
 
             vidro: dict = {
                 "id":            f"vidro_{i+1}",
@@ -391,6 +432,100 @@ class SceneBuilder:
 
             vidros.append(vidro)
         return vidros
+
+    # ── Vidros — box_canto (L-shape) ──────────────────────────────────────────
+
+    def _build_vidros_box_canto(
+        self,
+        pecas: list[PecaRenderizada],
+        tipologia: str,
+        espessura: float,
+        cor_vidro: str,
+    ) -> list[dict]:
+        base = CORES_VIDRO.get(cor_vidro, CORES_VIDRO["default"])
+
+        if len(pecas) < 2:
+            offsets = [{"x": p.largura_mm * i, "y": 0.0} for i, p in enumerate(pecas)]
+            total_w = sum(p.largura_mm for p in pecas) or 900.0
+            return self._build_vidros(pecas, offsets, tipologia, espessura, cor_vidro, total_w)
+
+        p1, p2 = pecas[0], pecas[1]
+        # Panel 1: frontal, centered in X, z=0
+        # Panel 2: lateral, rotated 90° around Y, positioned at corner
+        specs = [
+            (p1, 0.0,              _r(p1.altura_mm / 2), 0.0,                 0.0),
+            (p2, _r(p1.largura_mm / 2), _r(p2.altura_mm / 2), _r(-p2.largura_mm / 2), 90.0),
+        ]
+
+        vidros = []
+        for i, (peca, x3d, y3d, z3d, rot_y) in enumerate(specs):
+            mat = self._mat_vidro(base, espessura)
+            vidro: dict = {
+                "id":            f"vidro_{i+1}",
+                "nome":          peca.nome,
+                "classificacao": peca.classificacao,
+                "largura":       peca.largura_mm,
+                "altura":        peca.altura_mm,
+                "espessura":     espessura,
+                "posicao":       {"x": x3d, "y": y3d, "z": z3d},
+                "rotacao":       {"x": 0.0, "y": rot_y, "z": 0.0},
+                "material":      mat,
+            }
+            if peca.classificacao in ("movel", "correr"):
+                vidro["animacao"] = {"tipo": "deslizante", "eixo": "x", "distancia_max": peca.largura_mm}
+            vidros.append(vidro)
+
+        # Extra panels (>2) placed as generic XY panels
+        if len(pecas) > 2:
+            extra = pecas[2:]
+            x_start = p1.largura_mm + p2.largura_mm
+            for j, peca in enumerate(extra):
+                mat = self._mat_vidro(base, espessura)
+                total_extra = sum(p.largura_mm for p in extra)
+                cx = x_start + total_extra / 2
+                x3d = _r(x_start + peca.largura_mm * j + peca.largura_mm / 2 - cx)
+                vidros.append({
+                    "id":            f"vidro_{len(specs)+j+1}",
+                    "nome":          peca.nome,
+                    "classificacao": peca.classificacao,
+                    "largura":       peca.largura_mm,
+                    "altura":        peca.altura_mm,
+                    "espessura":     espessura,
+                    "posicao":       {"x": x3d, "y": _r(peca.altura_mm / 2), "z": 0.0},
+                    "rotacao":       {"x": 0.0, "y": 0.0, "z": 0.0},
+                    "material":      mat,
+                })
+
+        return vidros
+
+    # ── Vidros — cobertura (horizontal) ───────────────────────────────────────
+
+    def _build_vidros_cobertura(
+        self,
+        pecas: list[PecaRenderizada],
+        tipologia: str,
+        espessura: float,
+        cor_vidro: str,
+    ) -> list[dict]:
+        base = CORES_VIDRO.get(cor_vidro, CORES_VIDRO["default"])
+        vidros = []
+        for i, peca in enumerate(pecas):
+            mat = self._mat_vidro(base, espessura)
+            vidros.append({
+                "id":            f"vidro_{i+1}",
+                "nome":          peca.nome,
+                "classificacao": peca.classificacao,
+                "largura":       peca.largura_mm,
+                "altura":        peca.altura_mm,
+                "espessura":     espessura,
+                # Rotated -90° around X → panel lies flat at install height
+                "posicao":       {"x": 0.0, "y": _r(_COBERTURA_INSTALL_H), "z": _r(-peca.altura_mm / 2)},
+                "rotacao":       {"x": -90.0, "y": 0.0, "z": 0.0},
+                "material":      mat,
+            })
+        return vidros
+
+    # ── Animação ──────────────────────────────────────────────────────────────
 
     def _animacao_para_tipologia(self, tipologia: str) -> Optional[dict]:
         t = tipologia.lower()
@@ -483,13 +618,13 @@ class SceneBuilder:
 
     # ── Vão e ambiente ────────────────────────────────────────────────────────
 
-    def _build_vao(self, largura: float, altura: float) -> dict:
+    def _build_vao(self, largura: float, altura: float, presente: bool = True) -> dict:
         # Folgas NBR / Glasspeças: movel_alvenaria=5mm (lateral/topo), movel_piso=8mm (base).
-        # Garante que o vidro preenche o vão com folga real (ratio ~98.9%).
         folga_lat  = 5.0
         folga_topo = 5.0
         folga_base = 8.0
         return {
+            "presente":     presente,
             "largura":      _r(largura + 2 * folga_lat),
             "altura":       _r(altura + folga_topo + folga_base),
             "profundidade": 150,

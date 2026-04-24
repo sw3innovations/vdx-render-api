@@ -497,7 +497,9 @@ function loadScene(s) {{
   controls.update();
 
   // Parede / vão
-  threeScene.add(createWall(s.vao));
+  if (s.vao && s.vao.presente !== false) {{
+    threeScene.add(createWall(s.vao));
+  }}
 
   // Vidros
   s.vidros.forEach(v => {{
@@ -539,6 +541,13 @@ function addGlass(vidro) {{
   const mesh = new THREE.Mesh(geom, mat);
   mesh.castShadow = true;
   mesh.receiveShadow = false;  // vidro não recebe sombra pra manter translucidez
+  if (vidro.rotacao) {{
+    mesh.rotation.set(
+      THREE.MathUtils.degToRad(vidro.rotacao.x || 0),
+      THREE.MathUtils.degToRad(vidro.rotacao.y || 0),
+      THREE.MathUtils.degToRad(vidro.rotacao.z || 0)
+    );
+  }}
 
   if (!vidro.animacao) {{
     mesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);

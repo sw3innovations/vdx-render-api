@@ -202,45 +202,49 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
       threeScene.add(floor)
 
       // ── Walls ─────────────────────────────────────────────────────────────
-      const vaoData = sceneData.vao
-      const wallMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(vaoData.material.cor),
-        roughness: vaoData.material.roughness,
-        metalness: vaoData.material.metalness,
-        side: THREE.DoubleSide,
-      })
-      const vW = vaoData.largura * scale
-      const vH = vaoData.altura * scale
-      const vD = vaoData.profundidade * scale
-
-      const backWall = new THREE.Mesh(new THREE.PlaneGeometry(vW + 0.6, vH + 0.3), wallMat)
-      backWall.position.set(0, vH / 2, -vD / 2)
-      backWall.receiveShadow = true
-      threeScene.add(backWall)
-
-      const sideThick = 0.3
-      const pillarMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(vaoData.material.cor),
-        roughness: vaoData.material.roughness,
-        metalness: vaoData.material.metalness,
-      })
-      const pillarGeo = new THREE.BoxGeometry(sideThick, vH, vD)
-      const leftPillar = new THREE.Mesh(pillarGeo, pillarMat)
-      leftPillar.position.set(-vW / 2 - sideThick / 2, vH / 2, 0)
-      leftPillar.receiveShadow = true
-      leftPillar.castShadow = true
-      threeScene.add(leftPillar)
-
-      const rightPillar = new THREE.Mesh(pillarGeo, pillarMat)
-      rightPillar.position.set(vW / 2 + sideThick / 2, vH / 2, 0)
-      rightPillar.receiveShadow = true
-      rightPillar.castShadow = true
-      threeScene.add(rightPillar)
-
-      const topBeam = new THREE.Mesh(new THREE.BoxGeometry(vW + sideThick * 2, 0.2, vD), pillarMat)
-      topBeam.position.set(0, vH + 0.1, 0)
-      topBeam.receiveShadow = true
-      threeScene.add(topBeam)
+      if (sceneData.vao && sceneData.vao.presente !== false) {
+        const vaoData = sceneData.vao
+        const wallMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(vaoData.material.cor),
+          roughness: vaoData.material.roughness,
+          metalness: vaoData.material.metalness,
+          side: THREE.DoubleSide,
+        })
+        const vW = vaoData.largura * scale
+        const vH = vaoData.altura * scale
+        const vD = vaoData.profundidade * scale
+  
+        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(vW + 0.6, vH + 0.3), wallMat)
+        backWall.position.set(0, vH / 2, -vD / 2)
+        backWall.receiveShadow = true
+        threeScene.add(backWall)
+  
+        const sideThick = 0.3
+        const pillarMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(vaoData.material.cor),
+          roughness: vaoData.material.roughness,
+          metalness: vaoData.material.metalness,
+        })
+        const pillarGeo = new THREE.BoxGeometry(sideThick, vH, vD)
+        const leftPillar = new THREE.Mesh(pillarGeo, pillarMat)
+        leftPillar.position.set(-vW / 2 - sideThick / 2, vH / 2, 0)
+        leftPillar.receiveShadow = true
+        leftPillar.castShadow = true
+        threeScene.add(leftPillar)
+  
+        const rightPillar = new THREE.Mesh(pillarGeo, pillarMat)
+        rightPillar.position.set(vW / 2 + sideThick / 2, vH / 2, 0)
+        rightPillar.receiveShadow = true
+        rightPillar.castShadow = true
+        threeScene.add(rightPillar)
+  
+        const topBeam = new THREE.Mesh(new THREE.BoxGeometry(vW + sideThick * 2, 0.2, vD), pillarMat)
+        topBeam.position.set(0, vH + 0.1, 0)
+        topBeam.receiveShadow = true
+        threeScene.add(topBeam)
+  
+  
+      }
 
       // ── Vidros ────────────────────────────────────────────────────────────
       animStatesRef.current = []
@@ -272,6 +276,13 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
         const mesh = new THREE.Mesh(geo, vidroMat)
         mesh.castShadow = true
         mesh.receiveShadow = true
+        if (vidro.rotacao) {
+          mesh.rotation.set(
+            THREE.MathUtils.degToRad(vidro.rotacao.x || 0),
+            THREE.MathUtils.degToRad(vidro.rotacao.y || 0),
+            THREE.MathUtils.degToRad(vidro.rotacao.z || 0)
+          )
+        }
 
         const group = new THREE.Group()
         const anim = vidro.animacao

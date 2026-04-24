@@ -88,6 +88,7 @@ export interface FerragemScene {
 }
 
 export interface Vao {
+  presente?: boolean
   largura: number
   altura: number
   profundidade: number
