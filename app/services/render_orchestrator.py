@@ -60,7 +60,7 @@ def _inferir_layout(request: RenderRequest) -> str:
     return "paralelas"
 
 
-async def executar(request: RenderRequest) -> RenderResponse:
+async def executar(request: RenderRequest, modo_svg: str = "tecnico") -> RenderResponse:
     """
     Pipeline completo de render.
 
@@ -193,6 +193,7 @@ async def executar(request: RenderRequest) -> RenderResponse:
             largura_px=request.opcoes.largura_px,
             altura_px=request.opcoes.altura_px,
             recortes_catalogo=recortes_catalogo,
+            modo=modo_svg,
         )
     except Exception as e:
         log.warning(f"SVGTemplateEngine falhou: {e} — usando svg_service fallback")

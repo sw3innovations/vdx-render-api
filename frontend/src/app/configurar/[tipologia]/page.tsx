@@ -107,7 +107,6 @@ export default function ConfigurarPage() {
   }
   const handleCorVidro = (v: string) => {
     setCorVidro(v)
-    triggerReload(largura, altura, v, espessura)
   }
 
   const handleExportPng = async () => {
@@ -431,7 +430,7 @@ export default function ConfigurarPage() {
           </div>
         )}
 
-        <Viewer3D scene={scene} className="w-full h-full" />
+        <Viewer3D scene={scene} className="w-full h-full" corVidro={corVidro} acabamento={acabamento} />
 
         {scene && (
           <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg font-mono">

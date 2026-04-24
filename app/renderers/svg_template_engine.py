@@ -318,6 +318,16 @@ def _vidro_base(px: float, py: float, pw: float, ph: float,
     return "\n".join(parts)
 
 
+
+def _vidro_thumbnail(px: float, py: float, pw: float, ph: float) -> str:
+    """Corpo do vidro em modo thumbnail: limpo, sem diagonais, com highlight."""
+    parts = [
+        _rect(px, py, pw, ph, "rgba(184,212,227,0.50)", "#185FA5", 1.5),
+        _rect(px + 4, py + 6, max(pw * 0.08, 4), ph - 12,
+              "rgba(255,255,255,0.45)", "none", 0),
+    ]
+    return "\n".join(parts)
+
 # ─── Motor principal ──────────────────────────────────────────────────────────
 
 class SVGTemplateEngine:
@@ -335,6 +345,7 @@ class SVGTemplateEngine:
         largura_px: int = 480,
         altura_px: int = 360,
         recortes_catalogo: Optional[dict] = None,  # {codigo_norm: {tipo, comp, larg, furo, raio}}
+        modo: str = "tecnico",          # "tecnico" | "thumbnail"
     ) -> str:
         """
         Gera SVG técnico de uma ou mais peças de vidraçaria.
@@ -353,21 +364,24 @@ class SVGTemplateEngine:
         total_w_mm = sum(p.largura_mm for p in pecas)
         max_h_mm = max(p.altura_mm for p in pecas)
 
-        area_w = largura_px - 2 * MARGIN_PX
-        area_h = altura_px - 2 * MARGIN_PX
+        is_thumbnail = (modo == "thumbnail")
+        MARGIN_LOCAL = 24 if is_thumbnail else MARGIN_PX
+        area_w = largura_px - 2 * MARGIN_LOCAL
+        area_h = altura_px - 2 * MARGIN_LOCAL
         sx = area_w / total_w_mm if total_w_mm else 1.0
         sy = area_h / max_h_mm if max_h_mm else 1.0
         sc = min(sx, sy)
-        ox = MARGIN_PX + (area_w - total_w_mm * sc) / 2
-        oy = MARGIN_PX + (area_h - max_h_mm * sc) / 2
+        ox = MARGIN_LOCAL + (area_w - total_w_mm * sc) / 2
+        oy = MARGIN_LOCAL + (area_h - max_h_mm * sc) / 2
 
         # ── Renderizar peças ───────────────────────────────────────────────
         partes = []
         gap_px = max(sc * 5, 6)
         x_cur = ox
 
-        mostrar_ferragens = opcoes_dict.get("mostrar_ferragens", True)
-        mostrar_cotas = opcoes_dict.get("mostrar_cotas", True)
+        mostrar_ferragens = opcoes_dict.get("mostrar_ferragens", not is_thumbnail)
+        mostrar_cotas = opcoes_dict.get("mostrar_cotas", not is_thumbnail)
+        mostrar_legenda = opcoes_dict.get("mostrar_legenda", not is_thumbnail)
 
         for peca in pecas:
             pw = peca.largura_mm * sc
@@ -375,11 +389,15 @@ class SVGTemplateEngine:
             py = oy + (max_h_mm - peca.altura_mm) * sc  # alinhar pela base
 
             # Vidro
-            partes.append(_vidro_base(x_cur, py, pw, ph, tipologia_nome))
+            if is_thumbnail:
+                partes.append(_vidro_thumbnail(x_cur, py, pw, ph))
+            else:
+                partes.append(_vidro_base(x_cur, py, pw, ph, tipologia_nome))
 
-            # Nome da peça
-            partes.append(_text(x_cur + pw / 2, py + ph / 2, peca.nome,
-                                 COR_TEXTO, 9, "middle", "bold"))
+            # Nome da peça (omitido em thumbnail)
+            if not is_thumbnail:
+                partes.append(_text(x_cur + pw / 2, py + ph / 2, peca.nome,
+                                     COR_TEXTO, 9, "middle", "bold"))
 
             # Cotas
             if mostrar_cotas:
@@ -396,17 +414,30 @@ class SVGTemplateEngine:
             x_cur += pw + gap_px
 
         # ── Legenda ────────────────────────────────────────────────────────
-        legenda = self._legenda(pecas, largura_px, altura_px)
+        legenda = "" if not mostrar_legenda else self._legenda(pecas, largura_px, altura_px)
 
-        conteudo = "\n".join(partes) + "\n" + legenda
+        conteudo = "\n".join(partes) + ("\n" + legenda if legenda else "")
 
+        bg_defs = ""
+        bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="{COR_BG}"/>'
+        if is_thumbnail:
+            bg_defs = (
+                f'  <defs>\n'
+                f'    <linearGradient id="tn_bg" x1="0" y1="0" x2="0" y2="1">\n'
+                f'      <stop offset="0%" stop-color="#F0F7FF"/>\n'
+                f'      <stop offset="100%" stop-color="#D8EAF8"/>\n'
+                f'    </linearGradient>\n'
+                f'  </defs>\n'
+            )
+            bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="url(#tn_bg)"/>'
         return (
             f'<?xml version="1.0" encoding="UTF-8"?>\n'
             f'<!-- VDX Template Engine | tipologia={tipologia_nome} | layout={layout_usado} -->\n'
             f'<svg xmlns="http://www.w3.org/2000/svg" '
             f'viewBox="0 0 {largura_px} {altura_px}" '
             f'width="{largura_px}" height="{altura_px}">\n'
-            f'  <rect width="{largura_px}" height="{altura_px}" fill="{COR_BG}"/>\n'
+            f'{bg_defs}'
+            f'{bg_rect}\n'
             f'  <g id="desenho">\n{conteudo}\n  </g>\n'
             f'</svg>'
         )

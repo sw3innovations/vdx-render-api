@@ -143,3 +143,70 @@ async def preview_tipologia_thumbnail(
             "Content-Disposition": f'inline; filename="{chave_norm}_thumb.png"',
         },
     )
+
+
+# ─── Thumbnail 3D estático para catálogo ─────────────────────────────────────
+
+def _default_pecas_para_thumbnail(chave: str):
+    """Retorna lista de PecaInput com dimensões padrão para thumbnail do catálogo."""
+    from app.models.render import PecaInput
+    t = chave.lower()
+    if any(k in t for k in ("guarda_corpo", "guarda-corpo", "guarda corpo")):
+        return [PecaInput(nome="Painel", largura_mm=1500, altura_mm=1100)]
+    if any(k in t for k in ("cobertura", "telhado", "pergola")):
+        return [PecaInput(nome="Painel", largura_mm=1500, altura_mm=1000)]
+    if any(k in t for k in ("janela",)):
+        return [PecaInput(nome="Folha", largura_mm=600, altura_mm=1200),
+                PecaInput(nome="Folha", largura_mm=600, altura_mm=1200)]
+    if any(k in t for k in ("sacada", "varanda")):
+        return [PecaInput(nome="Painel", largura_mm=3000, altura_mm=2100)]
+    if any(k in t for k in ("duas_folhas", "2_folhas", "dupla")):
+        return [PecaInput(nome="Folha E", largura_mm=450, altura_mm=2100),
+                PecaInput(nome="Folha D", largura_mm=450, altura_mm=2100)]
+    if any(k in t for k in ("quatro_folhas", "4_folhas", "quadrupla")):
+        return [PecaInput(nome="F1", largura_mm=225, altura_mm=2100),
+                PecaInput(nome="F2", largura_mm=225, altura_mm=2100),
+                PecaInput(nome="F3", largura_mm=225, altura_mm=2100),
+                PecaInput(nome="F4", largura_mm=225, altura_mm=2100)]
+    # padrão: porta simples
+    return [PecaInput(nome="Porta", largura_mm=900, altura_mm=2100)]
+
+
+@router.get("/tipologia/{chave}/thumbnail/3d")
+@limiter.limit("60/minute")
+async def tipologia_thumbnail_3d(
+    request: Request,
+    chave: str,
+):
+    """Thumbnail PNG estático para uso no catálogo de tipologias. Público, sem auth."""
+    from app.models.render import RenderRequest, Opcoes
+    chave_norm, _ = normalizar_tipologia(chave)
+    pecas = _default_pecas_para_thumbnail(chave_norm)
+    body = RenderRequest(
+        tipologia_nome=chave_norm,
+        pecas=pecas,
+        opcoes=Opcoes(largura_px=480, altura_px=360,
+                      mostrar_cotas=False, mostrar_ferragens=False),
+    )
+    try:
+        resultado = await executar(body, modo_svg="thumbnail")
+    except Exception as e:
+        log.error(f"Erro gerando thumbnail/3d para '{chave_norm}': {e}")
+        raise HTTPException(status_code=500, detail=f"Falha ao gerar thumbnail: {e}")
+    try:
+        png = conversion_service.svg_para_png(resultado.svg, scale=1.0)
+        media_type = "image/png"
+        content = png
+    except Exception:
+        # SVG fallback caso CairoSVG não esteja disponível
+        content = resultado.svg.encode()
+        media_type = "image/svg+xml"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "Content-Disposition": f'inline; filename="{chave_norm}_3d_thumb.png"',
+        },
+    )
+

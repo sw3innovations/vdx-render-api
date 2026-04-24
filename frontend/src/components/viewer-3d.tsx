@@ -4,11 +4,30 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import type * as ThreeTypes from 'three'
 import type { SceneJSON, VidroScene } from '@/lib/types'
 
+const GLASS_COLORS: Record<string, string> = {
+  incolor: '#B8D4E3',
+  bronze: '#8B6914',
+  fumê: '#4A4A4A',
+  'verde-claro': '#6AAB7A',
+  azul: '#3A7BC8',
+  espelhado: '#D0D8E0',
+}
+
+const HARDWARE_FINISHES: Record<string, { color: string; roughness: number; metalness: number }> = {
+  cromado:   { color: '#C8D0D8', roughness: 0.1, metalness: 0.95 },
+  preto:     { color: '#1A1A1A', roughness: 0.3, metalness: 0.8 },
+  dourado:   { color: '#C9A84C', roughness: 0.15, metalness: 0.9 },
+  inox:      { color: '#A8AEB4', roughness: 0.2, metalness: 0.9 },
+  escovado:  { color: '#9EA4AA', roughness: 0.4, metalness: 0.85 },
+}
+
 interface Viewer3DProps {
   scene: SceneJSON | null
   className?: string
   onScreenshot?: (blob: Blob) => void
   onReady?: () => void
+  corVidro?: string
+  acabamento?: string
 }
 
 interface AnimState {
@@ -22,7 +41,7 @@ interface AnimState {
   originalPos: ThreeTypes.Vector3
 }
 
-export default function Viewer3D({ scene, className = '', onScreenshot, onReady }: Viewer3DProps) {
+export default function Viewer3D({ scene, className = '', onScreenshot, onReady, corVidro, acabamento }: Viewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<ThreeTypes.WebGLRenderer | null>(null)
   const sceneRef = useRef<ThreeTypes.Scene | null>(null)
@@ -30,6 +49,8 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
   const controlsRef = useRef<ThreeTypes.EventDispatcher | null>(null)
   const animFrameRef = useRef<number>(0)
   const animStatesRef = useRef<AnimState[]>([])
+  const glassMeshesRef = useRef<ThreeTypes.MeshPhysicalMaterial[]>([])
+  const hardwareMeshesRef = useRef<(ThreeTypes.MeshPhysicalMaterial | ThreeTypes.MeshStandardMaterial)[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
   const [sliderAngle, setSliderAngle] = useState(0)
@@ -186,26 +207,61 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
       rimLight.position.set(0, 2, -4)
       threeScene.add(rimLight)
 
-      // ── Floor ─────────────────────────────────────────────────────────────
+      // ── Floor (CanvasTexture tile) ─────────────────────────────────────────
       const pisoData = sceneData.ambiente.piso
-      const floor = new THREE.Mesh(
-        new THREE.PlaneGeometry(20, 20),
-        new THREE.MeshStandardMaterial({
-          color: new THREE.Color(pisoData.cor),
-          roughness: pisoData.roughness,
-          metalness: pisoData.metalness,
-          envMapIntensity: pisoData.envMapIntensity,
-        })
-      )
-      floor.rotation.x = -Math.PI / 2
-      floor.receiveShadow = true
-      threeScene.add(floor)
+      {
+        const sz = 512, grid = 64
+        const cv = document.createElement("canvas")
+        cv.width = sz; cv.height = sz
+        const ctx = cv.getContext("2d")!
+        ctx.fillStyle = pisoData.cor
+        ctx.fillRect(0, 0, sz, sz)
+        ctx.strokeStyle = "rgba(180,160,140,0.22)"
+        ctx.lineWidth = 1
+        for (let i = 0; i <= sz; i += grid) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, sz); ctx.stroke()
+          ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(sz, i); ctx.stroke()
+        }
+        const tex = new THREE.CanvasTexture(cv)
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+        tex.repeat.set(20, 20)
+        const floor = new THREE.Mesh(
+          new THREE.PlaneGeometry(20, 20),
+          new THREE.MeshStandardMaterial({
+            map: tex, roughness: 0.85, metalness: 0.0,
+            envMapIntensity: pisoData.envMapIntensity,
+          })
+        )
+        floor.rotation.x = -Math.PI / 2
+        floor.receiveShadow = true
+        threeScene.add(floor)
+      }
 
       // ── Walls ─────────────────────────────────────────────────────────────
       if (sceneData.vao && sceneData.vao.presente !== false) {
         const vaoData = sceneData.vao
+        const wallTex = (() => {
+          const sz = 256
+          const cv = document.createElement("canvas")
+          cv.width = sz; cv.height = sz
+          const ctx = cv.getContext("2d")!
+          ctx.fillStyle = vaoData.material.cor
+          ctx.fillRect(0, 0, sz, sz)
+          const id = ctx.getImageData(0, 0, sz, sz)
+          for (let i = 0; i < id.data.length; i += 4) {
+            const n = (Math.random() - 0.5) * 16
+            id.data[i]   = Math.min(255, Math.max(0, id.data[i]   + n))
+            id.data[i+1] = Math.min(255, Math.max(0, id.data[i+1] + n))
+            id.data[i+2] = Math.min(255, Math.max(0, id.data[i+2] + n))
+          }
+          ctx.putImageData(id, 0, 0)
+          const t = new THREE.CanvasTexture(cv)
+          t.wrapS = t.wrapT = THREE.RepeatWrapping
+          t.repeat.set(3, 3)
+          return t
+        })()
         const wallMat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(vaoData.material.cor),
+          map: wallTex,
           roughness: vaoData.material.roughness,
           metalness: vaoData.material.metalness,
           side: THREE.DoubleSide,
@@ -221,7 +277,7 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
   
         const sideThick = 0.3
         const pillarMat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(vaoData.material.cor),
+          map: wallTex,
           roughness: vaoData.material.roughness,
           metalness: vaoData.material.metalness,
         })
@@ -248,6 +304,8 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
 
       // ── Vidros ────────────────────────────────────────────────────────────
       animStatesRef.current = []
+      glassMeshesRef.current = []
+      hardwareMeshesRef.current = []
 
       for (const vidro of sceneData.vidros) {
         const mat = vidro.material
@@ -268,6 +326,7 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
           side: THREE.DoubleSide,
         })
 
+        glassMeshesRef.current.push(vidroMat)
         const geo = new THREE.BoxGeometry(
           vidro.largura * scale,
           vidro.altura * scale,
@@ -370,6 +429,7 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
           )
         }
 
+        hardwareMeshesRef.current.push(ferragemMat)
         const mesh = new THREE.Mesh(geometry, ferragemMat)
         mesh.position.set(ferragem.posicao.x * scale, ferragem.posicao.y * scale, ferragem.posicao.z * scale)
         mesh.rotation.set(ferragem.rotacao.x, ferragem.rotacao.y, ferragem.rotacao.z)
@@ -434,6 +494,27 @@ export default function Viewer3D({ scene, className = '', onScreenshot, onReady 
       cleanup?.()
     }
   }, [scene, onReady])
+
+  useEffect(() => {
+    if (!corVidro) return
+    const hexColor = GLASS_COLORS[corVidro] ?? corVidro
+    glassMeshesRef.current.forEach((mat) => {
+      mat.color.set(hexColor)
+      mat.needsUpdate = true
+    })
+  }, [corVidro])
+
+  useEffect(() => {
+    if (!acabamento) return
+    const finish = HARDWARE_FINISHES[acabamento]
+    if (!finish) return
+    hardwareMeshesRef.current.forEach((mat) => {
+      mat.color.set(finish.color)
+      mat.roughness = finish.roughness
+      mat.metalness = finish.metalness
+      mat.needsUpdate = true
+    })
+  }, [acabamento])
 
   const hasAnim = !isLoading && animStatesRef.current.length > 0
 

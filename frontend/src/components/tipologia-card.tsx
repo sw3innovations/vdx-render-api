@@ -22,7 +22,7 @@ export default function TipologiaCard({ tipologia, onClick }: TipologiaCardProps
 
   const categoria = tipologia.categoria ?? categoriaFromChave(tipologia.chave)
   const label = tipologia.nome || tipologiaLabel(tipologia.chave)
-  const previewUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia.chave)}/preview`
+  const previewUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia.chave)}/thumbnail/3d`
 
   return (
     <button
@@ -43,6 +43,7 @@ export default function TipologiaCard({ tipologia, onClick }: TipologiaCardProps
           <img
             src={previewUrl}
             alt={label}
+            loading="lazy"
             className={cn(
               'w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-105',
               imgLoaded ? 'opacity-100' : 'opacity-0'

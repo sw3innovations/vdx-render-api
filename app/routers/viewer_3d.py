@@ -466,19 +466,30 @@ function init() {{
   // Ambient
   threeScene.add(new THREE.AmbientLight(0xF0EDE8, 0.4));
 
-  // Piso MeshStandardMaterial (reflexivo sutil)
-  const pisoGeo = new THREE.PlaneGeometry(12000, 12000);
-  const pisoMat = new THREE.MeshStandardMaterial({{
-    color: new THREE.Color("#F0EDE8"),
-    roughness: 0.4,
-    metalness: 0.0,
-    envMapIntensity: 0.25,
-  }});
-  const piso = new THREE.Mesh(pisoGeo, pisoMat);
-  piso.rotation.x = -Math.PI/2;
-  piso.position.y = -1;
-  piso.receiveShadow = true;
-  threeScene.add(piso);
+  // Piso procedural (CanvasTexture tile 512x512)
+  (function() {{
+    const sz = 512, grid = 64;
+    const cv = document.createElement("canvas");
+    cv.width = sz; cv.height = sz;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#F5F0EB";
+    ctx.fillRect(0, 0, sz, sz);
+    ctx.strokeStyle = "rgba(180,160,140,0.25)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= sz; i += grid) {{
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, sz); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(sz, i); ctx.stroke();
+    }}
+    const tex = new THREE.CanvasTexture(cv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(20, 20);
+    const pisoMat = new THREE.MeshStandardMaterial({{
+      map: tex, roughness: 0.85, metalness: 0.0, envMapIntensity: 0.15,
+    }});
+    const piso = new THREE.Mesh(new THREE.PlaneGeometry(12000, 12000), pisoMat);
+    piso.rotation.x = -Math.PI/2; piso.position.y = -1;
+    piso.receiveShadow = true; threeScene.add(piso);
+  }})();
 
   window.addEventListener("resize", () => {{
     const W = window.innerWidth, H = window.innerHeight;
@@ -629,8 +640,28 @@ function createHardware(f) {{
 
 // ── Parede / Vão ──────────────────────────────────────────────────────────
 function createWall(vao) {{
+  const wallTex = (function() {{
+    const sz = 256;
+    const cv = document.createElement("canvas");
+    cv.width = sz; cv.height = sz;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = vao.material.cor || "#E8E0D8";
+    ctx.fillRect(0, 0, sz, sz);
+    const id = ctx.getImageData(0, 0, sz, sz);
+    for (let i = 0; i < id.data.length; i += 4) {{
+      const n = (Math.random() - 0.5) * 18;
+      id.data[i] = Math.min(255, Math.max(0, id.data[i] + n));
+      id.data[i+1] = Math.min(255, Math.max(0, id.data[i+1] + n));
+      id.data[i+2] = Math.min(255, Math.max(0, id.data[i+2] + n));
+    }}
+    ctx.putImageData(id, 0, 0);
+    const t = new THREE.CanvasTexture(cv);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(3, 3);
+    return t;
+  }})();
   const wallMat = new THREE.MeshStandardMaterial({{
-    color:    new THREE.Color(vao.material.cor || "#E8E0D8"),
+    map: wallTex,
     roughness: vao.material.roughness ?? 0.9,
     metalness: 0.0,
     envMapIntensity: 0.05,
