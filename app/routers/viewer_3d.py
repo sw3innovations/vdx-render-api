@@ -681,9 +681,8 @@ window.screenshot = function() {{
 async def tipologia_fotorrealista(
     request: Request,
     chave: str,
-    largura: float = Query(..., ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Largura em mm"),
-    altura: float = Query(..., ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Altura em mm"),
-    _auth: None = Depends(validate_api_key),
+    largura: float = Query(900.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Largura em mm"),
+    altura: float = Query(2100.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Altura em mm"),
 ):
     """Retorna imagem fotorrealista da tipologia (JPEG cache ou FLUX.1 ControlNet Canny).
 
