@@ -236,6 +236,72 @@ async def viewer_3d(
     return HTMLResponse(content=html)
 
 
+# ─── Fotorrealista ─────────────────────────────────────────────────────────────
+
+_CORES_VALIDAS = {"incolor", "verde", "fumê", "fume", "bronze", "azul"}
+_ACABAMENTOS_VALIDOS = {"cromado", "inox", "dourado", "preto"}
+
+
+@router.get("/api/v1/tipologia/{chave}/fotorrealista")
+@limiter.limit("10/minute")
+async def tipologia_fotorrealista(
+    request: Request,
+    chave: str,
+    largura: float = Query(900.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Largura em mm"),
+    altura: float = Query(2100.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Altura em mm"),
+    cor: str = Query("incolor", description="Cor do vidro: incolor, verde, fumê, bronze, azul"),
+    acabamento: str = Query("cromado", description="Acabamento: cromado, inox, dourado, preto"),
+):
+    """Retorna imagem fotorrealista da tipologia (JPEG cache ou FLUX.1 via Pollinations).
+
+    Cache permanente em disco por {chave}_{largura}x{altura}_{cor}_{acabamento}.jpg.
+    Sem autenticação — endpoint público.
+    """
+    from fastapi.responses import Response as FastAPIResponse
+    from app.services import photorealistic_pipeline as foto
+
+    cor_norm = cor.lower().strip()
+    acab_norm = acabamento.lower().strip()
+    if cor_norm not in _CORES_VALIDAS:
+        cor_norm = "incolor"
+    if acab_norm not in _ACABAMENTOS_VALIDOS:
+        acab_norm = "cromado"
+
+    nome_peca = "Fixo"
+    if "porta" in chave.lower():
+        nome_peca = "Porta"
+    elif "box" in chave.lower():
+        nome_peca = "Box"
+    elif "janela" in chave.lower():
+        nome_peca = "Janela"
+
+    req = RenderRequest(
+        tipologia_nome=chave,
+        pecas=[PecaInput(nome=nome_peca, largura_mm=largura, altura_mm=altura)],
+    )
+    render_resp = await executar(req)
+    svg = render_resp.svg
+
+    image_bytes, mime = await foto.gerar_fotorrealista(
+        svg=svg,
+        chave=chave,
+        largura_mm=largura,
+        altura_mm=altura,
+        upload_dir=settings.app_upload_dir,
+        cor=cor_norm,
+        acabamento=acab_norm,
+    )
+    ext = "jpg" if mime == "image/jpeg" else "png"
+    return FastAPIResponse(
+        content=image_bytes,
+        media_type=mime,
+        headers={
+            "Content-Disposition": f'inline; filename="{chave}_{int(largura)}x{int(altura)}_{cor_norm}_{acab_norm}.{ext}"',
+            "Cache-Control": "public, max-age=86400",
+        },
+    )
+
+
 # ─── HTML Generator ───────────────────────────────────────────────────────────
 
 def _gerar_viewer_html(scene: dict) -> str:

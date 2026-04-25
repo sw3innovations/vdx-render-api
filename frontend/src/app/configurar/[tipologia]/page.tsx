@@ -2,20 +2,23 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-import { fetchScene, fetchRender, exportPng, exportPdf, downloadBlob } from '@/lib/api'
+import { fetchRender, exportPng, exportPdf, downloadBlob } from '@/lib/api'
 import { tipologiaLabel, formatDim } from '@/lib/utils'
-import type { SceneJSON, FerragemInfo } from '@/lib/types'
-
-// Dynamic import to avoid SSR issues with Three.js
-const Viewer3D = dynamic(() => import('@/components/viewer-3d'), { ssr: false })
+import type { FerragemInfo } from '@/lib/types'
 
 const COR_VIDRO_OPTIONS = [
   { value: 'incolor', label: 'Incolor', color: '#E8F4FD' },
   { value: 'verde', label: 'Verde', color: '#A8D5A2' },
   { value: 'fume', label: 'Fumê', color: '#708090' },
   { value: 'bronze', label: 'Bronze', color: '#CD7F32' },
-  { value: 'espelho', label: 'Espelho', color: '#C0C0C0' },
+  { value: 'azul', label: 'Azul', color: '#5B9BD5' },
+]
+
+const ACABAMENTO_OPTIONS = [
+  { value: 'cromado', label: 'Cromado' },
+  { value: 'inox', label: 'Inox' },
+  { value: 'dourado', label: 'Dourado' },
+  { value: 'preto', label: 'Preto' },
 ]
 
 const ESPESSURA_OPTIONS = [6, 8, 10, 12] as const
@@ -29,56 +32,57 @@ export default function ConfigurarPage() {
   const [altura, setAltura] = useState(2100)
   const [espessura, setEspessura] = useState<number>(8)
   const [corVidro, setCorVidro] = useState('incolor')
-  const [scene, setScene] = useState<SceneJSON | null>(null)
+  const [acabamento, setAcabamento] = useState('cromado')
   const [ferragens, setFerragens] = useState<FerragemInfo[]>([])
-  const [loadingScene, setLoadingScene] = useState(false)
+  const [loadingFerragens, setLoadingFerragens] = useState(false)
   const [loadingExport, setLoadingExport] = useState<'png' | 'pdf' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [imgLoaded, setImgLoaded] = useState(false)
+  const [imgError, setImgError] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const loadScene = useCallback(
+  const fotoUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia)}/fotorrealista?largura=${largura}&altura=${altura}&cor=${corVidro}&acabamento=${acabamento}`
+
+  const loadFerragens = useCallback(
     async (larg: number, alt: number, cor: string, esp: number) => {
-      setLoadingScene(true)
+      setLoadingFerragens(true)
       setError(null)
       try {
-        const [sceneData, renderData] = await Promise.all([
-          fetchScene(tipologia, larg, alt, cor, esp),
-          fetchRender(tipologia, larg, alt, cor, esp),
-        ])
-        setScene(sceneData)
-        // Collect all ferragens from all peças
+        const renderData = await fetchRender(tipologia, larg, alt, cor, esp)
         const allFerragens = renderData.pecas.flatMap((p) => p.ferragens)
         setFerragens(allFerragens)
       } catch (err) {
         setError(String(err))
       } finally {
-        setLoadingScene(false)
+        setLoadingFerragens(false)
       }
     },
     [tipologia]
   )
 
-  // Initial load
   useEffect(() => {
-    loadScene(largura, altura, corVidro, espessura)
+    loadFerragens(largura, altura, corVidro, espessura)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced reload on param changes
   const triggerReload = useCallback(
     (larg: number, alt: number, cor: string, esp: number) => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => loadScene(larg, alt, cor, esp), 300)
+      debounceRef.current = setTimeout(() => loadFerragens(larg, alt, cor, esp), 300)
     },
-    [loadScene]
+    [loadFerragens]
   )
 
   const handleLargura = (v: number) => {
     setLargura(v)
+    setImgLoaded(false)
+    setImgError(false)
     triggerReload(v, altura, corVidro, espessura)
   }
   const handleAltura = (v: number) => {
     setAltura(v)
+    setImgLoaded(false)
+    setImgError(false)
     triggerReload(largura, v, corVidro, espessura)
   }
   const handleEspessura = (v: number) => {
@@ -87,7 +91,14 @@ export default function ConfigurarPage() {
   }
   const handleCorVidro = (v: string) => {
     setCorVidro(v)
+    setImgLoaded(false)
+    setImgError(false)
     triggerReload(largura, altura, v, espessura)
+  }
+  const handleAcabamento = (v: string) => {
+    setAcabamento(v)
+    setImgLoaded(false)
+    setImgError(false)
   }
 
   const handleExportPng = async () => {
@@ -258,6 +269,26 @@ export default function ConfigurarPage() {
             </div>
           </div>
 
+          {/* Acabamento */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Acabamento</label>
+            <div className="grid grid-cols-2 gap-2">
+              {ACABAMENTO_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleAcabamento(opt.value)}
+                  className={`py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                    acabamento === opt.value
+                      ? 'bg-[#1a5276] text-white border-[#1a5276]'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#1a5276]/40'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Ferragens */}
           {ferragens.length > 0 && (
             <div className="space-y-2">
@@ -286,14 +317,14 @@ export default function ConfigurarPage() {
           <div className="flex gap-2">
             <button
               onClick={handleExportPng}
-              disabled={loadingExport !== null || loadingScene}
+              disabled={loadingExport !== null || loadingFerragens}
               className="flex-1 bg-[#1a5276] hover:bg-[#1a5276]/90 disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-xl transition-all"
             >
               {loadingExport === 'png' ? '⏳' : '⬇'} PNG
             </button>
             <button
               onClick={handleExportPdf}
-              disabled={loadingExport !== null || loadingScene}
+              disabled={loadingExport !== null || loadingFerragens}
               className="flex-1 bg-white hover:bg-gray-50 disabled:opacity-50 text-[#1a5276] border border-[#1a5276]/30 text-sm font-medium py-2.5 rounded-xl transition-all"
             >
               {loadingExport === 'pdf' ? '⏳' : '⬇'} PDF
@@ -311,28 +342,36 @@ export default function ConfigurarPage() {
         </div>
       </aside>
 
-      {/* ── 3D Viewer ───────────────────────────────────────────────────────── */}
-      <main className="flex-1 relative min-h-[50vh] md:min-h-0">
-        {loadingScene && !scene && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 z-10 text-white gap-3">
-            <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-            <span className="text-sm">Carregando…</span>
+      {/* ── Fotorrealista Viewer ─────────────────────────────────────────────── */}
+      <main className="flex-1 relative min-h-[50vh] md:min-h-0 flex items-center justify-center bg-[#F5F2EE]">
+        {!imgLoaded && !imgError && (
+          <div className="absolute inset-0 flex items-center justify-center gap-3 text-gray-400">
+            <div className="w-8 h-8 border-4 border-gray-200 border-t-[#1a5276] rounded-full animate-spin" />
+            <span className="text-sm">Gerando imagem…</span>
           </div>
         )}
 
-        {loadingScene && scene && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/50 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full">
-            Atualizando cena…
+        {imgError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-300">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-12 h-12">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18M9 21V9" />
+            </svg>
+            <span className="text-xs">Sem preview</span>
           </div>
         )}
 
-        <Viewer3D
-          scene={scene}
-          className="w-full h-full"
+        <img
+          key={fotoUrl}
+          src={fotoUrl}
+          alt={`${label} — ${corVidro} ${acabamento}`}
+          className={`max-w-full max-h-full object-contain p-6 transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => { setImgError(true); setImgLoaded(false) }}
         />
 
         {/* Dimensions overlay */}
-        {scene && (
+        {imgLoaded && (
           <div className="absolute bottom-4 left-4 bg-black/40 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg font-mono">
             {formatDim(largura)} × {formatDim(altura)} × {espessura}mm
           </div>

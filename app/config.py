@@ -102,6 +102,11 @@ class Settings:
         default_factory=lambda: _env("LOG_DIR", str(_ROOT / "logs"))
     )
 
+    # Hugging Face token (opcional — ZeroGPU ControlNet fallback)
+    hf_token: str = field(
+        default_factory=lambda: _env("HF_TOKEN", "")
+    )
+
     # Request limits
     max_body_size_kb: int = field(
         default_factory=lambda: _env_int("MAX_BODY_SIZE_KB", 100)
