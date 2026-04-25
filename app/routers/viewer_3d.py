@@ -99,7 +99,7 @@ def _auto_pecas(tipologia: str, largura: float, altura: float) -> list[PecaInput
     if any(k in t for k in ("3_folhas", "3folhas")):
         w = largura / 3
         return [PecaInput(nome=f"Folha {i+1}", largura_mm=w, altura_mm=altura) for i in range(3)]
-    if any(k in t for k in ("duas_folhas", "2_folhas", "2folhas", "box")):
+    if any(k in t for k in ("2_folhas", "2folhas", "box")):
         w = largura / 2
         return [
             PecaInput(nome="Folha 1", largura_mm=w, altura_mm=altura),
@@ -110,9 +110,6 @@ def _auto_pecas(tipologia: str, largura: float, altura: float) -> list[PecaInput
             PecaInput(nome="Bandeira", largura_mm=largura, altura_mm=min(400.0, altura * 0.16)),
             PecaInput(nome="Porta",    largura_mm=largura, altura_mm=altura),
         ]
-    if any(k in t for k in ("quatro_folhas", "4_folhas", "4folhas")):
-        w = largura / 4
-        return [PecaInput(nome=f"Folha {i+1}", largura_mm=w, altura_mm=altura) for i in range(4)]
     return [PecaInput(nome="Porta", largura_mm=largura, altura_mm=altura)]
 
 
@@ -239,6 +236,72 @@ async def viewer_3d(
     return HTMLResponse(content=html)
 
 
+# ─── Fotorrealista ─────────────────────────────────────────────────────────────
+
+_CORES_VALIDAS = {"incolor", "verde", "fumê", "fume", "bronze", "azul"}
+_ACABAMENTOS_VALIDOS = {"cromado", "inox", "dourado", "preto"}
+
+
+@router.get("/api/v1/tipologia/{chave}/fotorrealista")
+@limiter.limit("10/minute")
+async def tipologia_fotorrealista(
+    request: Request,
+    chave: str,
+    largura: float = Query(900.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Largura em mm"),
+    altura: float = Query(2100.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Altura em mm"),
+    cor: str = Query("incolor", description="Cor do vidro: incolor, verde, fumê, bronze, azul"),
+    acabamento: str = Query("cromado", description="Acabamento: cromado, inox, dourado, preto"),
+):
+    """Retorna imagem fotorrealista da tipologia (JPEG cache ou FLUX.1 via Pollinations).
+
+    Cache permanente em disco por {chave}_{largura}x{altura}_{cor}_{acabamento}.jpg.
+    Sem autenticação — endpoint público.
+    """
+    from fastapi.responses import Response as FastAPIResponse
+    from app.services import photorealistic_pipeline as foto
+
+    cor_norm = cor.lower().strip()
+    acab_norm = acabamento.lower().strip()
+    if cor_norm not in _CORES_VALIDAS:
+        cor_norm = "incolor"
+    if acab_norm not in _ACABAMENTOS_VALIDOS:
+        acab_norm = "cromado"
+
+    nome_peca = "Fixo"
+    if "porta" in chave.lower():
+        nome_peca = "Porta"
+    elif "box" in chave.lower():
+        nome_peca = "Box"
+    elif "janela" in chave.lower():
+        nome_peca = "Janela"
+
+    req = RenderRequest(
+        tipologia_nome=chave,
+        pecas=[PecaInput(nome=nome_peca, largura_mm=largura, altura_mm=altura)],
+    )
+    render_resp = await executar(req)
+    svg = render_resp.svg
+
+    image_bytes, mime = await foto.gerar_fotorrealista(
+        svg=svg,
+        chave=chave,
+        largura_mm=largura,
+        altura_mm=altura,
+        upload_dir=settings.app_upload_dir,
+        cor=cor_norm,
+        acabamento=acab_norm,
+    )
+    ext = "jpg" if mime == "image/jpeg" else "png"
+    return FastAPIResponse(
+        content=image_bytes,
+        media_type=mime,
+        headers={
+            "Content-Disposition": f'inline; filename="{chave}_{int(largura)}x{int(altura)}_{cor_norm}_{acab_norm}.{ext}"',
+            "Cache-Control": "public, max-age=86400",
+        },
+    )
+
+
 # ─── HTML Generator ───────────────────────────────────────────────────────────
 
 def _gerar_viewer_html(scene: dict) -> str:
@@ -321,15 +384,7 @@ body{{background:#F5F2EE;overflow:hidden;font-family:'Segoe UI',system-ui,sans-s
   <div class="info-row"><span>Ferragens</span><span class="info-val">{n_ferr}</span></div>
 
   <hr>
-  <button id="toggleBtn" class="btn btn-primary" onclick="toggleDoor()">&#x1F6AA; Abrir porta</button>
-  <div id="angleWrap" style="margin-top:6px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <span class="label" style="margin:0">&#194;ngulo</span>
-      <span id="angleLabel" style="font-size:11px;color:#333;font-weight:600">0&deg;</span>
-    </div>
-    <input type="range" id="angleSlider" min="0" max="90" value="0" step="1"
-      style="width:100%;margin-top:4px;accent-color:#1a5276">
-  </div>
+  <button id="btn-door" class="btn btn-primary" onclick="toggleDoor()">&#x1F6AA; Abrir porta</button>
 
   <hr>
   <div class="label">Cor do vidro</div>
@@ -349,303 +404,325 @@ body{{background:#F5F2EE;overflow:hidden;font-family:'Segoe UI',system-ui,sans-s
 
 <div id="hint">Arrastar: orbitar &nbsp;|&nbsp; Scroll: zoom &nbsp;|&nbsp; Shift+drag: pan</div>
 
-<script src="https://cdn.babylonjs.com/babylon.js"></script>
-<script>
+<script type="importmap">
+{{"imports":{{"three":"https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"}}}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {{ OrbitControls }} from 'three/addons/controls/OrbitControls.js';
+
+// ── Dados da cena (embutidos pelo Python) ─────────────────────────────────
 const SCENE = {scene_json};
 
+// Tabela de materiais de vidro para troca interativa
 const VIDRO_MATS = {{
-  incolor: {{cor:"#FFFFFF", alpha:0.12, ior:1.52}},
-  verde:   {{cor:"#4A7A5B", alpha:0.20, ior:1.52}},
-  fume:    {{cor:"#3A3A3A", alpha:0.40, ior:1.52}},
-  bronze:  {{cor:"#6B5B3A", alpha:0.30, ior:1.52}},
-  espelho: {{cor:"#E0E0E0", alpha:0.05, ior:1.52, metal:0.95, refracao:false}},
-  default: {{cor:"#B8D4E3", alpha:0.10, ior:1.52}},
+  incolor: {{cor:"#FFFFFF",   op:0.08, tr:0.96, att:"#FFFFFF", attD:200}},
+  verde:   {{cor:"#4A7A5B",   op:0.12, tr:0.88, att:"#2D5A3D", attD:60}},
+  fume:    {{cor:"#3A3A3A",   op:0.25, tr:0.72, att:"#1A1A1A", attD:20}},
+  bronze:  {{cor:"#6B5B3A",   op:0.18, tr:0.78, att:"#4A3A1A", attD:35}},
+  espelho: {{cor:"#E0E0E0",   op:0.05, tr:0.05, att:"#C0C0C0", attD:5, metal:0.95}},
+  default: {{cor:"#B8D4E3",   op:0.10, tr:0.92, att:"#FFFFFF", attD:150}},
 }};
 
-let engine, bScene, camera;
+// ── Estado global ─────────────────────────────────────────────────────────
+let renderer, camera, controls, threeScene;
 const glassMeshes = [];
 const animatables = [];
 let isDoorOpen = false;
 
+// ── Bootstrap ─────────────────────────────────────────────────────────────
 window.addEventListener("load", () => {{
-  const canvas = document.getElementById("c");
-
-  engine = new BABYLON.Engine(canvas, true, {{
-    preserveDrawingBuffer: true, stencil: true, antialias: true,
-  }});
-  bScene = new BABYLON.Scene(engine);
-  bScene.useRightHandedSystem = true;
-  bScene.clearColor = new BABYLON.Color4(0.961, 0.949, 0.933, 1);
-
-  const cam = SCENE.ambiente.camera_inicial;
-  const target = new BABYLON.Vector3(cam.target.x, cam.target.y, cam.target.z);
-  camera = new BABYLON.ArcRotateCamera("cam", 0, Math.PI/2, 3, target, bScene);
-  camera.setPosition(new BABYLON.Vector3(cam.posicao.x, cam.posicao.y, cam.posicao.z));
-  camera.lowerRadiusLimit = 200;
-  camera.upperRadiusLimit = 15000;
-  camera.wheelPrecision = 0.05;
-  camera.panningSensibility = 5;
-  camera.minZ = 1;
-  camera.maxZ = 50000;
-  camera.attachControl(canvas, true);
-
-  const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0,1,0), bScene);
-  hemi.intensity = 0.6;
-  hemi.groundColor = new BABYLON.Color3(0.4, 0.4, 0.4);
-
-  const key = new BABYLON.DirectionalLight("key", new BABYLON.Vector3(-1,-2,-1.5).normalize(), bScene);
-  key.intensity = 2.5;
-  key.diffuse = new BABYLON.Color3(1, 0.97, 0.9);
-
-  const fill = new BABYLON.DirectionalLight("fill", new BABYLON.Vector3(1.5,-0.5,0.5).normalize(), bScene);
-  fill.intensity = 1.0;
-  fill.diffuse = new BABYLON.Color3(0.8, 0.88, 1.0);
-
-  const rim = new BABYLON.DirectionalLight("rim", new BABYLON.Vector3(0,-1,2).normalize(), bScene);
-  rim.intensity = 0.6;
-  rim.diffuse = new BABYLON.Color3(1, 0.9, 0.7);
-
-  (function() {{
-    const sz = 512, grid = 64;
-    const cv = document.createElement("canvas");
-    cv.width = sz; cv.height = sz;
-    const ctx = cv.getContext("2d");
-    ctx.fillStyle = "#F5F0EB";
-    ctx.fillRect(0, 0, sz, sz);
-    ctx.strokeStyle = "rgba(180,160,140,0.25)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= sz; i += grid) {{
-      ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,sz); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(sz,i); ctx.stroke();
-    }}
-    const floorTex = new BABYLON.Texture(cv.toDataURL(), bScene);
-    floorTex.uScale = 20; floorTex.vScale = 20;
-    const floorMat = new BABYLON.StandardMaterial("floorMat", bScene);
-    floorMat.diffuseTexture = floorTex;
-    floorMat.specularColor = BABYLON.Color3.Black();
-    const floor = BABYLON.MeshBuilder.CreateGround("floor", {{width:12000, height:12000}}, bScene);
-    floor.position.y = -1;
-    floor.material = floorMat;
-  }})();
-
+  init();
   loadScene(SCENE);
-
-  const LERP = 0.045;
-  bScene.registerBeforeRender(() => {{
-    for (const a of animatables) {{
-      if (Math.abs(a.current - a.target) < 0.0001) continue;
-      a.current += (a.target - a.current) * LERP;
-      if (a.type === "pivotante")       a.pivotNode.rotation.y = a.current;
-      else if (a.type === "deslizante") a.mesh.position.x = a.originX + a.current;
-      else if (a.type === "basculante") a.pivotNode.rotation.x = a.current;
-    }}
-  }});
-
-  engine.runRenderLoop(() => bScene.render());
-  window.addEventListener("resize", () => engine.resize());
-
+  animate();
   document.getElementById("loading").style.display = "none";
-
-  if (animatables.length === 0) {{
-    document.getElementById("toggleBtn").style.display = "none";
-    document.getElementById("angleWrap").style.display = "none";
-  }} else {{
-    const slider = document.getElementById("angleSlider");
-    const label  = document.getElementById("angleLabel");
-    slider.addEventListener("input", () => {{
-      const deg = Number(slider.value);
-      label.textContent = deg + "°";
-      const frac = deg / 90;
-      animatables.forEach(a => {{ a.target = a.openVal * frac; }});
-      isDoorOpen = deg > 0;
-      const btn = document.getElementById("toggleBtn");
-      btn.textContent = isDoorOpen ? "🚧 Fechar" : "🚧 Abrir porta";
-      btn.classList.toggle("active", isDoorOpen);
-    }});
-  }}
+  if (animatables.length === 0) document.getElementById("btn-door").style.display = "none";
 }});
 
-function loadScene(s) {{
-  if (s.vao && s.vao.presente !== false) createWall(s.vao);
-  const pivotGroupMap = {{}};
-  s.vidros.forEach(v => {{
-    const result = addGlass(v);
-    if (result) {{
-      glassMeshes.push(result.mesh);
-      if (result.pivotNode) pivotGroupMap[v.nome] = {{pivotNode: result.pivotNode, pivoX: result.pivoX || 0}};
-    }}
+// ── Three.js setup ────────────────────────────────────────────────────────
+function init() {{
+  const canvas = document.getElementById("c");
+  const W = window.innerWidth, H = window.innerHeight;
+
+  // Renderer fotorrealista
+  renderer = new THREE.WebGLRenderer({{canvas, antialias:true, preserveDrawingBuffer:true}});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  threeScene = new THREE.Scene();
+  threeScene.background = new THREE.Color("#F5F2EE");
+
+  camera = new THREE.PerspectiveCamera(40, W/H, 1, 50000);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.minDistance = 300;
+  controls.maxDistance = 15000;
+  controls.maxPolarAngle = Math.PI * 0.87;
+  controls.screenSpacePanning = true;
+
+  // Environment map procedural (gera reflexos reais sem HDR externo)
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  // Cena de luz estúdio como fonte do env map
+  const envScene = new THREE.RoomEnvironment(0.5);
+  const envMap = pmrem.fromScene(envScene, 0.04).texture;
+  threeScene.environment = envMap;
+  pmrem.dispose();
+
+  // Iluminação 3-point fotorrealista
+  // Key: quente, forte, com sombras
+  const key = new THREE.DirectionalLight(0xFFF8F0, 2.5);
+  key.position.set(2000, 3000, 2000);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.camera.near = 10;
+  key.shadow.camera.far = 12000;
+  key.shadow.camera.left = -2500;
+  key.shadow.camera.right = 2500;
+  key.shadow.camera.top = 3500;
+  key.shadow.camera.bottom = -500;
+  key.shadow.bias = -0.0005;
+  key.shadow.normalBias = 0.02;
+  threeScene.add(key);
+
+  // Fill: frio, suave, sem sombra
+  const fill = new THREE.DirectionalLight(0xD4E4FF, 0.8);
+  fill.position.set(-1500, 2000, 1000);
+  threeScene.add(fill);
+
+  // Rim: contorno quente
+  const rim = new THREE.DirectionalLight(0xFFE0C0, 0.6);
+  rim.position.set(0, 500, -2500);
+  threeScene.add(rim);
+
+  // Ambient
+  threeScene.add(new THREE.AmbientLight(0xF0EDE8, 0.4));
+
+  // Piso MeshStandardMaterial (reflexivo sutil)
+  const pisoGeo = new THREE.PlaneGeometry(12000, 12000);
+  const pisoMat = new THREE.MeshStandardMaterial({{
+    color: new THREE.Color("#F0EDE8"),
+    roughness: 0.4,
+    metalness: 0.0,
+    envMapIntensity: 0.25,
   }});
-  s.ferragens.forEach(f => {{
-    const hw = createHardware(f);
-    if (!hw) return;
-    const pm = pivotGroupMap[f.peca_nome];
-    if (pm) {{
-      hw.position.x = f.posicao.x - pm.pivoX;
-      hw.position.y = f.posicao.y;
-      hw.position.z = f.posicao.z;
-      hw.parent = pm.pivotNode;
-    }}
+  const piso = new THREE.Mesh(pisoGeo, pisoMat);
+  piso.rotation.x = -Math.PI/2;
+  piso.position.y = -1;
+  piso.receiveShadow = true;
+  threeScene.add(piso);
+
+  window.addEventListener("resize", () => {{
+    const W = window.innerWidth, H = window.innerHeight;
+    camera.aspect = W/H;
+    camera.updateProjectionMatrix();
+    renderer.setSize(W, H);
   }});
 }}
 
-function makeGlassMat(m, id) {{
-  const mat = new BABYLON.PBRMaterial("glass_" + id, bScene);
-  mat.albedoColor = BABYLON.Color3.FromHexString(m.cor);
-  mat.metallic = m.metalness || 0;
-  mat.roughness = m.roughness || 0;
-  mat.alpha = m.opacidade || 0.10;
-  mat.needDepthPrePass = true;
-  mat.environmentIntensity = 0.3;
-  mat.clearCoat.isEnabled = true;
-  mat.clearCoat.intensity = (m.clearcoat > 0) ? m.clearcoat : 1.0;
-  mat.clearCoat.roughness = m.clearcoatRoughness || 0.03;
+// ── Carregamento da cena ──────────────────────────────────────────────────
+function loadScene(s) {{
+  const cam = s.ambiente.camera_inicial;
+  camera.position.set(cam.posicao.x, cam.posicao.y, cam.posicao.z);
+  camera.lookAt(cam.target.x, cam.target.y, cam.target.z);
+  controls.target.set(cam.target.x, cam.target.y, cam.target.z);
+  controls.update();
+
+  // Parede / vão
+  threeScene.add(createWall(s.vao));
+
+  // Vidros
+  s.vidros.forEach(v => {{
+    const obj = addGlass(v);
+    if (obj) glassMeshes.push(obj.mesh || obj);
+  }});
+
+  // Ferragens
+  s.ferragens.forEach(f => threeScene.add(createHardware(f)));
+}}
+
+// ── Vidro fotorrealista — MeshPhysicalMaterial completo ───────────────────
+function makeGlassMaterial(m) {{
+  const mat = new THREE.MeshPhysicalMaterial({{
+    color:               new THREE.Color(m.cor),
+    transparent:         true,
+    opacity:             m.opacidade,
+    transmission:        m.transmission ?? 0.92,
+    ior:                 m.ior ?? 1.52,
+    thickness:           (m.thickness ?? 8) * 0.5,
+    roughness:           m.roughness ?? 0.0,
+    metalness:           m.metalness ?? 0.0,
+    clearcoat:           m.clearcoat ?? 1.0,
+    clearcoatRoughness:  m.clearcoatRoughness ?? 0.03,
+    envMapIntensity:     m.envMapIntensity ?? 0.5,
+    side:                THREE.DoubleSide,
+    depthWrite:          false,
+  }});
+  if (m.attenuationColor) {{
+    mat.attenuationColor = new THREE.Color(m.attenuationColor);
+    mat.attenuationDistance = m.attenuationDistance ?? 150;
+  }}
+  return mat;
 }}
 
 function addGlass(vidro) {{
-  const glassMesh = BABYLON.MeshBuilder.CreateBox("vidro_" + vidro.id, {{
-    width: vidro.largura, height: vidro.altura, depth: vidro.espessura,
-  }}, bScene);
-  glassMesh.material = makeGlassMat(vidro.material, vidro.id);
+  const geom = new THREE.BoxGeometry(vidro.largura, vidro.altura, vidro.espessura);
+  const mat  = makeGlassMaterial(vidro.material);
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = false;  // vidro não recebe sombra pra manter translucidez
 
-  if (!vidro.animacao || vidro.animacao.tipo === "fixo") {{
-    glassMesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);
-    return {{mesh: glassMesh}};
+  if (!vidro.animacao) {{
+    mesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);
+    threeScene.add(mesh);
+    return {{mesh, type:"static"}};
   }}
 
   const anim = vidro.animacao;
 
   if (anim.tipo === "pivotante") {{
     const pivo = anim.ponto_pivo || {{x: vidro.posicao.x - vidro.largura/2, y:0, z:0}};
-    const pivotNode = new BABYLON.TransformNode("pivot_" + vidro.nome, bScene);
-    pivotNode.position.set(pivo.x, pivo.y, pivo.z);
-    glassMesh.position.set(vidro.posicao.x - pivo.x, vidro.posicao.y, vidro.posicao.z);
-    glassMesh.parent = pivotNode;
-    const openVal = (anim.angulo_max || 90) * Math.PI / 180;
-    animatables.push({{type:"pivotante", pivotNode, mesh:glassMesh, pivoX:pivo.x, current:0, target:0, openVal}});
-    return {{mesh:glassMesh, pivotNode, pivoX:pivo.x}};
+    const grp = new THREE.Group();
+    grp.position.set(pivo.x, vidro.posicao.y, 0);
+    mesh.position.set(vidro.largura/2, 0, 0);
+    grp.add(mesh);
+    threeScene.add(grp);
+    const entry = {{type:"pivotante", group:grp, mesh, current:0, target:0, openVal:(anim.angulo_max||90)*Math.PI/180}};
+    animatables.push(entry);
+    return entry;
+
+  }} else if (anim.tipo === "deslizante") {{
+    mesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);
+    threeScene.add(mesh);
+    const entry = {{type:"deslizante", mesh, current:0, target:0, originX:vidro.posicao.x, openVal:anim.distancia_max||vidro.largura}};
+    animatables.push(entry);
+    return entry;
+
+  }} else if (anim.tipo === "basculante") {{
+    const grp = new THREE.Group();
+    grp.position.set(vidro.posicao.x, vidro.posicao.y + vidro.altura/2, 0);
+    mesh.position.set(0, -vidro.altura/2, 0);
+    grp.add(mesh);
+    threeScene.add(grp);
+    const entry = {{type:"basculante", group:grp, mesh, current:0, target:0, openVal:-(anim.angulo_max||45)*Math.PI/180}};
+    animatables.push(entry);
+    return entry;
   }}
 
-  if (anim.tipo === "deslizante") {{
-    glassMesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);
-    const dir = vidro.posicao.x < 0 ? -1 : 1;
-    const openVal = (anim.distancia_max || vidro.largura) * dir;
-    animatables.push({{type:"deslizante", mesh:glassMesh, current:0, target:0, originX:vidro.posicao.x, openVal}});
-    return {{mesh:glassMesh}};
-  }}
-
-  if (anim.tipo === "basculante") {{
-    const pivotNode = new BABYLON.TransformNode("pivot_" + vidro.nome, bScene);
-    pivotNode.position.set(vidro.posicao.x, vidro.posicao.y + vidro.altura/2, 0);
-    glassMesh.position.set(0, -vidro.altura/2, 0);
-    glassMesh.parent = pivotNode;
-    const openVal = -(anim.angulo_max || 45) * Math.PI / 180;
-    animatables.push({{type:"basculante", pivotNode, mesh:glassMesh, current:0, target:0, openVal}});
-    return {{mesh:glassMesh, pivotNode, pivoX:0}};
-  }}
-
-  glassMesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);
-  return {{mesh:glassMesh}};
+  mesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);
+  threeScene.add(mesh);
+  return {{mesh, type:"static"}};
 }}
 
-function createHinge(f) {{
-  const hingeRoot = new BABYLON.TransformNode("hinge_" + f.id, bScene);
-  const g = f.geometria; const m = f.material;
-  const w = g.largura || 30, h = g.altura || 50, d = g.profundidade || 8;
-
-  const bodyMat = new BABYLON.PBRMaterial("hinge_body_mat_" + f.id, bScene);
-  bodyMat.albedoColor = BABYLON.Color3.FromHexString(m.cor);
-  bodyMat.metallic = m.metalness; bodyMat.roughness = m.roughness;
-  if ((m.clearcoat||0) > 0) {{ bodyMat.clearCoat.isEnabled = true; bodyMat.clearCoat.intensity = m.clearcoat; }}
-  bodyMat.environmentIntensity = m.envMapIntensity || 1.5;
-  const body = BABYLON.MeshBuilder.CreateBox("hinge_body_" + f.id, {{width:w,height:h,depth:d}}, bScene);
-  body.material = bodyMat; body.parent = hingeRoot;
-
-  const pinMat = new BABYLON.PBRMaterial("hinge_pin_mat_" + f.id, bScene);
-  pinMat.albedoColor = new BABYLON.Color3(0.831, 0.686, 0.216);
-  pinMat.metallic = 1.0; pinMat.roughness = 0.1;
-  pinMat.clearCoat.isEnabled = true; pinMat.clearCoat.intensity = 0.5;
-  const pin = BABYLON.MeshBuilder.CreateCylinder("hinge_pin_" + f.id, {{diameter:5,height:h+4,tessellation:16}}, bScene);
-  pin.material = pinMat; pin.parent = hingeRoot;
-
-  const screwMat = new BABYLON.PBRMaterial("hinge_screw_mat_" + f.id, bScene);
-  screwMat.albedoColor = new BABYLON.Color3(0.667, 0.667, 0.667);
-  screwMat.metallic = 1.0; screwMat.roughness = 0.2;
-  screwMat.clearCoat.isEnabled = true; screwMat.clearCoat.intensity = 0.3;
-  [[-w*0.28,h*0.3],[w*0.28,h*0.3],[-w*0.28,-h*0.3],[w*0.28,-h*0.3]].forEach(([sx,sy],i) => {{
-    const sc = BABYLON.MeshBuilder.CreateCylinder("hinge_sc_" + f.id + "_" + i, {{diameter:3.6,height:d+1,tessellation:8}}, bScene);
-    sc.rotation.x = Math.PI/2; sc.position.set(sx,sy,0);
-    sc.material = screwMat; sc.parent = hingeRoot;
-  }});
-
-  hingeRoot.position.set(f.posicao.x, f.posicao.y, f.posicao.z);
-  return hingeRoot;
-}}
-
+// ── Ferragem PBR — MeshPhysicalMaterial para cromados ────────────────────
 function createHardware(f) {{
-  if (f.tipo === "dobradica") return createHinge(f);
-  const g = f.geometria; const m = f.material;
-  const hwMat = new BABYLON.PBRMaterial("ferr_mat_" + f.id, bScene);
-  hwMat.albedoColor = BABYLON.Color3.FromHexString(m.cor);
-  hwMat.metallic = m.metalness; hwMat.roughness = m.roughness;
-  if ((m.clearcoat||0) > 0) {{
-    hwMat.clearCoat.isEnabled = true; hwMat.clearCoat.intensity = m.clearcoat;
-    hwMat.clearCoat.roughness = m.clearcoatRoughness || 0.1;
-  }}
-  hwMat.environmentIntensity = m.envMapIntensity || 1.5;
-  let mesh;
+  const g = f.geometria;
+  const m = f.material;
+  let geom;
   if (g.tipo === "cylinder") {{
-    mesh = BABYLON.MeshBuilder.CreateCylinder("ferr_" + f.id, {{diameter:(g.raio||5)*2,height:g.altura||30,tessellation:20}}, bScene);
+    geom = new THREE.CylinderGeometry(g.raio, g.raio, g.altura, 20);
   }} else {{
-    mesh = BABYLON.MeshBuilder.CreateBox("ferr_" + f.id, {{width:g.largura||10,height:g.altura||10,depth:g.profundidade||10}}, bScene);
+    geom = new THREE.BoxGeometry(g.largura, g.altura, g.profundidade);
   }}
-  mesh.material = hwMat;
+
+  // Se tem clearcoat (cromados), usa MeshPhysicalMaterial
+  const mat = (m.clearcoat && m.clearcoat > 0)
+    ? new THREE.MeshPhysicalMaterial({{
+        color:              new THREE.Color(m.cor),
+        roughness:          m.roughness,
+        metalness:          m.metalness,
+        clearcoat:          m.clearcoat,
+        clearcoatRoughness: m.clearcoatRoughness ?? 0.1,
+        envMapIntensity:    m.envMapIntensity ?? 1.5,
+      }})
+    : new THREE.MeshStandardMaterial({{
+        color:           new THREE.Color(m.cor),
+        roughness:       m.roughness,
+        metalness:       m.metalness,
+        envMapIntensity: m.envMapIntensity ?? 0.5,
+      }});
+
+  const mesh = new THREE.Mesh(geom, mat);
   mesh.position.set(f.posicao.x, f.posicao.y, f.posicao.z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   return mesh;
 }}
 
+// ── Parede / Vão ──────────────────────────────────────────────────────────
 function createWall(vao) {{
-  const wallMat = new BABYLON.StandardMaterial("wallMat", bScene);
-  wallMat.diffuseColor = BABYLON.Color3.FromHexString(vao.material.cor || "#E8E0D8");
-  wallMat.specularColor = new BABYLON.Color3(0.03, 0.03, 0.03);
-  wallMat.backFaceCulling = false;
-  const d = vao.profundidade || 150;
-  const wallThick = 240, wallH = vao.altura + 600;
-  const halfVW = vao.largura / 2;
-  const lintelH = Math.max(80, wallH - vao.altura), sillH = 25;
+  const wallMat = new THREE.MeshStandardMaterial({{
+    color:    new THREE.Color(vao.material.cor || "#E8E0D8"),
+    roughness: vao.material.roughness ?? 0.9,
+    metalness: 0.0,
+    envMapIntensity: 0.05,
+  }});
+  const d        = vao.profundidade || 150;
+  const wallThick = 240;
+  const wallH     = vao.altura + 600;
+  const halfVW    = vao.largura / 2;
+
   function box(w, h, x, y) {{
-    const mesh = BABYLON.MeshBuilder.CreateBox("wb_" + x + "_" + y, {{width:w,height:h,depth:d}}, bScene);
-    mesh.position.set(x, y, -d/2); mesh.material = wallMat;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+    m.position.set(x, y, -d/2);
+    m.receiveShadow = true;
+    return m;
   }}
-  box(wallThick, wallH, -(halfVW + wallThick/2), wallH/2);
-  box(wallThick, wallH,  (halfVW + wallThick/2), wallH/2);
-  box(vao.largura + wallThick*2, lintelH, 0, vao.altura + lintelH/2);
-  box(vao.largura, sillH, 0, -sillH/2);
+
+  const sillH = 25;
+  const grp = new THREE.Group();
+  grp.add(box(wallThick, wallH, -(halfVW + wallThick/2), wallH/2));
+  grp.add(box(wallThick, wallH,  (halfVW + wallThick/2), wallH/2));
+  const lintelH = Math.max(80, wallH - vao.altura);
+  grp.add(box(vao.largura + wallThick*2, lintelH, 0, vao.altura + lintelH/2));
+  grp.add(box(vao.largura, sillH, 0, -sillH/2));
+  return grp;
 }}
 
+// ── Loop de animação ──────────────────────────────────────────────────────
+function lerp(a, b, t) {{ return a + (b-a)*t; }}
+
+function animate() {{
+  requestAnimationFrame(animate);
+  controls.update();
+  const SPEED = 0.045;
+  for (const a of animatables) {{
+    if (Math.abs(a.current - a.target) < 0.0001) continue;
+    a.current = lerp(a.current, a.target, SPEED);
+    if (a.type === "pivotante")   a.group.rotation.y = a.current;
+    else if (a.type === "deslizante") a.mesh.position.x = a.originX + a.current;
+    else if (a.type === "basculante") a.group.rotation.x = a.current;
+  }}
+  renderer.render(threeScene, camera);
+}}
+
+// ── Controles UI ──────────────────────────────────────────────────────────
 window.toggleDoor = function() {{
   isDoorOpen = !isDoorOpen;
-  const btn = document.getElementById("toggleBtn");
+  const btn = document.getElementById("btn-door");
   animatables.forEach(a => {{ a.target = isDoorOpen ? a.openVal : 0; }});
-  btn.textContent = isDoorOpen ? "🚧 Fechar" : "🚧 Abrir porta";
+  btn.textContent = isDoorOpen ? "🚪 Fechar" : "🚪 Abrir porta";
   btn.classList.toggle("active", isDoorOpen);
-  const slider = document.getElementById("angleSlider");
-  const label  = document.getElementById("angleLabel");
-  if (slider) {{ slider.value = isDoorOpen ? 90 : 0; label.textContent = (isDoorOpen?90:0)+"°"; }}
 }};
 
 window.setGlassColor = function(key, el) {{
   const c = VIDRO_MATS[key] || VIDRO_MATS.default;
-  const hexStr = c.cor.replace("#","");
-  const r = parseInt(hexStr.slice(0,2),16)/255;
-  const g = parseInt(hexStr.slice(2,4),16)/255;
-  const b = parseInt(hexStr.slice(4,6),16)/255;
-  glassMeshes.forEach(mesh => {{
-    if (!mesh || !mesh.material) return;
-    mesh.material.albedoColor.r = r;
-    mesh.material.albedoColor.g = g;
-    mesh.material.albedoColor.b = b;
-    mesh.material.alpha = c.alpha || 0.1;
-    mesh.material.metallic = c.metal || 0;
+  glassMeshes.forEach(m => {{
+    if (!m || !m.material) return;
+    m.material.color.set(c.cor);
+    m.material.opacity = c.op;
+    m.material.transmission = c.tr ?? 0.9;
+    m.material.metalness = c.metal ?? 0;
+    if (m.material.attenuationColor) m.material.attenuationColor.set(c.att || "#FFFFFF");
+    if (m.material.attenuationDistance !== undefined) m.material.attenuationDistance = c.attD ?? 100;
+    m.material.needsUpdate = true;
   }});
   document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
   if (el) el.classList.add("active");
@@ -653,17 +730,18 @@ window.setGlassColor = function(key, el) {{
 
 window.resetCamera = function() {{
   const cam = SCENE.ambiente.camera_inicial;
-  camera.setPosition(new BABYLON.Vector3(cam.posicao.x, cam.posicao.y, cam.posicao.z));
+  camera.position.set(cam.posicao.x, cam.posicao.y, cam.posicao.z);
+  controls.target.set(cam.target.x, cam.target.y, cam.target.z);
+  controls.update();
 }};
 
 window.screenshot = function() {{
-  bScene.render();
-  const cnv = engine.getRenderingCanvas();
+  renderer.render(threeScene, camera);
   const tip = (SCENE.tipologia || "render").replace(/[^a-z0-9]/gi,"_");
-  cnv.toBlob(blob => {{
+  renderer.domElement.toBlob(blob => {{
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "vdx_" + tip + ".png";
+    a.href = url; a.download = `vdx_${{tip}}.png`;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
@@ -672,45 +750,3 @@ window.screenshot = function() {{
 </script>
 </body>
 </html>"""
-
-
-# ─── Fotorrealista ────────────────────────────────────────────────────────────
-
-@router.get("/api/v1/tipologia/{chave}/fotorrealista")
-@limiter.limit("10/minute")
-async def tipologia_fotorrealista(
-    request: Request,
-    chave: str,
-    largura: float = Query(900.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Largura em mm"),
-    altura: float = Query(2100.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Altura em mm"),
-):
-    """Retorna imagem fotorrealista da tipologia (JPEG cache ou FLUX.1 ControlNet Canny).
-
-    Cache permanente em disco por {chave}_{largura}x{altura}. Fallback: PNG técnico.
-    """
-    from fastapi.responses import Response as FastAPIResponse
-    from app.models.render import PecaInput, RenderRequest
-    from app.services import photorealistic_pipeline as foto
-
-    nome_peca = "Porta" if "porta" in chave.lower() else "Fixo"
-    req = RenderRequest(
-        tipologia_nome=chave,
-        pecas=[PecaInput(nome=nome_peca, largura_mm=largura, altura_mm=altura)],
-    )
-    render_resp = await executar(req)
-    svg = render_resp.svg
-
-    image_bytes, mime = await foto.gerar_fotorrealista(
-        svg=svg,
-        chave=chave,
-        largura_mm=largura,
-        altura_mm=altura,
-        upload_dir=settings.app_upload_dir,
-    )
-
-    ext = "jpg" if mime == "image/jpeg" else "png"
-    return FastAPIResponse(
-        content=image_bytes,
-        media_type=mime,
-        headers={"Content-Disposition": f'inline; filename="{chave}_{int(largura)}x{int(altura)}.{ext}"'},
-    )

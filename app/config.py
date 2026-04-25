@@ -57,20 +57,6 @@ class Settings:
         default_factory=lambda: _env("ANTHROPIC_API_KEY", "")
     )
 
-    # Ollama local (dual-engine: primário; Claude é fallback)
-    ollama_url: str = field(
-        default_factory=lambda: _env("OLLAMA_URL", "http://localhost:11434")
-    )
-    ollama_vision_model: str = field(
-        default_factory=lambda: _env("OLLAMA_VISION_MODEL", "gemma3")
-    )
-    ollama_text_model: str = field(
-        default_factory=lambda: _env("OLLAMA_TEXT_MODEL", "qwen3")
-    )
-    ollama_timeout_seconds: int = field(
-        default_factory=lambda: _env_int("OLLAMA_TIMEOUT_SECONDS", 60)
-    )
-
     # DB
     db_path: str = field(
         default_factory=lambda: _env("DB_PATH", str(_ROOT / "data" / "constitution.db"))
@@ -84,9 +70,6 @@ class Settings:
     # Upload / image generation
     app_upload_dir: str = field(
         default_factory=lambda: _env("APP_UPLOAD_DIR", str(_ROOT / "uploads"))
-    )
-    hf_token: str = field(
-        default_factory=lambda: _env("HF_TOKEN", "")
     )
     imagegen_venv_path: str = field(
         default_factory=lambda: _env(
@@ -117,6 +100,11 @@ class Settings:
     # Logging
     log_dir: str = field(
         default_factory=lambda: _env("LOG_DIR", str(_ROOT / "logs"))
+    )
+
+    # Hugging Face token (opcional — ZeroGPU ControlNet fallback)
+    hf_token: str = field(
+        default_factory=lambda: _env("HF_TOKEN", "")
     )
 
     # Request limits
