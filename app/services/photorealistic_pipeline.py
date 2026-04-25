@@ -30,180 +30,250 @@ _HF_SPACE = "DamarJati/FLUX.1-DEV-Canny"
 _HF_ENDPOINT = "/generate_image"
 
 # ── Prompts por tipologia ──────────────────────────────────────────────────────
-# Cada entrada descreve anatomia específica do produto em inglês técnico.
+# Estilo vidraçaria brasileira: SEM MOLDURA, vidro temperado direto na parede,
+# ferragens patch mínimas coladas no vidro, sem perfil de alumínio visível.
 _PROMPTS: dict[str, str] = {
     "porta_pivotante_simples": (
-        "professional product photography of a single frameless pivot glass door, "
-        "point-fixed patch fittings, floor spring pivot mechanism, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass pivot door, "
+        "NO frame NO aluminum frame NO metal frame NO border, "
+        "single glass panel installed directly in wall opening, "
+        "two small {acab} patch pivot hinges attached directly to glass edge left side, "
+        "slim vertical {acab} bar handle right side, concealed floor spring, "
+        "8mm glass panel only, modern interior marble floor white walls, "
+        "professional architectural photography, frameless glass no frame"
     ),
     "porta_pivotante_dupla_bandeira": (
-        "professional product photography of a double-wing frameless pivot glass door "
-        "with fixed sidelites, point-fixed patch fittings, floor spring pivot, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass double pivot door with fixed sidelites, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "three frameless glass panels filling wall opening, pivot door center flanked by fixed panels, "
+        "small {acab} patch pivot hinges on glass, slim {acab} bar handle, "
+        "modern interior marble floor white walls, "
+        "professional architectural photography, frameless glass no frame"
     ),
     "porta_abrir": (
-        "professional product photography of a frameless swing glass door, "
-        "butt hinges with patch fittings, pull handle bar, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass swing door, "
+        "NO frame NO aluminum frame NO metal frame NO border, "
+        "single glass panel on glass-to-glass {acab} patch hinges left side, "
+        "slim {acab} bar handle right side, no door frame glass only, "
+        "8mm glass panel installed in wall opening, modern interior marble floor, "
+        "professional architectural photography, frameless glass no frame"
     ),
     "porta_correr_2_folhas": (
-        "professional product photography of a 2-panel frameless sliding glass door, "
-        "top-hung track system, point-fixed patch fittings, recessed floor guide, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 2-panel sliding door, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "two glass panels sliding on minimal top-hung track recessed in ceiling, "
+        "no visible frame, small {acab} patch finger pulls on glass, "
+        "glass panels fill entire wall opening, modern interior, "
+        "professional architectural photography, frameless sliding glass no frame"
     ),
     "porta_correr_3_folhas": (
-        "professional product photography of a 3-panel frameless sliding glass door, "
-        "top-hung track, patch fittings, soft-close mechanism, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 3-panel sliding door, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "three glass panels on minimal recessed ceiling track, "
+        "small {acab} patch pulls on glass, no visible frame or border, "
+        "modern interior marble floor white walls, "
+        "professional architectural photography, frameless sliding glass no frame"
     ),
     "porta_quatro_folhas": (
-        "professional product photography of a 4-panel frameless sliding glass door, "
-        "top-hung double track, patch fittings, overlapping panels, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 4-panel sliding door, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "four glass panels on double recessed ceiling track, "
+        "small {acab} patch pulls, glass fills entire wall opening no visible frame, "
+        "modern interior marble floor, "
+        "professional architectural photography, frameless sliding glass no frame"
     ),
     "janela_correr_2_folhas": (
-        "professional product photography of a 2-panel frameless sliding glass window, "
-        "aluminum track frame, stainless steel rollers, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 2-panel sliding window, "
+        "NO frame NO aluminum frame NO visible metal frame, "
+        "two glass panels sliding on minimal {acab} bottom track recessed in sill, "
+        "glass panels reach wall edges, minimal hardware, no border, "
+        "modern interior white walls, "
+        "professional architectural photography, frameless sliding glass window no frame"
     ),
     "janela_correr_2_folhas_oriun_plus": (
-        "professional product photography of a 2-panel sliding glass window Oriun Plus series, "
-        "slim aluminum profile, concealed hardware, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 2-panel sliding window Oriun Plus, "
+        "NO frame NO aluminum frame NO visible border, "
+        "ultra-slim {acab} bottom track only, glass panels fill opening, "
+        "concealed hardware, glass-to-glass contact, modern interior white walls, "
+        "professional architectural photography, frameless glass window no frame"
     ),
     "janela_quatro_folhas": (
-        "professional product photography of a 4-panel frameless sliding glass window, "
-        "double-track system, stainless rollers, flush handles, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 4-panel sliding window, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "four glass panels on minimal double {acab} bottom track, "
+        "glass fills entire opening no visible border, modern interior white walls, "
+        "professional architectural photography, frameless sliding glass window no frame"
     ),
     "janela_quatro_folhas_orion_plus": (
-        "professional product photography of a 4-panel sliding glass window Orion Plus series, "
-        "ultra-slim aluminum profile, concealed hardware, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 4-panel sliding window Orion Plus, "
+        "NO frame NO aluminum frame NO visible border, "
+        "ultra-slim {acab} track system, glass panels fill opening corner to corner, "
+        "minimal hardware, modern interior white walls, "
+        "professional architectural photography, frameless glass window no frame"
     ),
     "janela_3_folhas": (
-        "professional product photography of a 3-panel frameless sliding glass window, "
-        "top-hung aluminum track, patch clips, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 3-panel sliding window, "
+        "NO frame NO aluminum frame NO metal border, "
+        "three glass panels on minimal {acab} bottom track, "
+        "no visible frame glass fills opening, modern interior white walls, "
+        "professional architectural photography, frameless sliding glass window no frame"
     ),
     "janela_pivotante": (
-        "professional product photography of a frameless pivot glass window, "
-        "center-hung pivot bar, point-fixed fittings, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass pivot window, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "single glass panel rotating on central {acab} pivot pin, "
+        "glass mounted directly in wall opening no border, modern interior, "
+        "professional architectural photography, frameless pivot glass window no frame"
     ),
     "janela_basculante": (
-        "professional product photography of a frameless awning glass window, "
-        "top-hinged patch fittings, friction stay arms, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass awning window, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "single glass panel top-hinged on {acab} patch hinges, "
+        "glass tilts outward no visible frame, modern interior white walls, "
+        "professional architectural photography, frameless awning glass window no frame"
     ),
     "janela_maxim_ar": (
-        "professional product photography of a maxim-air ventilating glass window, "
-        "multi-point hinged opening, aluminum frame, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass maxim-air window, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "glass panel with {acab} friction stay arm, opens outward, "
+        "no visible frame border, modern interior white walls, "
+        "professional architectural photography, frameless glass window no frame"
     ),
     "box_frontal_2_folhas": (
-        "professional product photography of a 2-panel frameless sliding shower enclosure, "
-        "tempered glass panels, aluminum bottom track, chrome towel bar, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass shower enclosure 2 sliding panels, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "two glass panels sliding on minimal {acab} bottom track, "
+        "glass-to-wall seals only, no visible frame, white tile shower walls, "
+        "professional architectural photography, frameless shower glass no frame"
     ),
     "box_canto_90": (
-        "professional product photography of a corner 90-degree frameless shower enclosure, "
-        "two tempered glass panels meeting at right angle, wall-mounted patch fittings, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass corner shower enclosure 90 degrees, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "two glass panels meeting at corner with {acab} glass-to-glass hinge, "
+        "no visible frame or border, white tile shower, "
+        "professional architectural photography, frameless corner shower glass no frame"
     ),
     "box_articulado": (
-        "professional product photography of a bi-fold frameless shower door, "
-        "articulated hinged tempered glass panels, wall-to-glass hinges, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass bi-fold shower door, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "two glass panels hinged together with {acab} glass-to-glass hinges, "
+        "folds inward no visible frame, white tile shower walls, "
+        "professional architectural photography, frameless bi-fold shower glass no frame"
     ),
     "box_de_giro": (
-        "professional product photography of a frameless pivot shower door, "
-        "single tempered glass panel, floor-to-ceiling pivot pin, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass pivot shower door, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "single glass panel on {acab} top-bottom pivot pins, "
+        "rotates no visible frame or border, white tile shower, "
+        "professional architectural photography, frameless pivot shower glass no frame"
     ),
     "box_flex": (
-        "professional product photography of a flex-track frameless shower enclosure, "
-        "curved aluminum track, tempered glass panels, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass flexible shower enclosure, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "glass panel on curved {acab} bottom track, "
+        "no visible frame glass-to-wall seals, white tile shower, "
+        "professional architectural photography, frameless shower glass no frame"
     ),
     "divisoria_porta_pivotante": (
-        "professional product photography of a frameless glass office partition "
-        "with integrated pivot door, point-fixed patch fittings, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass office partition with pivot door, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "floor-to-ceiling glass panels on {acab} patch fittings, "
+        "pivot door integrated seamlessly no visible frame, modern office interior, "
+        "professional architectural photography, frameless glass partition no frame"
     ),
     "guarda_corpo_linear": (
-        "professional product photography of a linear frameless glass balustrade railing, "
-        "floor-mounted U-channel base, tempered glass panels, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass linear balustrade railing, "
+        "NO frame NO aluminum frame NO visible top rail, "
+        "glass panels in {acab} U-channel floor base only, "
+        "glass rises from floor no top rail no border, modern interior marble floor, "
+        "professional architectural photography, frameless glass balustrade no frame"
     ),
     "cobertura": (
-        "professional product photography of a frameless glass canopy overhead cover, "
-        "point-fixed patch fittings, structural tempered glass, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass overhead canopy, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "structural glass panels on {acab} point-fixed spider fittings, "
+        "glass ceiling no visible frame modern building exterior, "
+        "professional architectural photography, frameless glass canopy no frame"
     ),
     "fechamento_de_sacada_6_folhas": (
-        "professional product photography of a 6-panel folding balcony glass enclosure, "
-        "top-hung track, frameless tempered glass panels, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 6-panel balcony enclosure, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "six glass panels folding on {acab} glass-to-glass hinges, "
+        "top minimal track glass fills balcony opening no visible frame, "
+        "modern apartment exterior, "
+        "professional architectural photography, frameless folding glass balcony no frame"
     ),
     "fachada_fixa": (
-        "professional product photography of a fixed frameless glass facade panel, "
-        "structural point-fixed patch fittings, spider brackets, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass fixed facade panel, "
+        "NO frame NO aluminum frame NO metal frame NO border, "
+        "structural glass panel on {acab} spider point-fixed fittings, "
+        "glass attached directly to building no visible frame, modern building exterior, "
+        "professional architectural photography, frameless glass facade no frame"
     ),
     "vitrine": (
-        "professional product photography of a frameless storefront display glass vitrine, "
-        "point-fixed patch fittings, hinged glass door, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass storefront vitrine, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "floor-to-ceiling glass panels on {acab} patch hinges, "
+        "glass door with patch lock no visible frame, modern retail interior, "
+        "professional architectural photography, frameless glass storefront no frame"
     ),
     "balcão_de_pia_duas_folhas": (
-        "professional product photography of a under-counter cabinet with 2 sliding glass doors, "
-        "frameless tempered glass, aluminum track, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 2-panel sliding cabinet doors, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "two glass panels on minimal {acab} aluminum bottom track under counter, "
+        "glass only no visible frame, modern bathroom vanity white cabinet, "
+        "professional architectural photography, frameless glass cabinet doors no frame"
     ),
     "balcão_de_pia_quatro_folhas": (
-        "professional product photography of a under-counter cabinet with 4 sliding glass doors, "
-        "frameless tempered glass, double aluminum track, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass 4-panel sliding cabinet doors, "
+        "NO frame NO aluminum frame NO metal frame, "
+        "four glass panels on double {acab} bottom track under counter, "
+        "glass only no visible frame, modern bathroom vanity white cabinet, "
+        "professional architectural photography, frameless glass cabinet doors no frame"
     ),
     "diâmetro": (
-        "professional product photography of a circular frameless tempered glass disc panel, "
-        "point-fixed patch fittings, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass circular disc panel, "
+        "NO frame NO aluminum frame NO metal border, "
+        "round glass panel on {acab} point-fixed patch fittings, "
+        "circular glass no frame no border, modern interior white wall, "
+        "professional architectural photography, frameless circular glass no frame"
     ),
     "diâmetro_com_furo_no_meio": (
-        "professional product photography of a circular annular frameless tempered glass panel "
-        "with center hole, point-fixed patch fittings, {cor}, {acab}, "
-        "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+        "photorealistic Brazilian-style frameless {cor} tempered glass annular circular panel with center hole, "
+        "NO frame NO aluminum frame NO metal border, "
+        "ring-shaped glass on {acab} point-fixed patch fittings, "
+        "no frame no border, modern interior white wall, "
+        "professional architectural photography, frameless annular glass no frame"
     ),
 }
 
 _PROMPT_FALLBACK = (
-    "professional product photography of a frameless tempered glass door, "
-    "point-fixed patch fittings, {cor}, {acab}, "
-    "white studio background, soft diffused lighting, photorealistic, 4K, no people"
+    "photorealistic Brazilian-style frameless {cor} tempered glass panel, "
+    "NO frame NO aluminum frame NO metal frame NO border, "
+    "{acab} patch fittings attached directly to glass, "
+    "glass only minimal hardware, modern interior white walls marble floor, "
+    "professional architectural photography, frameless glass no frame"
 )
 
 # ── Modificadores de cor e acabamento ─────────────────────────────────────────
 _COR_SUFFIX: dict[str, str] = {
-    "incolor": "clear transparent tempered glass",
-    "verde": "green tinted tempered glass",
-    "fume": "smoke grey tinted tempered glass",
-    "fumê": "smoke grey tinted tempered glass",
-    "bronze": "bronze tinted tempered glass",
-    "azul": "blue tinted tempered glass",
+    "incolor": "clear transparent",
+    "verde": "green tinted",
+    "fume": "smoke grey tinted",
+    "fumê": "smoke grey tinted",
+    "bronze": "bronze tinted",
+    "azul": "blue tinted",
 }
 
 _ACABAMENTO_SUFFIX: dict[str, str] = {
-    "cromado": "polished chrome hardware and fittings",
-    "inox": "brushed stainless steel hardware and fittings",
-    "dourado": "gold-plated hardware and fittings",
-    "preto": "matte black hardware and fittings",
+    "cromado": "polished chrome",
+    "inox": "brushed stainless steel",
+    "dourado": "gold-plated",
+    "preto": "matte black",
 }
 
-_COR_FALLBACK = "clear transparent tempered glass"
-_ACABAMENTO_FALLBACK = "polished chrome hardware and fittings"
+_COR_FALLBACK = "clear transparent"
+_ACABAMENTO_FALLBACK = "polished chrome"
 
 
 # ── Cache ──────────────────────────────────────────────────────────────────────
