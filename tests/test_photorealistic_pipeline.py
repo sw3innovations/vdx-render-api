@@ -1,8 +1,8 @@
 """
 Testes para app/services/photorealistic_pipeline.py
 
-Dependências externas (cv2, cairosvg, gradio_client) são mockadas para
-que os testes rodem sem GPU/rede.
+Dependências externas (cv2, cairosvg, gradio_client, urllib) são mockadas
+para que os testes rodem sem GPU/rede.
 """
 from __future__ import annotations
 
@@ -42,7 +42,30 @@ def test_cache_path_rounds_float_dimensions(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# gerar_fotorrealista — cache hit (sem chamar HF nem cairosvg)
+# _prompt_para_chave — lógica pura
+# ---------------------------------------------------------------------------
+
+def test_prompt_para_chave_porta():
+    from app.services.photorealistic_pipeline import _prompt_para_chave
+    p = _prompt_para_chave("porta_pivotante_simples")
+    assert "pivot" in p
+    assert "glass door" in p
+
+
+def test_prompt_para_chave_box():
+    from app.services.photorealistic_pipeline import _prompt_para_chave
+    p = _prompt_para_chave("box_banheiro")
+    assert "shower" in p
+
+
+def test_prompt_para_chave_desconhecido():
+    from app.services.photorealistic_pipeline import _prompt_para_chave
+    p = _prompt_para_chave("tipologia_desconhecida")
+    assert "glass door" in p
+
+
+# ---------------------------------------------------------------------------
+# gerar_fotorrealista — cache hit (sem rede)
 # ---------------------------------------------------------------------------
 
 def test_gerar_fotorrealista_cache_hit(tmp_path):
@@ -65,34 +88,13 @@ def test_gerar_fotorrealista_cache_hit(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# gerar_fotorrealista — HF falha → fallback PNG
+# gerar_fotorrealista — Pollinations sucesso → salva cache
 # ---------------------------------------------------------------------------
 
-def test_gerar_fotorrealista_fallback_on_hf_error(tmp_path):
+def test_gerar_fotorrealista_pollinations_success_saves_cache(tmp_path):
     from app.services import photorealistic_pipeline as foto
 
-    with patch.object(foto, "_run_hf_pipeline", side_effect=RuntimeError("HF down")):
-        with patch.object(foto, "_fallback_png", return_value=_DUMMY_PNG):
-            result_bytes, mime = asyncio.run(foto.gerar_fotorrealista(
-                svg=_DUMMY_SVG,
-                chave="box_banheiro",
-                largura_mm=700.0,
-                altura_mm=1900.0,
-                upload_dir=str(tmp_path),
-            ))
-
-    assert result_bytes == _DUMMY_PNG
-    assert mime == "image/png"
-
-
-# ---------------------------------------------------------------------------
-# gerar_fotorrealista — HF sucesso → salva cache
-# ---------------------------------------------------------------------------
-
-def test_gerar_fotorrealista_success_saves_cache(tmp_path):
-    from app.services import photorealistic_pipeline as foto
-
-    with patch.object(foto, "_run_hf_pipeline", return_value=_DUMMY_JPEG):
+    with patch.object(foto, "_run_pollinations", return_value=_DUMMY_JPEG):
         result_bytes, mime = asyncio.run(foto.gerar_fotorrealista(
             svg=_DUMMY_SVG,
             chave="janela_correr",
@@ -109,16 +111,37 @@ def test_gerar_fotorrealista_success_saves_cache(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# gerar_fotorrealista — HF falha E fallback falha → levanta exceção
+# gerar_fotorrealista — Pollinations falha → HF Canny → sucesso
 # ---------------------------------------------------------------------------
 
-def test_gerar_fotorrealista_both_fail_propagates(tmp_path):
+def test_gerar_fotorrealista_falls_through_to_hf_canny(tmp_path):
     from app.services import photorealistic_pipeline as foto
 
-    with patch.object(foto, "_run_hf_pipeline", side_effect=RuntimeError("HF down")):
-        with patch.object(foto, "_fallback_png", side_effect=RuntimeError("cairo down")):
-            with pytest.raises(RuntimeError, match="cairo down"):
-                asyncio.run(foto.gerar_fotorrealista(
+    with patch.object(foto, "_run_pollinations", side_effect=RuntimeError("net err")):
+        with patch.object(foto, "_run_hf_canny", return_value=_DUMMY_JPEG):
+            result_bytes, mime = asyncio.run(foto.gerar_fotorrealista(
+                svg=_DUMMY_SVG,
+                chave="box_banheiro",
+                largura_mm=700.0,
+                altura_mm=1900.0,
+                upload_dir=str(tmp_path),
+            ))
+
+    assert result_bytes == _DUMMY_JPEG
+    assert mime == "image/jpeg"
+
+
+# ---------------------------------------------------------------------------
+# gerar_fotorrealista — tudo falha → fallback PNG
+# ---------------------------------------------------------------------------
+
+def test_gerar_fotorrealista_fallback_on_all_errors(tmp_path):
+    from app.services import photorealistic_pipeline as foto
+
+    with patch.object(foto, "_run_pollinations", side_effect=RuntimeError("net")):
+        with patch.object(foto, "_run_hf_canny", side_effect=RuntimeError("hf")):
+            with patch.object(foto, "_fallback_png", return_value=_DUMMY_PNG):
+                result_bytes, mime = asyncio.run(foto.gerar_fotorrealista(
                     svg=_DUMMY_SVG,
                     chave="test",
                     largura_mm=500.0,
@@ -126,13 +149,52 @@ def test_gerar_fotorrealista_both_fail_propagates(tmp_path):
                     upload_dir=str(tmp_path),
                 ))
 
+    assert result_bytes == _DUMMY_PNG
+    assert mime == "image/png"
+
 
 # ---------------------------------------------------------------------------
-# _run_hf_pipeline — verifica que gradio_client.predict é chamado corretamente
+# _run_pollinations — verifica URL e parâmetros
 # ---------------------------------------------------------------------------
 
-def test_run_hf_pipeline_calls_predict_with_correct_params(tmp_path):
-    """_run_hf_pipeline deve chamar client.predict com api_name=/generate_image."""
+def test_run_pollinations_builds_correct_url(tmp_path):
+    from app.services import photorealistic_pipeline as foto
+    import io
+    from PIL import Image
+
+    # Simula resposta HTTP com JPEG válido
+    fake_img = Image.new("RGB", (512, 512), color=(100, 150, 200))
+    buf = io.BytesIO()
+    fake_img.save(buf, format="JPEG")
+    fake_jpeg = buf.getvalue()
+
+    class FakeResp:
+        def read(self): return fake_jpeg
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+
+    captured_url = []
+
+    def fake_urlopen(req, timeout=None):
+        captured_url.append(req.full_url if hasattr(req, "full_url") else str(req))
+        return FakeResp()
+
+    with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+        result = foto._run_pollinations("porta_pivotante_simples", 900.0, 2100.0)
+
+    assert isinstance(result, bytes)
+    assert len(captured_url) == 1
+    url = captured_url[0]
+    assert "pollinations.ai" in url
+    assert "flux" in url
+    assert "porta" in url.lower() or "pivot" in url.lower() or "glass" in url.lower()
+
+
+# ---------------------------------------------------------------------------
+# _run_hf_canny — verifica que client.predict é chamado corretamente
+# ---------------------------------------------------------------------------
+
+def test_run_hf_canny_calls_predict_with_correct_params(tmp_path):
     import numpy as np
 
     fake_after = str(tmp_path / "after.jpg")
@@ -140,7 +202,6 @@ def test_run_hf_pipeline_calls_predict_with_correct_params(tmp_path):
 
     mock_client = MagicMock()
     mock_client.predict.return_value = ("before.jpg", fake_after)
-
     mock_gradio = MagicMock()
     mock_gradio.Client.return_value = mock_client
 
@@ -154,11 +215,9 @@ def test_run_hf_pipeline_calls_predict_with_correct_params(tmp_path):
     mock_cairo = MagicMock()
     mock_cairo.svg2png.return_value = _DUMMY_PNG
 
-    # PIL.Image.open must return object with .convert() -> image with .save()
     fake_img = MagicMock()
     fake_img.convert.return_value = fake_img
     fake_img.save = lambda buf, **kw: buf.write(_DUMMY_JPEG)
-
     mock_pil_image = MagicMock()
     mock_pil_image.open.return_value = fake_img
 
@@ -169,15 +228,13 @@ def test_run_hf_pipeline_calls_predict_with_correct_params(tmp_path):
         "PIL": MagicMock(Image=mock_pil_image),
         "PIL.Image": mock_pil_image,
     }):
-        # Reload module to pick up mocks
         if "app.services.photorealistic_pipeline" in sys.modules:
             del sys.modules["app.services.photorealistic_pipeline"]
-        from app.services.photorealistic_pipeline import _run_hf_pipeline
-        result = _run_hf_pipeline(_DUMMY_SVG)
+        from app.services.photorealistic_pipeline import _run_hf_canny
+        result = _run_hf_canny(_DUMMY_SVG)
 
     mock_client.predict.assert_called_once()
     kwargs = mock_client.predict.call_args.kwargs
     assert kwargs["api_name"] == "/generate_image"
     assert kwargs["seed"] == 42
-    assert kwargs["num_steps"] == 28
     assert isinstance(result, bytes)
