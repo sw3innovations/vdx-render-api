@@ -252,13 +252,14 @@ async def tipologia_fotorrealista(
     cor: str = Query("incolor", description="Cor do vidro: incolor, verde, fumê, bronze, azul"),
     acabamento: str = Query("cromado", description="Acabamento: cromado, inox, dourado, preto"),
 ):
-    """Retorna imagem fotorrealista da tipologia (JPEG cache ou FLUX.1 via Pollinations).
+    """Retorna imagem PNG da tipologia gerada pelo SVG Renderer v2.
 
-    Cache permanente em disco por {chave}_{largura}x{altura}_{cor}_{acabamento}.jpg.
+    PNG renderizado via CairoSVG, sem dependências externas.
     Sem autenticação — endpoint público.
     """
+    import cairosvg
     from fastapi.responses import Response as FastAPIResponse
-    from app.services import photorealistic_pipeline as foto
+    from app.renderers.svg_renderer_v2 import render as render_v2
 
     cor_norm = cor.lower().strip()
     acab_norm = acabamento.lower().strip()
@@ -267,36 +268,14 @@ async def tipologia_fotorrealista(
     if acab_norm not in _ACABAMENTOS_VALIDOS:
         acab_norm = "cromado"
 
-    nome_peca = "Fixo"
-    if "porta" in chave.lower():
-        nome_peca = "Porta"
-    elif "box" in chave.lower():
-        nome_peca = "Box"
-    elif "janela" in chave.lower():
-        nome_peca = "Janela"
+    svg = render_v2(chave, largura, altura, cor=cor_norm, acabamento=acab_norm)
+    png_bytes = cairosvg.svg2png(bytestring=svg.encode())
 
-    req = RenderRequest(
-        tipologia_nome=chave,
-        pecas=[PecaInput(nome=nome_peca, largura_mm=largura, altura_mm=altura)],
-    )
-    render_resp = await executar(req)
-    svg = render_resp.svg
-
-    image_bytes, mime = await foto.gerar_fotorrealista(
-        svg=svg,
-        chave=chave,
-        largura_mm=largura,
-        altura_mm=altura,
-        upload_dir=settings.app_upload_dir,
-        cor=cor_norm,
-        acabamento=acab_norm,
-    )
-    ext = "jpg" if mime == "image/jpeg" else "png"
     return FastAPIResponse(
-        content=image_bytes,
-        media_type=mime,
+        content=png_bytes,
+        media_type="image/png",
         headers={
-            "Content-Disposition": f'inline; filename="{chave}_{int(largura)}x{int(altura)}_{cor_norm}_{acab_norm}.{ext}"',
+            "Content-Disposition": f'inline; filename="{chave}_{int(largura)}x{int(altura)}_{cor_norm}_{acab_norm}.png"',
             "Cache-Control": "public, max-age=86400",
         },
     )
