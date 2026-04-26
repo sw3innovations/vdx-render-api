@@ -32,6 +32,23 @@ COR_COTA_LINHA    = "#7F8C8D"    # cinza médio
 COR_TEXTO         = "#1a3a8f"    # azul texto
 COR_BG            = "#FFFFFF"
 
+# Cores vidro em modo catálogo: (fill, stroke, highlight)
+_VIDRO_COR_CATALOGO = {
+    "incolor": ("rgba(190,220,235,0.28)", "#4A8EBB", "rgba(255,255,255,0.55)"),
+    "verde":   ("rgba(74,122,91,0.42)",   "#2E7D52", "rgba(180,240,200,0.38)"),
+    "fume":    ("rgba(70,70,70,0.52)",    "#444444", "rgba(160,160,160,0.28)"),
+    "bronze":  ("rgba(139,105,20,0.46)",  "#8B6914", "rgba(240,195,110,0.32)"),
+    "azul":    ("rgba(40,80,160,0.42)",   "#2860A0", "rgba(175,210,255,0.32)"),
+}
+
+# Cores ferragem por acabamento: (fill, stroke)
+_FERRAGEM_COR_CATALOGO = {
+    "cromado": ("#C8C8C8", "#909090"),
+    "inox":    ("#A8A8A8", "#686868"),
+    "dourado": ("#D4A843", "#B08830"),
+    "preto":   ("#3C3C3C", "#181818"),
+}
+
 MARGIN_PX = 48     # margem em pixels ao redor do desenho
 
 
@@ -146,26 +163,49 @@ def _simbolo_trinco(px: float, py: float) -> str:
     ])
 
 
-def _simbolo_ferragem(tipo: str, px: float, py: float, sx: float, sy: float) -> str:
+def _simbolo_ferragem(tipo: str, px: float, py: float, sx: float, sy: float,
+                      cor: str = COR_FERRAGEM) -> str:
     """Despacha para o símbolo correto pelo tipo."""
     t = tipo.lower()
     if "dobradica" in t or "dobradiça" in t:
-        return _simbolo_dobradica(px, py, sx, sy)
+        rw, rh = max(6, sx * 0.03), max(14, sy * 0.025)
+        ry = py - rh / 2
+        return (f'<rect x="{_r(px)}" y="{_r(ry)}" width="{_r(rw)}" height="{_r(rh)}" '
+                f'fill="{cor}" fill-opacity="0.35" stroke="{cor}" stroke-width="1.2"/>\n'
+                + _line(px + rw / 2, ry, px + rw / 2, ry + rh, cor, 0.8))
     if "pivo" in t or "pivô" in t:
-        return _simbolo_pivo(px, py)
+        return (_circle(px, py, 5, cor, cor, 1)
+                + "\n" + _circle(px, py, 2, COR_BG, COR_BG, 0))
     if "fechadura" in t or "fechamento" in t:
-        return _simbolo_fechadura(px, py)
+        rw, rh = 12, 18
+        x0, y0 = px - rw / 2, py - rh / 2
+        return (f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
+                f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>\n'
+                + _line(x0, y0, x0 + rw, y0 + rh, cor, 0.8)
+                + "\n" + _line(x0 + rw, y0, x0, y0 + rh, cor, 0.8))
     if "puxador" in t:
-        return _simbolo_puxador(px, py)
+        r = 5
+        return "\n".join([_circle(px, py, r, "none", cor, 1.5),
+                          _line(px - r, py, px + r, py, cor, 0.8),
+                          _line(px, py - r, px, py + r, cor, 0.8)])
     if "roldana" in t:
-        return _simbolo_roldana(px, py)
-    if "trinco" in t or "trinco" in t:
-        return _simbolo_trinco(px, py)
-    # Genérico: retângulo
+        r = 6
+        return "\n".join([_circle(px, py, r, "none", cor, 1.5),
+                          _line(px - r * 1.5, py, px + r * 1.5, py, cor, 1.0),
+                          _circle(px, py, 2, cor, cor, 0)])
+    if "trinco" in t:
+        rw, rh = 14, 8
+        x0, y0 = px - rw / 2, py - rh / 2
+        return "\n".join([
+            f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
+            f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>',
+            _circle(px, py, 2.5, cor, cor, 0),
+        ])
+    # Genérico
     rw, rh = 10, 14
     x0, y0 = px - rw / 2, py - rh / 2
     return (f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
-            f'fill="{COR_FERRAGEM}" fill-opacity="0.25" stroke="{COR_FERRAGEM}" stroke-width="1.2"/>')
+            f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>')
 
 
 # ─── Recortes SVG ─────────────────────────────────────────────────────────────
@@ -328,6 +368,22 @@ def _vidro_thumbnail(px: float, py: float, pw: float, ph: float) -> str:
     ]
     return "\n".join(parts)
 
+def _vidro_catalogo(px: float, py: float, pw: float, ph: float,
+                    cor: str = "incolor", acabamento: str = "cromado") -> str:
+    """Corpo do vidro em modo catálogo: colorido, sem diagonais, com highlight."""
+    cor_key = cor.lower().replace("ê", "e").replace("â", "a")
+    vidro_fill, vidro_stroke, highlight = _VIDRO_COR_CATALOGO.get(
+        cor_key, _VIDRO_COR_CATALOGO["incolor"]
+    )
+    hw = max(pw * 0.07, 5)
+    parts = [
+        _rect(px, py, pw, ph, vidro_fill, vidro_stroke, 2.0),
+        (f'<rect x="{_r(px+3)}" y="{_r(py+6)}" width="{_r(hw)}" '
+         f'height="{_r(ph-12)}" fill="{highlight}" rx="2"/>'),
+    ]
+    return "\n".join(parts)
+
+
 # ─── Motor principal ──────────────────────────────────────────────────────────
 
 class SVGTemplateEngine:
@@ -345,7 +401,9 @@ class SVGTemplateEngine:
         largura_px: int = 480,
         altura_px: int = 360,
         recortes_catalogo: Optional[dict] = None,  # {codigo_norm: {tipo, comp, larg, furo, raio}}
-        modo: str = "tecnico",          # "tecnico" | "thumbnail"
+        modo: str = "tecnico",          # "tecnico" | "thumbnail" | "catalogo"
+        cor: str = "incolor",
+        acabamento: str = "cromado",
     ) -> str:
         """
         Gera SVG técnico de uma ou mais peças de vidraçaria.
@@ -365,6 +423,7 @@ class SVGTemplateEngine:
         max_h_mm = max(p.altura_mm for p in pecas)
 
         is_thumbnail = (modo == "thumbnail")
+        is_catalogo  = (modo == "catalogo")
         MARGIN_LOCAL = 24 if is_thumbnail else MARGIN_PX
         area_w = largura_px - 2 * MARGIN_LOCAL
         area_h = altura_px - 2 * MARGIN_LOCAL
@@ -381,7 +440,7 @@ class SVGTemplateEngine:
 
         mostrar_ferragens = opcoes_dict.get("mostrar_ferragens", not is_thumbnail)
         mostrar_cotas = opcoes_dict.get("mostrar_cotas", not is_thumbnail)
-        mostrar_legenda = opcoes_dict.get("mostrar_legenda", not is_thumbnail)
+        mostrar_legenda = opcoes_dict.get("mostrar_legenda", not is_thumbnail and not is_catalogo)
 
         for peca in pecas:
             pw = peca.largura_mm * sc
@@ -391,6 +450,8 @@ class SVGTemplateEngine:
             # Vidro
             if is_thumbnail:
                 partes.append(_vidro_thumbnail(x_cur, py, pw, ph))
+            elif is_catalogo:
+                partes.append(_vidro_catalogo(x_cur, py, pw, ph, cor, acabamento))
             else:
                 partes.append(_vidro_base(x_cur, py, pw, ph, tipologia_nome))
 
@@ -408,7 +469,8 @@ class SVGTemplateEngine:
             if mostrar_ferragens:
                 partes.append(self._ferragens_svg(
                     peca.ferragens, x_cur, py, pw, ph, sc,
-                    tipologia_nome, recortes_catalogo or {}
+                    tipologia_nome, recortes_catalogo or {},
+                    acabamento=acabamento if is_catalogo else "cromado",
                 ))
 
             x_cur += pw + gap_px
@@ -420,7 +482,13 @@ class SVGTemplateEngine:
 
         bg_defs = ""
         bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="{COR_BG}"/>'
-        if is_thumbnail:
+        if is_catalogo:
+            bg_rect = (
+                f'  <rect width="{largura_px}" height="{altura_px}" fill="#FFFFFF"/>\n'
+                f'  <rect x="1" y="1" width="{largura_px-2}" height="{altura_px-2}" '
+                f'fill="none" stroke="#CCCCCC" stroke-width="1"/>'
+            )
+        elif is_thumbnail:
             bg_defs = (
                 f'  <defs>\n'
                 f'    <linearGradient id="tn_bg" x1="0" y1="0" x2="0" y2="1">\n'
@@ -450,6 +518,7 @@ class SVGTemplateEngine:
         sc: float,
         tipologia: str,
         recortes_catalogo: dict,
+        acabamento: str = "cromado",
     ) -> str:
         """Renderiza todas as ferragens + recortes de uma peça."""
         parts = []
@@ -493,16 +562,19 @@ class SVGTemplateEngine:
                 parts.append(partes_recorte)
 
             # 2. Símbolo da ferragem
-            parts.append(_simbolo_ferragem(f.tipo, fx, fy, pw, ph))
+            _fcor_simb = _FERRAGEM_COR_CATALOGO.get(acabamento.lower(), (COR_FERRAGEM,))[0]
+            parts.append(_simbolo_ferragem(f.tipo, fx, fy, pw, ph, cor=_fcor_simb))
 
             # 3. Label (nome à direita)
             nome_label = f.nome
-            parts.append(_text(label_x, lfy, nome_label, COR_FERRAGEM, 8, "start"))
+            _fcors = _FERRAGEM_COR_CATALOGO.get(acabamento.lower(), (COR_FERRAGEM, COR_FERRAGEM))
+            parts.append(_text(label_x, lfy, nome_label, _fcors[0], 8, "start"))
 
             # 4. Linha guia tracejada símbolo → label
             if abs(lfy - fy) > 4:
+                _fcors2 = _FERRAGEM_COR_CATALOGO.get(acabamento.lower(), (COR_FERRAGEM, COR_FERRAGEM))
                 parts.append(_line(fx + 8, fy, label_x - 2, lfy,
-                                    COR_FERRAGEM, 0.4, "2 2"))
+                                    _fcors2[0], 0.4, "2 2"))
 
         return "\n".join(parts)
 

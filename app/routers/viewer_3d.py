@@ -252,13 +252,13 @@ async def tipologia_fotorrealista(
     cor: str = Query("incolor", description="Cor do vidro: incolor, verde, fumê, bronze, azul"),
     acabamento: str = Query("cromado", description="Acabamento: cromado, inox, dourado, preto"),
 ):
-    """Retorna imagem fotorrealista da tipologia (JPEG cache ou FLUX.1 via Pollinations).
+    """Retorna imagem de catálogo da tipologia: SVG colorido → JPEG (instantâneo, R$0).
 
     Cache permanente em disco por {chave}_{largura}x{altura}_{cor}_{acabamento}.jpg.
-    Sem autenticação — endpoint público.
     """
+    import io
+    from pathlib import Path
     from fastapi.responses import Response as FastAPIResponse
-    from app.services import photorealistic_pipeline as foto
 
     cor_norm = cor.lower().strip()
     acab_norm = acabamento.lower().strip()
@@ -266,6 +266,21 @@ async def tipologia_fotorrealista(
         cor_norm = "incolor"
     if acab_norm not in _ACABAMENTOS_VALIDOS:
         acab_norm = "cromado"
+
+    cor_safe = cor_norm.replace("ê", "e").replace("â", "a")
+    cache_dir = Path(settings.app_upload_dir) / "fotorrealistas"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = cache_dir / f"{chave}_{int(largura)}x{int(altura)}_{cor_safe}_{acab_norm}.jpg"
+
+    if cache_path.exists():
+        return FastAPIResponse(
+            content=cache_path.read_bytes(),
+            media_type="image/jpeg",
+            headers={
+                "Content-Disposition": f'inline; filename="{cache_path.name}"',
+                "Cache-Control": "public, max-age=86400",
+            },
+        )
 
     nome_peca = "Fixo"
     if "porta" in chave.lower():
@@ -279,24 +294,26 @@ async def tipologia_fotorrealista(
         tipologia_nome=chave,
         pecas=[PecaInput(nome=nome_peca, largura_mm=largura, altura_mm=altura)],
     )
-    render_resp = await executar(req)
+    render_resp = await executar(req, modo_svg="catalogo", cor=cor_norm, acabamento=acab_norm)
     svg = render_resp.svg
 
-    image_bytes, mime = await foto.gerar_fotorrealista(
-        svg=svg,
-        chave=chave,
-        largura_mm=largura,
-        altura_mm=altura,
-        upload_dir=settings.app_upload_dir,
-        cor=cor_norm,
-        acabamento=acab_norm,
-    )
-    ext = "jpg" if mime == "image/jpeg" else "png"
+    import cairosvg
+    from PIL import Image
+    png_bytes = cairosvg.svg2png(bytestring=svg.encode("utf-8"), output_width=600, output_height=800)
+    _img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+    _bg = Image.new("RGBA", _img.size, (255, 255, 255, 255))
+    _bg.paste(_img, mask=_img.split()[3])
+    img = _bg.convert("RGB")
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=92, optimize=True)
+    jpeg_bytes = buf.getvalue()
+    cache_path.write_bytes(jpeg_bytes)
+
     return FastAPIResponse(
-        content=image_bytes,
-        media_type=mime,
+        content=jpeg_bytes,
+        media_type="image/jpeg",
         headers={
-            "Content-Disposition": f'inline; filename="{chave}_{int(largura)}x{int(altura)}_{cor_norm}_{acab_norm}.{ext}"',
+            "Content-Disposition": f'inline; filename="{cache_path.name}"',
             "Cache-Control": "public, max-age=86400",
         },
     )
