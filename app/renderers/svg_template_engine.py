@@ -101,117 +101,7 @@ def _arrow_v(x1, y1, y2, stroke, size=4) -> str:
             f'{_r(x1+size/2)},{_r(y2-d*size)}" fill="{stroke}"/>')
 
 
-# ─── Símbolos de ferragem (modo técnico) ──────────────────────────────────────
-
-def _simbolo_dobradica(px: float, py: float, sx: float, sy: float) -> str:
-    """Retângulo pequeno + eixo de pivô."""
-    rw, rh = max(6, sx * 0.03), max(14, sy * 0.025)
-    ry = py - rh / 2
-    parts = [
-        f'<rect x="{_r(px)}" y="{_r(ry)}" width="{_r(rw)}" height="{_r(rh)}" '
-        f'fill="{COR_FERRAGEM}" fill-opacity="0.3" stroke="{COR_FERRAGEM}" stroke-width="1.2"/>',
-        _line(px + rw / 2, ry, px + rw / 2, ry + rh, COR_FERRAGEM, 0.8),
-    ]
-    return "\n".join(parts)
-
-
-def _simbolo_pivo(px: float, py: float) -> str:
-    """Círculo sólido."""
-    r = 5
-    return (_circle(px, py, r, COR_FERRAGEM, COR_FERRAGEM, 1)
-            + "\n" + _circle(px, py, 2, COR_BG, COR_BG, 0))
-
-
-def _simbolo_fechadura(px: float, py: float) -> str:
-    """Retângulo com X interno."""
-    rw, rh = 12, 18
-    x0, y0 = px - rw / 2, py - rh / 2
-    parts = [
-        f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
-        f'fill="{COR_FERRAGEM}" fill-opacity="0.2" stroke="{COR_FERRAGEM}" stroke-width="1.2"/>',
-        _line(x0, y0, x0 + rw, y0 + rh, COR_FERRAGEM, 0.8),
-        _line(x0 + rw, y0, x0, y0 + rh, COR_FERRAGEM, 0.8),
-    ]
-    return "\n".join(parts)
-
-
-def _simbolo_puxador(px: float, py: float) -> str:
-    """Linha com círculos nas pontas (furo passante)."""
-    r = 5
-    return "\n".join([
-        _circle(px, py, r, "none", COR_FERRAGEM, 1.5),
-        _line(px - r, py, px + r, py, COR_FERRAGEM, 0.8),
-        _line(px, py - r, px, py + r, COR_FERRAGEM, 0.8),
-    ])
-
-
-def _simbolo_roldana(px: float, py: float) -> str:
-    """Círculo com eixo horizontal."""
-    r = 6
-    return "\n".join([
-        _circle(px, py, r, "none", COR_FERRAGEM, 1.5),
-        _line(px - r * 1.5, py, px + r * 1.5, py, COR_FERRAGEM, 1.0),
-        _circle(px, py, 2, COR_FERRAGEM, COR_FERRAGEM, 0),
-    ])
-
-
-def _simbolo_trinco(px: float, py: float) -> str:
-    """Retângulo pequeno com círculo central."""
-    rw, rh = 14, 8
-    x0, y0 = px - rw / 2, py - rh / 2
-    return "\n".join([
-        f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
-        f'fill="{COR_FERRAGEM}" fill-opacity="0.2" stroke="{COR_FERRAGEM}" stroke-width="1.2"/>',
-        _circle(px, py, 2.5, COR_FERRAGEM, COR_FERRAGEM, 0),
-    ])
-
-
-def _simbolo_ferragem(tipo: str, px: float, py: float, sx: float, sy: float,
-                      cor: str = COR_FERRAGEM) -> str:
-    """Despacha para o símbolo correto pelo tipo."""
-    t = tipo.lower()
-    if "dobradica" in t or "dobradiça" in t:
-        rw, rh = max(6, sx * 0.03), max(14, sy * 0.025)
-        ry = py - rh / 2
-        return (f'<rect x="{_r(px)}" y="{_r(ry)}" width="{_r(rw)}" height="{_r(rh)}" '
-                f'fill="{cor}" fill-opacity="0.35" stroke="{cor}" stroke-width="1.2"/>\n'
-                + _line(px + rw / 2, ry, px + rw / 2, ry + rh, cor, 0.8))
-    if "pivo" in t or "pivô" in t:
-        return (_circle(px, py, 5, cor, cor, 1)
-                + "\n" + _circle(px, py, 2, COR_BG, COR_BG, 0))
-    if "fechadura" in t or "fechamento" in t:
-        rw, rh = 12, 18
-        x0, y0 = px - rw / 2, py - rh / 2
-        return (f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
-                f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>\n'
-                + _line(x0, y0, x0 + rw, y0 + rh, cor, 0.8)
-                + "\n" + _line(x0 + rw, y0, x0, y0 + rh, cor, 0.8))
-    if "puxador" in t:
-        r = 5
-        return "\n".join([_circle(px, py, r, "none", cor, 1.5),
-                          _line(px - r, py, px + r, py, cor, 0.8),
-                          _line(px, py - r, px, py + r, cor, 0.8)])
-    if "roldana" in t:
-        r = 6
-        return "\n".join([_circle(px, py, r, "none", cor, 1.5),
-                          _line(px - r * 1.5, py, px + r * 1.5, py, cor, 1.0),
-                          _circle(px, py, 2, cor, cor, 0)])
-    if "trinco" in t:
-        rw, rh = 14, 8
-        x0, y0 = px - rw / 2, py - rh / 2
-        return "\n".join([
-            f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
-            f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>',
-            _circle(px, py, 2.5, cor, cor, 0),
-        ])
-    # Genérico
-    rw, rh = 10, 14
-    x0, y0 = px - rw / 2, py - rh / 2
-    return (f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
-            f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>')
-
-
-# ─── Símbolos de ferragem detalhados (modo catálogo) ──────────────────────────
+# ─── Símbolos de ferragem (modo catálogo) ────────────────────────────────────
 
 def _simbolo_ferragem_catalogo(tipo: str, px: float, py: float,
                                 pw: float, ph: float,
@@ -413,45 +303,7 @@ def _cotas(px: float, py: float, pw: float, ph: float,
     return "\n".join(parts)
 
 
-# ─── Vidro por tipologia ──────────────────────────────────────────────────────
-
-def _vidro_base(px: float, py: float, pw: float, ph: float,
-                tipologia: str = "") -> str:
-    """Corpo do vidro: retângulo + diagonais + cantos técnicos."""
-    parts = [
-        _rect(px, py, pw, ph, COR_VIDRO_FILL, COR_VIDRO_BORDA, 1.5),
-        _line(px, py, px + pw, py + ph, COR_DIAGONAL, 0.7),
-        _line(px + pw, py, px, py + ph, COR_DIAGONAL, 0.7),
-    ]
-    # Cantos L técnicos
-    cs = 10
-    for cx_c, cy_c, dx, dy in [(px, py, 1, 1), (px + pw, py, -1, 1),
-                                 (px, py + ph, 1, -1), (px + pw, py + ph, -1, -1)]:
-        parts += [
-            _line(cx_c, cy_c, cx_c + dx * cs, cy_c, COR_VIDRO_BORDA, 1.2),
-            _line(cx_c, cy_c, cx_c, cy_c + dy * cs, COR_VIDRO_BORDA, 1.2),
-        ]
-
-    # Indicadores especiais por tipologia
-    tip = tipologia.lower()
-    if any(k in tip for k in ("correr", "deslizante", "sliding")):
-        # Seta de deslizamento no centro
-        cy = py + ph / 2
-        mx = px + pw / 2
-        aw = min(pw * 0.25, 20)
-        parts += [
-            _line(mx - aw, cy, mx + aw, cy, COR_FERRAGEM, 1.5),
-            f'<polygon points="{_r(mx-aw)},{_r(cy)} {_r(mx-aw+6)},{_r(cy-4)} {_r(mx-aw+6)},{_r(cy+4)}" '
-            f'fill="{COR_FERRAGEM}"/>',
-            f'<polygon points="{_r(mx+aw)},{_r(cy)} {_r(mx+aw-6)},{_r(cy-4)} {_r(mx+aw-6)},{_r(cy+4)}" '
-            f'fill="{COR_FERRAGEM}"/>',
-        ]
-    elif "basculante" in tip or "maxim" in tip:
-        # Linha de abertura diagonal
-        parts.append(_line(px, py + ph, px + pw, py, COR_COTA_LINHA, 0.8, "5 3"))
-
-    return "\n".join(parts)
-
+# ─── Vidro por modo ──────────────────────────────────────────────────────────
 
 def _vidro_thumbnail(px: float, py: float, pw: float, ph: float) -> str:
     """Corpo do vidro em modo thumbnail: limpo, sem diagonais, com highlight."""
@@ -501,7 +353,7 @@ class SVGTemplateEngine:
         largura_px: int = 480,
         altura_px: int = 360,
         recortes_catalogo: Optional[dict] = None,  # {codigo_norm: {tipo, comp, larg, furo, raio}}
-        modo: str = "tecnico",          # "tecnico" | "thumbnail" | "catalogo"
+        modo: str = "catalogo",         # "catalogo" | "thumbnail"
         cor: str = "incolor",
         acabamento: str = "cromado",
     ) -> str:
@@ -523,10 +375,18 @@ class SVGTemplateEngine:
         max_h_mm = max(p.altura_mm for p in pecas)
 
         is_thumbnail = (modo == "thumbnail")
-        is_catalogo  = (modo == "catalogo")
 
-        if is_catalogo:
-            # Margens assimétricas: espaço para cotas (esq/topo) e labels (dir)
+        if is_thumbnail:
+            MARGIN_LOCAL = 24
+            area_w = largura_px - 2 * MARGIN_LOCAL
+            area_h = altura_px - 2 * MARGIN_LOCAL
+            sx = area_w / total_w_mm if total_w_mm else 1.0
+            sy = area_h / max_h_mm if max_h_mm else 1.0
+            sc = min(sx, sy)
+            ox = MARGIN_LOCAL + (area_w - total_w_mm * sc) / 2
+            oy = MARGIN_LOCAL + (area_h - max_h_mm * sc) / 2
+        else:
+            # Modo catálogo: margens assimétricas para cotas (esq/topo) e labels (dir)
             ml, mt, mr, mb = _CAT_ML, _CAT_MT, _CAT_MR, _CAT_MB
             area_w = largura_px - ml - mr
             area_h = altura_px - mt - mb
@@ -535,15 +395,6 @@ class SVGTemplateEngine:
             sc = min(sx, sy)
             ox = ml + (area_w - total_w_mm * sc) / 2
             oy = mt + (area_h - max_h_mm * sc) / 2
-        else:
-            MARGIN_LOCAL = 24 if is_thumbnail else MARGIN_PX
-            area_w = largura_px - 2 * MARGIN_LOCAL
-            area_h = altura_px - 2 * MARGIN_LOCAL
-            sx = area_w / total_w_mm if total_w_mm else 1.0
-            sy = area_h / max_h_mm if max_h_mm else 1.0
-            sc = min(sx, sy)
-            ox = MARGIN_LOCAL + (area_w - total_w_mm * sc) / 2
-            oy = MARGIN_LOCAL + (area_h - max_h_mm * sc) / 2
 
         # ── Renderizar peças ───────────────────────────────────────────────
         partes = []
@@ -552,7 +403,6 @@ class SVGTemplateEngine:
 
         mostrar_ferragens = opcoes_dict.get("mostrar_ferragens", not is_thumbnail)
         mostrar_cotas = opcoes_dict.get("mostrar_cotas", not is_thumbnail)
-        mostrar_legenda = opcoes_dict.get("mostrar_legenda", not is_thumbnail and not is_catalogo)
 
         for peca in pecas:
             pw = peca.largura_mm * sc
@@ -562,15 +412,8 @@ class SVGTemplateEngine:
             # Vidro
             if is_thumbnail:
                 partes.append(_vidro_thumbnail(x_cur, py, pw, ph))
-            elif is_catalogo:
-                partes.append(_vidro_catalogo(x_cur, py, pw, ph, cor, acabamento))
             else:
-                partes.append(_vidro_base(x_cur, py, pw, ph, tipologia_nome))
-
-            # Nome da peça (omitido em thumbnail e catalogo)
-            if not is_thumbnail and not is_catalogo:
-                partes.append(_text(x_cur + pw / 2, py + ph / 2, peca.nome,
-                                     COR_TEXTO, 9, "middle", "bold"))
+                partes.append(_vidro_catalogo(x_cur, py, pw, ph, cor, acabamento))
 
             # Cotas
             if mostrar_cotas:
@@ -581,25 +424,14 @@ class SVGTemplateEngine:
             if mostrar_ferragens:
                 partes.append(self._ferragens_svg(
                     peca.ferragens, x_cur, py, pw, ph, sc,
-                    tipologia_nome, recortes_catalogo or {},
-                    acabamento=acabamento if is_catalogo else "cromado",
-                    is_catalogo=is_catalogo,
+                    recortes_catalogo or {}, acabamento=acabamento,
                 ))
 
             x_cur += pw + gap_px
 
-        # ── Legenda ────────────────────────────────────────────────────────
-        legenda = "" if not mostrar_legenda else self._legenda(pecas, largura_px, altura_px)
+        conteudo = "\n".join(partes)
 
-        conteudo = "\n".join(partes) + ("\n" + legenda if legenda else "")
-
-        bg_defs = ""
-        bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="{COR_BG}"/>'
-        if is_catalogo:
-            # Hatch defs + fundo branco limpo (sem borda dupla)
-            bg_defs = _hatch_defs(cor)
-            bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="#FFFFFF"/>'
-        elif is_thumbnail:
+        if is_thumbnail:
             bg_defs = (
                 f'  <defs>\n'
                 f'    <linearGradient id="tn_bg" x1="0" y1="0" x2="0" y2="1">\n'
@@ -609,6 +441,9 @@ class SVGTemplateEngine:
                 f'  </defs>\n'
             )
             bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="url(#tn_bg)"/>'
+        else:
+            bg_defs = _hatch_defs(cor)
+            bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="#FFFFFF"/>'
         return (
             f'<?xml version="1.0" encoding="UTF-8"?>\n'
             f'<!-- VDX Template Engine | tipologia={tipologia_nome} | layout={layout_usado} -->\n'
@@ -627,10 +462,8 @@ class SVGTemplateEngine:
         px: float, py: float,
         pw: float, ph: float,
         sc: float,
-        tipologia: str,
         recortes_catalogo: dict,
         acabamento: str = "cromado",
-        is_catalogo: bool = False,
     ) -> str:
         """Renderiza todas as ferragens + recortes de uma peça."""
         parts = []
@@ -675,13 +508,10 @@ class SVGTemplateEngine:
 
             # 2. Símbolo da ferragem
             _fcors = _FERRAGEM_COR_CATALOGO.get(acabamento.lower(), (COR_FERRAGEM, COR_FERRAGEM))
-            if is_catalogo:
-                parts.append(_simbolo_ferragem_catalogo(f.tipo, fx, fy, pw, ph, _fcors[0], _fcors[1]))
-            else:
-                parts.append(_simbolo_ferragem(f.tipo, fx, fy, pw, ph, cor=_fcors[0]))
+            parts.append(_simbolo_ferragem_catalogo(f.tipo, fx, fy, pw, ph, _fcors[0], _fcors[1]))
 
-            # 3. Label — em catalogo: "CODIGO Nome" (truncado), senão só nome
-            if is_catalogo and f.codigo:
+            # 3. Label: "CODIGO: Nome" (truncado)
+            if f.codigo:
                 cod = f.codigo.split("-")[0][:6]
                 nome_label = f"{cod}: {f.nome}"[:30]
             else:
@@ -692,31 +522,6 @@ class SVGTemplateEngine:
             if abs(lfy - fy) > 4:
                 parts.append(_line(fx + 10, fy, label_x - 2, lfy,
                                     _fcors[1], 0.4, "2 2"))
-
-        return "\n".join(parts)
-
-    def _legenda(self, pecas, largura_px: int, altura_px: int) -> str:
-        """Lista compacta de ferragens únicas no rodapé do SVG."""
-        vistas = {}
-        for peca in pecas:
-            for f in peca.ferragens:
-                chave = f.codigo or f.tipo
-                if chave not in vistas:
-                    vistas[chave] = f.nome
-
-        if not vistas:
-            return ""
-
-        y_base = altura_px - 14
-        x = 6
-        parts = [_text(x, y_base, "Ferragens:", COR_TEXTO, 7, "start", "bold")]
-        x += 58
-        for cod, nome in list(vistas.items())[:8]:  # máx 8 na legenda
-            label = f"{cod}: {nome}" if cod != nome else nome
-            parts.append(_text(x, y_base, label, COR_COTA_LINHA, 7, "start"))
-            x += min(len(label) * 5.5, 110)
-            if x > largura_px - 20:
-                break
 
         return "\n".join(parts)
 

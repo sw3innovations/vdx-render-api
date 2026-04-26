@@ -60,7 +60,7 @@ def _inferir_layout(request: RenderRequest) -> str:
     return "paralelas"
 
 
-async def executar(request: RenderRequest, modo_svg: str = "tecnico", cor: str = "incolor", acabamento: str = "cromado") -> RenderResponse:
+async def executar(request: RenderRequest, modo_svg: str = "catalogo", cor: str = "incolor", acabamento: str = "cromado") -> RenderResponse:
     """
     Pipeline completo de render.
 

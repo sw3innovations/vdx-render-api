@@ -96,11 +96,12 @@ class TestSVGTemplateEngine:
         svg = self.engine.gerar_svg([peca], opcoes_dict={"mostrar_cotas": True})
         assert "900mm" in svg or "2100mm" in svg
 
-    def test_svg_tem_nome_peca(self):
-        """SVG deve conter o nome da peça."""
+    def test_svg_modo_catalogo_tem_hatch_e_labels(self):
+        """Modo catálogo: hatching diagonal presente e labels com código."""
         peca = _peca_porta(nome="Folha Principal")
         svg = self.engine.gerar_svg([peca])
-        assert "Folha Principal" in svg
+        assert "url(#gh)" in svg, "hatch diagonal ausente"
+        assert "1101:" in svg, "label com código ausente"
 
     def test_svg_recorte_furo_passante(self):
         """Ferragem com furo_passante deve gerar círculo de recorte."""
@@ -130,12 +131,13 @@ class TestSVGTemplateEngine:
         assert "<rect" in svg
 
     def test_svg_multiplas_pecas(self):
-        """SVG com 2 peças (fixo + móvel) deve ser mais largo."""
+        """SVG com 2 peças deve renderizar ambas (2 rects de vidro)."""
         p1 = PecaRenderizada(nome="Fixo", largura_mm=400, altura_mm=2100,
                               classificacao="fixa", ferragens=[])
         p2 = _peca_porta(nome="Móvel", largura=600, altura=2100)
         svg = self.engine.gerar_svg([p1, p2])
-        assert "Fixo" in svg and "Móvel" in svg
+        # Dois fill coloridos do vidro catálogo — um por peça
+        assert svg.count("url(#gh)") >= 2
 
     def test_svg_sem_pecas_retorna_vazio(self):
         """Sem peças, retorna SVG mínimo válido."""
