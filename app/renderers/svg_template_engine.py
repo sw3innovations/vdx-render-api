@@ -51,6 +51,9 @@ _FERRAGEM_COR_CATALOGO = {
 
 MARGIN_PX = 48     # margem em pixels ao redor do desenho
 
+# Margens assimétricas para modo catálogo (left, top, right, bottom)
+_CAT_ML, _CAT_MT, _CAT_MR, _CAT_MB = 65, 48, 92, 36
+
 
 # ─── Primitivas SVG ───────────────────────────────────────────────────────────
 
@@ -98,7 +101,7 @@ def _arrow_v(x1, y1, y2, stroke, size=4) -> str:
             f'{_r(x1+size/2)},{_r(y2-d*size)}" fill="{stroke}"/>')
 
 
-# ─── Símbolos de ferragem ─────────────────────────────────────────────────────
+# ─── Símbolos de ferragem (modo técnico) ──────────────────────────────────────
 
 def _simbolo_dobradica(px: float, py: float, sx: float, sy: float) -> str:
     """Retângulo pequeno + eixo de pivô."""
@@ -206,6 +209,98 @@ def _simbolo_ferragem(tipo: str, px: float, py: float, sx: float, sy: float,
     x0, y0 = px - rw / 2, py - rh / 2
     return (f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
             f'fill="{cor}" fill-opacity="0.25" stroke="{cor}" stroke-width="1.2"/>')
+
+
+# ─── Símbolos de ferragem detalhados (modo catálogo) ──────────────────────────
+
+def _simbolo_ferragem_catalogo(tipo: str, px: float, py: float,
+                                pw: float, ph: float,
+                                fill: str, stroke: str) -> str:
+    """Símbolos reconhecíveis para modo catálogo — formas próximas do produto real."""
+    t = tipo.lower()
+
+    if "dobradica" in t or "dobradiça" in t:
+        # Placa horizontal com 2 furos de parafuso
+        rw = min(30, max(18, pw * 0.10))
+        rh = 13
+        return "\n".join([
+            f'<rect x="{_r(px)}" y="{_r(py - rh/2)}" width="{_r(rw)}" height="{_r(rh)}" rx="2" fill="{fill}" fill-opacity="0.55" stroke="{stroke}" stroke-width="1.5"/>',
+            _circle(px + rw * 0.27, py, 3.2, stroke, stroke, 0),
+            _circle(px + rw * 0.73, py, 3.2, stroke, stroke, 0),
+            _line(px + rw * 0.5, py - rh / 2, px + rw * 0.5, py + rh / 2, stroke, 0.7),
+        ])
+
+    if "pivo" in t or "pivô" in t:
+        # Pivô: círculo grande com pino central
+        return "\n".join([
+            _circle(px, py, 9, fill, stroke, 1.8),
+            _circle(px, py, 4, stroke, stroke, 0),
+        ])
+
+    if "fechadura" in t or "fechamento" in t:
+        # Corpo retangular + buraco de chave
+        rw, rh = 13, 25
+        x0, y0 = px - rw / 2, py - rh / 2
+        kh = rh * 0.3   # altura do buraco
+        ky = y0 + rh * 0.48
+        return "\n".join([
+            f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" rx="3" fill="{fill}" fill-opacity="0.45" stroke="{stroke}" stroke-width="1.5"/>',
+            _circle(px, y0 + rh * 0.33, 3.8, stroke, stroke, 0),
+            f'<rect x="{_r(px - 2)}" y="{_r(ky)}" width="4" height="{_r(kh)}" fill="{stroke}"/>',
+        ])
+
+    if "puxador" in t:
+        # Barra vertical com 2 suportes de fixação
+        bh = min(58, max(30, ph * 0.20))
+        bw = 7
+        return "\n".join([
+            f'<rect x="{_r(px - bw/2)}" y="{_r(py - bh/2)}" width="{bw}" height="{_r(bh)}" rx="3.5" fill="{fill}" fill-opacity="0.55" stroke="{stroke}" stroke-width="1.5"/>',
+            f'<rect x="{_r(px - 9)}" y="{_r(py - bh/2 - 5)}" width="18" height="7" rx="2" fill="{fill}" fill-opacity="0.45" stroke="{stroke}" stroke-width="1"/>',
+            f'<rect x="{_r(px - 9)}" y="{_r(py + bh/2 - 2)}" width="18" height="7" rx="2" fill="{fill}" fill-opacity="0.45" stroke="{stroke}" stroke-width="1"/>',
+        ])
+
+    if "roldana" in t:
+        # Roda com eixo horizontal
+        return "\n".join([
+            _circle(px, py, 9, fill, stroke, 1.5),
+            _circle(px, py, 4, fill, stroke, 1.2),
+            _line(px - 14, py, px + 14, py, stroke, 1.2),
+        ])
+
+    if "trinco" in t:
+        rw, rh = 18, 9
+        x0, y0 = px - rw / 2, py - rh / 2
+        return "\n".join([
+            f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" rx="2" fill="{fill}" fill-opacity="0.45" stroke="{stroke}" stroke-width="1.2"/>',
+            _circle(px, py, 2.5, stroke, stroke, 0),
+        ])
+
+    # Genérico
+    rw, rh = 12, 16
+    x0, y0 = px - rw / 2, py - rh / 2
+    return (f'<rect x="{_r(x0)}" y="{_r(y0)}" width="{rw}" height="{rh}" '
+            f'rx="2" fill="{fill}" fill-opacity="0.45" stroke="{stroke}" stroke-width="1.2"/>')
+
+
+# ─── Hatch pattern para vidro catálogo ────────────────────────────────────────
+
+def _hatch_defs(cor: str) -> str:
+    """Gera <defs> com padrão de hatching diagonal para o vidro catálogo.
+
+    Usa linhas a 45° sem patternTransform (compatível com cairosvg).
+    """
+    cor_key = cor.lower().replace("ê", "e").replace("â", "a")
+    _, stroke, _ = _VIDRO_COR_CATALOGO.get(cor_key, _VIDRO_COR_CATALOGO["incolor"])
+    # 3 segmentos de linha cobrem a diagonal de um tile 12×12 sem lacunas nas bordas
+    return (
+        f'  <defs>\n'
+        f'    <pattern id="gh" patternUnits="userSpaceOnUse" width="12" height="12">\n'
+        f'      <line x1="-1" y1="1" x2="1" y2="-1" stroke="{stroke}" stroke-width="0.8" opacity="0.20"/>\n'
+        f'      <line x1="0" y1="12" x2="12" y2="0" stroke="{stroke}" stroke-width="0.8" opacity="0.20"/>\n'
+        f'      <line x1="11" y1="13" x2="13" y2="11" stroke="{stroke}" stroke-width="0.8" opacity="0.20"/>\n'
+        f'    </pattern>\n'
+        f'  </defs>\n'
+    )
 
 
 # ─── Recortes SVG ─────────────────────────────────────────────────────────────
@@ -358,7 +453,6 @@ def _vidro_base(px: float, py: float, pw: float, ph: float,
     return "\n".join(parts)
 
 
-
 def _vidro_thumbnail(px: float, py: float, pw: float, ph: float) -> str:
     """Corpo do vidro em modo thumbnail: limpo, sem diagonais, com highlight."""
     parts = [
@@ -368,18 +462,24 @@ def _vidro_thumbnail(px: float, py: float, pw: float, ph: float) -> str:
     ]
     return "\n".join(parts)
 
+
 def _vidro_catalogo(px: float, py: float, pw: float, ph: float,
                     cor: str = "incolor", acabamento: str = "cromado") -> str:
-    """Corpo do vidro em modo catálogo: colorido, sem diagonais, com highlight."""
+    """Corpo do vidro em modo catálogo: colorido, hatching diagonal, borda arredondada."""
     cor_key = cor.lower().replace("ê", "e").replace("â", "a")
     vidro_fill, vidro_stroke, highlight = _VIDRO_COR_CATALOGO.get(
         cor_key, _VIDRO_COR_CATALOGO["incolor"]
     )
     hw = max(pw * 0.07, 5)
     parts = [
-        _rect(px, py, pw, ph, vidro_fill, vidro_stroke, 2.0),
-        (f'<rect x="{_r(px+3)}" y="{_r(py+6)}" width="{_r(hw)}" '
-         f'height="{_r(ph-12)}" fill="{highlight}" rx="2"/>'),
+        # Base: fill colorido + borda arredondada (rx=3)
+        _rect(px, py, pw, ph, vidro_fill, vidro_stroke, 2.0, rx=3),
+        # Hatching overlay (usa pattern do <defs> gerado em gerar_svg)
+        (f'<rect x="{_r(px)}" y="{_r(py)}" width="{_r(pw)}" height="{_r(ph)}" '
+         f'fill="url(#gh)" stroke="none" rx="3"/>'),
+        # Highlight strip (reflexo vertical)
+        (f'<rect x="{_r(px + 4)}" y="{_r(py + 8)}" width="{_r(hw)}" '
+         f'height="{_r(ph - 16)}" fill="{highlight}" rx="2"/>'),
     ]
     return "\n".join(parts)
 
@@ -424,14 +524,26 @@ class SVGTemplateEngine:
 
         is_thumbnail = (modo == "thumbnail")
         is_catalogo  = (modo == "catalogo")
-        MARGIN_LOCAL = 24 if is_thumbnail else MARGIN_PX
-        area_w = largura_px - 2 * MARGIN_LOCAL
-        area_h = altura_px - 2 * MARGIN_LOCAL
-        sx = area_w / total_w_mm if total_w_mm else 1.0
-        sy = area_h / max_h_mm if max_h_mm else 1.0
-        sc = min(sx, sy)
-        ox = MARGIN_LOCAL + (area_w - total_w_mm * sc) / 2
-        oy = MARGIN_LOCAL + (area_h - max_h_mm * sc) / 2
+
+        if is_catalogo:
+            # Margens assimétricas: espaço para cotas (esq/topo) e labels (dir)
+            ml, mt, mr, mb = _CAT_ML, _CAT_MT, _CAT_MR, _CAT_MB
+            area_w = largura_px - ml - mr
+            area_h = altura_px - mt - mb
+            sx = area_w / total_w_mm if total_w_mm else 1.0
+            sy = area_h / max_h_mm if max_h_mm else 1.0
+            sc = min(sx, sy)
+            ox = ml + (area_w - total_w_mm * sc) / 2
+            oy = mt + (area_h - max_h_mm * sc) / 2
+        else:
+            MARGIN_LOCAL = 24 if is_thumbnail else MARGIN_PX
+            area_w = largura_px - 2 * MARGIN_LOCAL
+            area_h = altura_px - 2 * MARGIN_LOCAL
+            sx = area_w / total_w_mm if total_w_mm else 1.0
+            sy = area_h / max_h_mm if max_h_mm else 1.0
+            sc = min(sx, sy)
+            ox = MARGIN_LOCAL + (area_w - total_w_mm * sc) / 2
+            oy = MARGIN_LOCAL + (area_h - max_h_mm * sc) / 2
 
         # ── Renderizar peças ───────────────────────────────────────────────
         partes = []
@@ -471,6 +583,7 @@ class SVGTemplateEngine:
                     peca.ferragens, x_cur, py, pw, ph, sc,
                     tipologia_nome, recortes_catalogo or {},
                     acabamento=acabamento if is_catalogo else "cromado",
+                    is_catalogo=is_catalogo,
                 ))
 
             x_cur += pw + gap_px
@@ -483,11 +596,9 @@ class SVGTemplateEngine:
         bg_defs = ""
         bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="{COR_BG}"/>'
         if is_catalogo:
-            bg_rect = (
-                f'  <rect width="{largura_px}" height="{altura_px}" fill="#FFFFFF"/>\n'
-                f'  <rect x="1" y="1" width="{largura_px-2}" height="{altura_px-2}" '
-                f'fill="none" stroke="#CCCCCC" stroke-width="1"/>'
-            )
+            # Hatch defs + fundo branco limpo (sem borda dupla)
+            bg_defs = _hatch_defs(cor)
+            bg_rect = f'  <rect width="{largura_px}" height="{altura_px}" fill="#FFFFFF"/>'
         elif is_thumbnail:
             bg_defs = (
                 f'  <defs>\n'
@@ -519,6 +630,7 @@ class SVGTemplateEngine:
         tipologia: str,
         recortes_catalogo: dict,
         acabamento: str = "cromado",
+        is_catalogo: bool = False,
     ) -> str:
         """Renderiza todas as ferragens + recortes de uma peça."""
         parts = []
@@ -549,7 +661,7 @@ class SVGTemplateEngine:
                 break
         label_ys = [max(py, min(py + ph, ly)) for ly in label_ys]
 
-        label_x = px + pw + 6  # labels à direita da peça
+        label_x = px + pw + 8  # labels à direita da peça
 
         for i, f in enumerate(ferragens):
             fx, fy = posicoes[i]
@@ -562,19 +674,24 @@ class SVGTemplateEngine:
                 parts.append(partes_recorte)
 
             # 2. Símbolo da ferragem
-            _fcor_simb = _FERRAGEM_COR_CATALOGO.get(acabamento.lower(), (COR_FERRAGEM,))[0]
-            parts.append(_simbolo_ferragem(f.tipo, fx, fy, pw, ph, cor=_fcor_simb))
-
-            # 3. Label (nome à direita)
-            nome_label = f.nome
             _fcors = _FERRAGEM_COR_CATALOGO.get(acabamento.lower(), (COR_FERRAGEM, COR_FERRAGEM))
+            if is_catalogo:
+                parts.append(_simbolo_ferragem_catalogo(f.tipo, fx, fy, pw, ph, _fcors[0], _fcors[1]))
+            else:
+                parts.append(_simbolo_ferragem(f.tipo, fx, fy, pw, ph, cor=_fcors[0]))
+
+            # 3. Label — em catalogo: "CODIGO Nome" (truncado), senão só nome
+            if is_catalogo and f.codigo:
+                cod = f.codigo.split("-")[0][:6]
+                nome_label = f"{cod}: {f.nome}"[:30]
+            else:
+                nome_label = f.nome
             parts.append(_text(label_x, lfy, nome_label, _fcors[0], 8, "start"))
 
             # 4. Linha guia tracejada símbolo → label
             if abs(lfy - fy) > 4:
-                _fcors2 = _FERRAGEM_COR_CATALOGO.get(acabamento.lower(), (COR_FERRAGEM, COR_FERRAGEM))
-                parts.append(_line(fx + 8, fy, label_x - 2, lfy,
-                                    _fcors2[0], 0.4, "2 2"))
+                parts.append(_line(fx + 10, fy, label_x - 2, lfy,
+                                    _fcors[1], 0.4, "2 2"))
 
         return "\n".join(parts)
 
@@ -607,7 +724,7 @@ class SVGTemplateEngine:
     def _svg_vazio(largura_px: int, altura_px: int) -> str:
         return (f'<svg xmlns="http://www.w3.org/2000/svg" '
                 f'viewBox="0 0 {largura_px} {altura_px}" '
-                f'width="{largura_px}" height="{altura_px}">'
+                f'width="{largura_px}" height="{largura_px}">'
                 f'<rect width="{largura_px}" height="{altura_px}" fill="{COR_BG}"/>'
                 f'<text x="{largura_px//2}" y="{altura_px//2}" '
                 f'text-anchor="middle" font-size="14" fill="{COR_COTA_LINHA}">'
