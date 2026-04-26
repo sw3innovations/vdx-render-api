@@ -73,11 +73,12 @@ def classificar_peca(nome_peca: str, tipologia_dados: dict = None) -> str:
     # CAMADA 1: Match no mapa da tipologia
     if tipologia_dados:
         class_map = tipologia_dados.get("classificacao_pecas", {})
-        # Match exato
-        if nome in class_map:
-            return class_map[nome]
-        # Match substring (key contida no nome ou vice-versa)
-        for key, cls in class_map.items():
+        class_map_lower = {k.lower(): v for k, v in class_map.items()}
+        # Match exato (case-insensitive)
+        if nome in class_map_lower:
+            return class_map_lower[nome]
+        # Match substring (key contida no nome ou vice-versa, case-insensitive)
+        for key, cls in class_map_lower.items():
             if key in nome or nome in key:
                 return cls
         # Match por token (qualquer token da peça casa com key do mapa)

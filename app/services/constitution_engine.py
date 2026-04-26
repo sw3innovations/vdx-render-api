@@ -63,11 +63,16 @@ def posicionar_ferragens(
 ) -> list[FerragemPosicionada]:
     """Posiciona ferragens usando fórmulas da Constitution."""
     classificacao = classificar_peca(peca_nome, tipologia_dados)
-    if classificacao == "fixa":
-        return []
-
     ferragens_config = tipologia_dados.get("ferragens_por_peca", {})
-    config_list = ferragens_config.get(classificacao) or ferragens_config.get("movel") or []
+
+    if classificacao == "fixa":
+        fixo_config = ferragens_config.get("fixo") or []
+        if not fixo_config:
+            return []
+        config_list = fixo_config
+    else:
+        config_list = ferragens_config.get(classificacao) or ferragens_config.get("movel") or []
+
     puxador_config = ferragens_config.get("puxador_config") or tipologia_dados.get("puxador_config")
 
     resultado = []
