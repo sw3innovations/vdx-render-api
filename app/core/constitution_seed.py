@@ -328,8 +328,23 @@ def seed():
 
     registrar("guarda_corpo_linear", tipo="tipologia", dados={
         "nome_display": "Guarda-Corpo Linear",
-        "classificacao_pecas": {"painel": "fixa", "fixo": "fixa", "vidro": "fixa"},
-        "ferragens_por_peca": {},
+        "classificacao_pecas": {"painel": "fixa", "fixo": "fixa", "vidro": "fixa", "porta": "fixa"},
+        "ferragens_por_peca": {
+            "fixo": [
+                {"codigo": "1329P", "nome": "Suporte Pressão", "tipo": "suporte",
+                 "y_formula": "altura * 0.50", "x_formula": "20",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1329P", "nome": "Suporte Pressão", "tipo": "suporte",
+                 "y_formula": "altura * 0.50", "x_formula": "largura - 20",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1329P", "nome": "Suporte Pressão", "tipo": "suporte",
+                 "y_formula": "altura * 0.50", "x_formula": "largura * 0.33",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1329P", "nome": "Suporte Pressão", "tipo": "suporte",
+                 "y_formula": "altura * 0.50", "x_formula": "largura * 0.66",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+            ]
+        },
         "puxador_config": None,
         "kit": {"codigo": "NENHUM", "nome": "Sem kit — fixação por coluna/base",
                 "itens": [], "puxador_separado": False},
@@ -341,8 +356,23 @@ def seed():
 
     registrar("cobertura", tipo="tipologia", dados={
         "nome_display": "Cobertura / Claraboia",
-        "classificacao_pecas": {"painel": "fixa", "fixo": "fixa", "vidro": "fixa"},
-        "ferragens_por_peca": {},
+        "classificacao_pecas": {"painel": "fixa", "fixo": "fixa", "vidro": "fixa", "porta": "fixa"},
+        "ferragens_por_peca": {
+            "fixo": [
+                {"codigo": "1329", "nome": "Suporte Centro", "tipo": "suporte",
+                 "y_formula": "20", "x_formula": "20",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1329", "nome": "Suporte Centro", "tipo": "suporte",
+                 "y_formula": "20", "x_formula": "largura - 20",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1329", "nome": "Suporte Centro", "tipo": "suporte",
+                 "y_formula": "altura - 20", "x_formula": "20",
+                 "lado": "esquerdo", "visual": "circulo", "recorte": "nenhum"},
+                {"codigo": "1329", "nome": "Suporte Centro", "tipo": "suporte",
+                 "y_formula": "altura - 20", "x_formula": "largura - 20",
+                 "lado": "direito", "visual": "circulo", "recorte": "nenhum"},
+            ]
+        },
         "puxador_config": None,
         "kit": {"codigo": "NENHUM", "nome": "Sem kit — apoio em perfis",
                 "itens": [], "puxador_separado": False},
@@ -394,7 +424,8 @@ def seed():
         "nome_display": "Porta de Correr 3 Folhas",
         "classificacao_pecas": {
             "fixo": "fixa", "fixo 1": "fixa", "fixo 2": "fixa",
-            "porta": "correr", "movel": "correr"
+            "porta": "correr", "movel": "correr",
+            "folha 1": "correr", "folha 2": "correr", "folha 3": "correr",
         },
         "ferragens_por_peca": {
             "correr": [
