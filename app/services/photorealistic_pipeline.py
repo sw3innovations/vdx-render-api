@@ -24,6 +24,7 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 _CACHE_SUBDIR = "fotorrealistas"
+_REF_DIR = Path(__file__).parent.parent.parent / "data" / "images" / "referencia"
 
 _POLLINATIONS_BASE = "https://image.pollinations.ai/prompt"
 _HF_SPACE = "DamarJati/FLUX.1-DEV-Canny"
@@ -326,7 +327,9 @@ def _run_pollinations(
         w, h = 1024, max(512, int(1024 / aspect))
     else:
         w, h = max(512, int(1024 * aspect)), 1024
-    url = f"{_POLLINATIONS_BASE}/{encoded}?width={w}&height={h}&seed=42&model=flux&nologo=true"
+    import hashlib
+    seed = int(hashlib.md5(chave.encode()).hexdigest()[:8], 16) % 100000
+    url = f"{_POLLINATIONS_BASE}/{encoded}?width={w}&height={h}&seed={seed}&model=flux&nologo=true"
 
     req = urllib.request.Request(url, headers={"User-Agent": "VDX-Glass-Engine/2.0"})
     with urllib.request.urlopen(req, timeout=90) as resp:
@@ -420,6 +423,15 @@ async def gerar_fotorrealista(
     if cache.exists():
         log.info("foto cache hit: %s", cache.name)
         return cache.read_bytes(), "image/jpeg"
+
+    # Referência local (incolor + cromado) — instantâneo, R$0
+    _chave_safe = chave.replace("ã", "a").replace("â", "a").replace("ê", "e").replace("ç", "c")
+    _ref = _REF_DIR / f"{_chave_safe}.jpg"
+    if _ref.exists() and cor.lower() in ("incolor", "") and acabamento.lower() in ("cromado", ""):
+        jpeg = _ref.read_bytes()
+        cache.write_bytes(jpeg)
+        log.info("foto via referência local: %s", _ref.name)
+        return jpeg, "image/jpeg"
 
     loop = asyncio.get_event_loop()
 
