@@ -43,7 +43,7 @@ _VIDRO_COR_CATALOGO = {
 
 # Cores ferragem por acabamento: (fill, stroke)
 _FERRAGEM_COR_CATALOGO = {
-    "cromado": ("#C8C8C8", "#909090"),
+    "cromado": ("#909090", "#606060"),
     "inox":    ("#A8A8A8", "#686868"),
     "dourado": ("#D4A843", "#B08830"),
     "preto":   ("#3C3C3C", "#181818"),
@@ -455,8 +455,8 @@ class SVGTemplateEngine:
             else:
                 partes.append(_vidro_base(x_cur, py, pw, ph, tipologia_nome))
 
-            # Nome da peça (omitido em thumbnail)
-            if not is_thumbnail:
+            # Nome da peça (omitido em thumbnail e catalogo)
+            if not is_thumbnail and not is_catalogo:
                 partes.append(_text(x_cur + pw / 2, py + ph / 2, peca.nome,
                                      COR_TEXTO, 9, "middle", "bold"))
 
