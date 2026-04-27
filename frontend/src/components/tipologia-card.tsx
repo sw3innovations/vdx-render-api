@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Tipologia } from '@/lib/types'
 import { tipologiaLabel, categoriaFromChave, cn } from '@/lib/utils'
+import { THUMB_DIMS } from '@/lib/catalog'
 
 const CATEGORY_COLORS: Record<string, string> = {
   Portas: 'bg-blue-100 text-blue-800',
@@ -22,7 +23,8 @@ export default function TipologiaCard({ tipologia, onClick }: TipologiaCardProps
 
   const categoria = tipologia.categoria ?? categoriaFromChave(tipologia.chave)
   const label = tipologia.nome || tipologiaLabel(tipologia.chave)
-  const previewUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia.chave)}/fotorrealista`
+  const dims = THUMB_DIMS[tipologia.chave] ?? { largura: 900, altura: 2100 }
+  const previewUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia.chave)}/fotorrealista?largura=${dims.largura}&altura=${dims.altura}`
 
   return (
     <button
