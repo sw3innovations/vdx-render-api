@@ -19,18 +19,21 @@ os.environ.setdefault("VDX_VIEW_TOKEN_SECRET", "test-secret-32chars-xxxxxxxxxx")
 # ─── Fixture: DB em memória com dados representativos ─────────────────────────
 
 _FERRAGENS_TEST = [
-    # (codigo, codigo_norm, fabricante_id, nome, tipo, material)
-    ("AL1629A",  "1629A", "AL", "Puxador 18mm Diâmetro",        "puxador",    "Inox"),
-    ("AL1629B",  "1629B", "AL", "Puxador 25mm Diâmetro",        "puxador",    "Inox"),
-    ("HE1629A",  "1629A", "HE", "Puxador 18mm para box",        "puxador",    "Zamac"),
-    ("SM1520",   "1520",  "SM", "Fechadura Central 1520",        "fechadura",  "Zamac"),
-    ("SM1521",   "1521",  "SM", "Fechadura Superior 1521",       "fechadura",  "Zamac"),
-    ("SM1101",   "1101",  "SM", "Dobradiça Superior 1101",       "dobradica",  "Zamac"),
-    ("SM1103",   "1103",  "SM", "Dobradiça Inferior 1103",       "dobradica",  "Zamac"),
-    ("AL1201",   "1201",  "AL", "Pivô Superior",                 "pivo",       "Zamac"),
-    ("AL1013",   "1013",  "AL", "Pivô Inferior",                 "pivo",       "Zamac"),
-    ("SM2001",   "2001",  "SM", "Roldana Simples",               "roldana",    "Nylon"),
+    # (codigo, codigo_norm, fabricante_id, nome, tipo, material, espessura_vidro)
+    ("AL1629A",  "1629A", "AL", "Puxador 18mm Diâmetro",        "puxador",    "Inox",  "[8, 10]"),
+    ("AL1629B",  "1629B", "AL", "Puxador 25mm Diâmetro",        "puxador",    "Inox",  None),
+    ("HE1629A",  "1629A", "HE", "Puxador 18mm para box",        "puxador",    "Zamac", None),
+    ("SM1520",   "1520",  "SM", "Fechadura Central 1520",        "fechadura",  "Zamac", None),
+    ("SM1521",   "1521",  "SM", "Fechadura Superior 1521",       "fechadura",  "Zamac", None),
+    ("SM1101",   "1101",  "SM", "Dobradiça Superior 1101",       "dobradica",  "Zamac", None),
+    ("SM1103",   "1103",  "SM", "Dobradiça Inferior 1103",       "dobradica",  "Zamac", None),
+    ("AL1201",   "1201",  "AL", "Pivô Superior",                 "pivo",       "Zamac", None),
+    ("AL1013",   "1013",  "AL", "Pivô Inferior",                 "pivo",       "Zamac", None),
+    ("SM2001",   "2001",  "SM", "Roldana Simples",               "roldana",    "Nylon", None),
 ]
+
+# AL1629A e HE1629A compartilham codigo_normalizado "1629A" → 9 grupos
+_EXPECTED_GROUPS = 9
 
 _KITS_TEST = [
     # (id, numero, fabricante_id, nome, linha, max_vao_json, acabamentos_json)
@@ -65,7 +68,7 @@ def test_db(tmp_path):
         )
     """)
     conn.executemany(
-        "INSERT INTO ferragens (codigo, codigo_normalizado, fabricante_id, nome, tipo, material) VALUES (?,?,?,?,?,?)",
+        "INSERT INTO ferragens (codigo, codigo_normalizado, fabricante_id, nome, tipo, material, espessura_vidro) VALUES (?,?,?,?,?,?,?)",
         _FERRAGENS_TEST,
     )
     conn.execute("""
@@ -102,29 +105,81 @@ def client(test_db):
         yield TestClient(app)
 
 
-# ─── Ferragens ────────────────────────────────────────────────────────────────
+# ─── Ferragens — estrutura agrupada ──────────────────────────────────────────
 
 def test_listar_todas_ferragens_retorna_lista(client):
     res = client.get("/api/v1/catalogo/ferragens")
     assert res.status_code == 200
     data = res.json()
     assert isinstance(data, list)
-    assert len(data) == len(_FERRAGENS_TEST)
+    assert len(data) == _EXPECTED_GROUPS
 
 
 def test_estrutura_ferragem_tem_campos_esperados(client):
     res = client.get("/api/v1/catalogo/ferragens")
     assert res.status_code == 200
     item = res.json()[0]
-    for campo in ("codigo", "nome", "tipo", "fabricante_id"):
+    for campo in ("codigo_normalizado", "nome", "tipo", "fabricantes"):
         assert campo in item, f"Campo '{campo}' ausente na resposta"
 
+
+def test_total_grupos_menor_que_total_registros(client):
+    res = client.get("/api/v1/catalogo/ferragens")
+    assert res.status_code == 200
+    assert len(res.json()) < len(_FERRAGENS_TEST)
+
+
+def test_grupo_multi_fabricante_tem_dois_fabricantes(client):
+    res = client.get("/api/v1/catalogo/ferragens?tipo=puxador")
+    assert res.status_code == 200
+    grupos = res.json()
+    grupo_1629a = next((g for g in grupos if g["codigo_normalizado"] == "1629A"), None)
+    assert grupo_1629a is not None
+    assert len(grupo_1629a["fabricantes"]) == 2
+
+
+def test_grupo_single_fabricante_tem_um_fabricante(client):
+    res = client.get("/api/v1/catalogo/ferragens?tipo=puxador")
+    assert res.status_code == 200
+    grupos = res.json()
+    grupo_1629b = next((g for g in grupos if g["codigo_normalizado"] == "1629B"), None)
+    assert grupo_1629b is not None
+    assert len(grupo_1629b["fabricantes"]) == 1
+
+
+def test_fabricante_estrutura_tem_campos_esperados(client):
+    res = client.get("/api/v1/catalogo/ferragens?tipo=puxador")
+    assert res.status_code == 200
+    fabricante = res.json()[0]["fabricantes"][0]
+    for campo in ("id", "codigo", "material", "espessura_vidro"):
+        assert campo in fabricante, f"Campo '{campo}' ausente no fabricante"
+
+
+def test_espessura_vidro_retorna_array_de_inteiros(client):
+    res = client.get("/api/v1/catalogo/ferragens?tipo=puxador")
+    assert res.status_code == 200
+    grupos = res.json()
+    grupo_1629a = next(g for g in grupos if g["codigo_normalizado"] == "1629A")
+    fab_al = next(f for f in grupo_1629a["fabricantes"] if f["id"] == "AL")
+    assert isinstance(fab_al["espessura_vidro"], list)
+    assert fab_al["espessura_vidro"] == [8, 10]
+
+
+def test_espessura_vidro_null_retorna_lista_vazia(client):
+    res = client.get("/api/v1/catalogo/ferragens?tipo=puxador")
+    assert res.status_code == 200
+    grupos = res.json()
+    grupo_1629b = next(g for g in grupos if g["codigo_normalizado"] == "1629B")
+    assert grupo_1629b["fabricantes"][0]["espessura_vidro"] == []
+
+
+# ─── Ferragens — filtros ──────────────────────────────────────────────────────
 
 def test_listar_ferragens_filtro_tipo_puxador(client):
     res = client.get("/api/v1/catalogo/ferragens?tipo=puxador")
     assert res.status_code == 200
     data = res.json()
-    assert len(data) == 3
+    assert len(data) == 2  # 2 grupos: "1629A" e "1629B"
     for item in data:
         assert item["tipo"] == "puxador"
 
@@ -148,8 +203,9 @@ def test_listar_ferragens_filtro_fabricante(client):
     assert res.status_code == 200
     data = res.json()
     assert len(data) > 0
-    for item in data:
-        assert item["fabricante_id"] == "SM"
+    for grupo in data:
+        for fab in grupo["fabricantes"]:
+            assert fab["id"] == "SM"
 
 
 def test_listar_ferragens_por_tipo_path(client):

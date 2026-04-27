@@ -29,20 +29,40 @@ def _parse_json_field(value: Optional[str]) -> object:
         return value
 
 
-def _ferragem_row_to_dict(row: sqlite3.Row) -> dict:
-    return {
-        "codigo": row["codigo"],
-        "codigo_normalizado": row["codigo_normalizado"],
-        "nome": row["nome"],
-        "tipo": row["tipo"],
-        "fabricante_id": row["fabricante_id"],
-        "material": row["material"],
-        "dimensoes": _parse_json_field(row["dimensoes_json"]),
-        "espessura_vidro": row["espessura_vidro"],
-        "cores": _parse_json_field(row["cores_json"]),
-        "pagina_catalogo": row["pagina_catalogo"],
-        "confianca": row["confianca"],
-    }
+def _parse_espessura(value: Optional[str]) -> list:
+    if not value:
+        return []
+    try:
+        parsed = json.loads(value)
+        return [int(x) for x in parsed] if isinstance(parsed, list) else []
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return []
+
+
+def _group_by_codigo_normalizado(rows: list) -> list[dict]:
+    groups: dict[str, dict] = {}
+    order: list[str] = []
+    for row in rows:
+        key = row["codigo_normalizado"]
+        if key not in groups:
+            groups[key] = {
+                "codigo_normalizado": key,
+                "nome": row["nome"],
+                "tipo": row["tipo"],
+                "fabricantes": [],
+            }
+            order.append(key)
+        groups[key]["fabricantes"].append({
+            "id": row["fabricante_id"],
+            "codigo": row["codigo"],
+            "material": row["material"],
+            "dimensoes": _parse_json_field(row["dimensoes_json"]),
+            "espessura_vidro": _parse_espessura(row["espessura_vidro"]),
+            "cores": _parse_json_field(row["cores_json"]),
+            "pagina_catalogo": row["pagina_catalogo"],
+            "confianca": row["confianca"],
+        })
+    return [groups[k] for k in order]
 
 
 def _kit_row_to_dict(row: sqlite3.Row, componentes: list[dict]) -> dict:
@@ -95,7 +115,7 @@ def listar_ferragens(
     tipo: Optional[str] = None,
     fabricante: Optional[str] = None,
 ):
-    """Lista ferragens do catálogo com filtros opcionais por tipo e fabricante."""
+    """Lista ferragens agrupadas por codigo_normalizado, com filtros opcionais."""
     with _conn() as conn:
         cur = conn.cursor()
         query = "SELECT * FROM ferragens WHERE 1=1"
@@ -109,7 +129,7 @@ def listar_ferragens(
         query += " ORDER BY fabricante_id, tipo, nome"
         cur.execute(query, params)
         rows = cur.fetchall()
-    return [_ferragem_row_to_dict(r) for r in rows]
+    return _group_by_codigo_normalizado(rows)
 
 
 @router.get("/ferragens/{tipo}")
