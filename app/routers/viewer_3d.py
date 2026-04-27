@@ -9,7 +9,8 @@ import json
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Query, Request
+import cairosvg
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
@@ -254,15 +255,18 @@ async def tipologia_fotorrealista(
     altura: float = Query(2100.0, ge=DIMENSAO_MIN_MM, le=DIMENSAO_MAX_MM, description="Altura em mm"),
     cor: str = Query("incolor", description="Cor do vidro: incolor, verde, fumê, bronze, azul"),
     acabamento: str = Query("cromado", description="Acabamento: cromado, inox, dourado, preto"),
+    puxador_codigo: Optional[str] = Query(None, description="Código do puxador selecionado"),
 ):
     """Retorna imagem PNG da tipologia gerada pelo SVG Renderer v2.
 
     PNG renderizado via CairoSVG, sem dependências externas.
     Sem autenticação — endpoint público.
     """
-    import cairosvg
     from fastapi.responses import Response as FastAPIResponse
     from app.renderers.svg_renderer_v2 import render as render_v2
+
+    if puxador_codigo is not None and not puxador_codigo.strip():
+        raise HTTPException(status_code=400, detail="puxador_codigo não pode ser vazio")
 
     cor_norm = cor.lower().strip()
     acab_norm = acabamento.lower().strip()
@@ -271,7 +275,7 @@ async def tipologia_fotorrealista(
     if acab_norm not in _ACABAMENTOS_VALIDOS:
         acab_norm = "cromado"
 
-    svg = render_v2(chave, largura, altura, cor=cor_norm, acabamento=acab_norm)
+    svg = render_v2(chave, largura, altura, cor=cor_norm, acabamento=acab_norm, puxador_codigo=puxador_codigo)
     png_bytes = cairosvg.svg2png(bytestring=svg.encode())
 
     return FastAPIResponse(

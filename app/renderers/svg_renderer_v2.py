@@ -353,7 +353,8 @@ def _painel(gx, gy, gw, gh, fill, borda) -> list[str]:
 # ─── Render principal ─────────────────────────────────────────────────────────
 
 def render(tipologia: str, largura: float, altura: float,
-           cor: str = "incolor", acabamento: str = "cromado") -> str:
+           cor: str = "incolor", acabamento: str = "cromado",
+           puxador_codigo: str | None = None) -> str:
     """
     Renderiza uma tipologia como SVG de catálogo.
 
@@ -363,6 +364,7 @@ def render(tipologia: str, largura: float, altura: float,
         altura:    altura da peça em mm
         cor:       incolor | verde | fume | bronze | azul | espelho
         acabamento: cromado | inox | preto | dourado
+        puxador_codigo: código do puxador selecionado (Fase 1: override de label apenas)
     """
     # ── 1. DB ─────────────────────────────────────────────────────────────────
     tipologia_dados: dict | None = None
@@ -382,6 +384,15 @@ def render(tipologia: str, largura: float, altura: float,
     arrangement, panel_types = _SCHEMAS.get(tipologia, ("h", ["movel"]))
     n = len(panel_types)
     fpb: dict = tipologia_dados.get("ferragens_por_peca", {}) if tipologia_dados else {}
+
+    # ── 2b. Override de puxador (Fase 1: label only, sem novo desenho) ────────
+    if puxador_codigo:
+        import copy
+        fpb = copy.deepcopy(fpb)
+        for ptype in list(fpb.keys()):
+            for entry in fpb[ptype]:
+                if isinstance(entry, dict) and entry.get("tipo") == "puxador":
+                    entry["codigo"] = puxador_codigo
 
     # ── 3. Cores ──────────────────────────────────────────────────────────────
     vidro_fill, vidro_borda = _VIDRO.get(cor.lower(), _VIDRO["incolor"])
