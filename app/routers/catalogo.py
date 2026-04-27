@@ -66,9 +66,10 @@ def _tipologia_keywords(tipologia: str) -> list[str]:
 
 def _kit_match_tipologia(kit_nome: str, keywords: list[str]) -> bool:
     nome = kit_nome.lower()
-    # Pelo menos metade das palavras-chave deve estar no nome do kit
     matches = sum(1 for kw in keywords if kw in nome)
-    return matches >= max(1, len(keywords) // 2)
+    # 1-2 keywords: qualquer match; 3+ keywords: pelo menos 2 devem casar
+    threshold = 1 if len(keywords) <= 2 else 2
+    return matches >= threshold
 
 
 def _fetch_componentes(cur: sqlite3.Cursor, kit_id: int) -> list[dict]:
