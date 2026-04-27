@@ -7,6 +7,7 @@ import { fetchTipologias } from '@/lib/api'
 import { categoriaFromChave } from '@/lib/utils'
 import type { Tipologia } from '@/lib/types'
 import TipologiaCard, { TipologiaCardSkeleton } from '@/components/tipologia-card'
+import { TIPOLOGIAS_V1 } from '@/lib/catalog'
 
 const TABS = ['Todos', 'Portas', 'Janelas', 'Box', 'Outros'] as const
 type Tab = (typeof TABS)[number]
@@ -33,6 +34,7 @@ export default function HomePage() {
 
   const filtered = useMemo(() => {
     return tipologias.filter((t) => {
+      if (!(TIPOLOGIAS_V1 as readonly string[]).includes(t.chave)) return false
       const categoria = t.categoria ?? categoriaFromChave(t.chave)
       const matchesTab = activeTab === 'Todos' || categoria === activeTab
       const matchesSearch =
@@ -62,7 +64,7 @@ export default function HomePage() {
               ✨ Smart Vision
             </Link>
             <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
-              {tipologias.length > 0 && `${tipologias.length} tipologias`}
+              {TIPOLOGIAS_V1.length} tipologias
             </div>
           </div>
         </div>
@@ -131,6 +133,24 @@ export default function HomePage() {
               <path d="M21 21l-4.35-4.35" />
             </svg>
             <p className="text-sm">Nenhuma tipologia encontrada para &quot;{search}&quot;</p>
+          </div>
+        )}
+
+        {/* CTA Smart Vision */}
+        {!loading && !error && (
+          <div className="mt-2 rounded-2xl bg-[#1a5276]/5 border border-[#1a5276]/15 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[#1a5276]">Não encontrou o que precisa?</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Use o Smart Vision para criar um projeto a partir de uma foto, croqui ou descrição.
+              </p>
+            </div>
+            <Link
+              href="/smart"
+              className="shrink-0 flex items-center gap-2 bg-[#1a5276] hover:bg-[#154360] text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+            >
+              ✨ Smart Vision
+            </Link>
           </div>
         )}
       </main>
