@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { fetchRender, exportPng, exportPdf, downloadBlob } from '@/lib/api'
 import { tipologiaLabel, formatDim } from '@/lib/utils'
-import type { FerragemInfo } from '@/lib/types'
+import type { FerragemInfo, PuxadorSelecionado } from '@/lib/types'
+import SeletorPuxador from '@/components/seletor-puxador'
 
 const COR_VIDRO_OPTIONS = [
   { value: 'incolor', label: 'Incolor', color: '#E8F4FD' },
@@ -33,6 +34,7 @@ export default function ConfigurarPage() {
   const [espessura, setEspessura] = useState<number>(8)
   const [corVidro, setCorVidro] = useState('incolor')
   const [acabamento, setAcabamento] = useState('cromado')
+  const [puxadorSelecionado, setPuxadorSelecionado] = useState<PuxadorSelecionado | null>(null)
   const [ferragens, setFerragens] = useState<FerragemInfo[]>([])
   const [loadingFerragens, setLoadingFerragens] = useState(false)
   const [loadingExport, setLoadingExport] = useState<'png' | 'pdf' | null>(null)
@@ -43,7 +45,7 @@ export default function ConfigurarPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const imgUrlRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fotoUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia)}/fotorrealista?largura=${largura}&altura=${altura}&cor=${corVidro}&acabamento=${acabamento}`
+  const fotoUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia)}/fotorrealista?largura=${largura}&altura=${altura}&cor=${corVidro}&acabamento=${acabamento}${puxadorSelecionado ? `&puxador_codigo=${encodeURIComponent(puxadorSelecionado.codigo)}` : ''}`
   const [debouncedFotoUrl, setDebouncedFotoUrl] = useState(fotoUrl)
   const prevFotoUrlRef = useRef(fotoUrl)
 
@@ -295,6 +297,9 @@ export default function ConfigurarPage() {
               ))}
             </div>
           </div>
+
+          {/* Puxador */}
+          <SeletorPuxador selected={puxadorSelecionado} onSelect={setPuxadorSelecionado} />
 
           {/* Ferragens */}
           {ferragens.length > 0 && (

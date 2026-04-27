@@ -293,6 +293,32 @@ export interface ProposalResponse {
   validade_ate: string
 }
 
+// ─── Catálogo de Ferragens ────────────────────────────────────────────────────
+
+export interface FabricantePuxador {
+  id: string
+  codigo: string
+  material: string
+  espessura_vidro: number[]
+  dimensoes: unknown
+  cores: unknown
+  pagina_catalogo: number | null
+  confianca: number | null
+}
+
+export interface GrupoPuxador {
+  codigo_normalizado: string
+  nome: string
+  tipo: string
+  fabricantes: FabricantePuxador[]
+}
+
+export interface PuxadorSelecionado {
+  codigo: string
+  nome: string
+  fabricante_id: string
+}
+
 // ─── Chat / Feedback ──────────────────────────────────────────────────────────
 
 export interface ChatMessage {
