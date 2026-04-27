@@ -93,13 +93,16 @@ p{{font-size:14px;color:#666;line-height:1.6}}
 def _auto_pecas(tipologia: str, largura: float, altura: float) -> list[PecaInput]:
     """Auto-gera peças baseado na tipologia para o viewer GET."""
     t = tipologia.lower()
-    if any(k in t for k in ("6_folhas", "6folhas")):
+    if any(k in t for k in ("6_folhas", "6folhas", "seis_folhas")):
         w = largura / 6
         return [PecaInput(nome=f"Folha {i+1}", largura_mm=w, altura_mm=altura) for i in range(6)]
-    if any(k in t for k in ("3_folhas", "3folhas")):
+    if any(k in t for k in ("4_folhas", "4folhas", "quatro_folhas")):
+        w = largura / 4
+        return [PecaInput(nome=f"Folha {i+1}", largura_mm=w, altura_mm=altura) for i in range(4)]
+    if any(k in t for k in ("3_folhas", "3folhas", "tres_folhas")):
         w = largura / 3
         return [PecaInput(nome=f"Folha {i+1}", largura_mm=w, altura_mm=altura) for i in range(3)]
-    if any(k in t for k in ("2_folhas", "2folhas", "box")):
+    if any(k in t for k in ("2_folhas", "2folhas", "duas_folhas", "box")):
         w = largura / 2
         return [
             PecaInput(nome="Folha 1", largura_mm=w, altura_mm=altura),
@@ -580,7 +583,8 @@ function addGlass(vidro) {{
   }} else if (anim.tipo === "deslizante") {{
     mesh.position.set(vidro.posicao.x, vidro.posicao.y, vidro.posicao.z);
     threeScene.add(mesh);
-    const entry = {{type:"deslizante", mesh, current:0, target:0, originX:vidro.posicao.x, openVal:anim.distancia_max||vidro.largura}};
+    const dir = vidro.posicao.x < 0 ? -1 : 1;
+    const entry = {{type:"deslizante", mesh, current:0, target:0, originX:vidro.posicao.x, openVal:(anim.distancia_max||vidro.largura) * dir}};
     animatables.push(entry);
     return entry;
 
