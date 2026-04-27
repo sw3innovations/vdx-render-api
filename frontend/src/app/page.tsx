@@ -56,16 +56,8 @@ export default function HomePage() {
               Configurador de esquadrias de vidro — visualização 3D fotorrealista
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/smart"
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all"
-            >
-              ✨ Smart Vision
-            </Link>
-            <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
-              {TIPOLOGIAS_V1.length} tipologias
-            </div>
+          <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
+            {TIPOLOGIAS_V1.length} tipologias
           </div>
         </div>
       </header>
