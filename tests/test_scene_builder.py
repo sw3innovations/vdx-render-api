@@ -279,8 +279,8 @@ class TestEndpoints:
         scene = _scene("porta_pivotante_simples")
         html = _gerar_viewer_html(scene)
         assert "<!DOCTYPE html>" in html
-        assert "babylon.js" in html  # migrado para BabylonJS
-        assert "ArcRotateCamera" in html
+        assert "three" in html.lower()
+        assert "PerspectiveCamera" in html
         assert "SCENE_DATA" not in html  # data embutida como `const SCENE =`
         assert "const SCENE =" in html
         assert "toggleDoor" in html

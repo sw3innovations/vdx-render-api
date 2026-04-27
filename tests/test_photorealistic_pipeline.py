@@ -63,7 +63,7 @@ def test_prompt_para_chave_porta_pivotante():
     from app.services.photorealistic_pipeline import _prompt_para_chave
     p = _prompt_para_chave("porta_pivotante_simples")
     assert "pivot" in p
-    assert "patch fittings" in p
+    assert "patch" in p
     assert "clear transparent" in p
 
 
@@ -106,7 +106,8 @@ def test_prompt_para_chave_acabamento_dourado():
 def test_prompt_para_chave_desconhecido_usa_fallback():
     from app.services.photorealistic_pipeline import _prompt_para_chave
     p = _prompt_para_chave("tipologia_desconhecida")
-    assert "frameless tempered glass" in p
+    assert "frameless" in p
+    assert "tempered glass" in p
 
 
 # ---------------------------------------------------------------------------

@@ -9,3 +9,4 @@ cairosvg==2.9.0
 fpdf2==2.8.7
 Pillow==12.1.1
 psutil>=5.9.0
+numpy>=2.0,<3
