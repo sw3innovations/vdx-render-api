@@ -41,8 +41,23 @@ export default function ConfigurarPage() {
   const [imgError, setImgError] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const imgUrlRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fotoUrl = `/api/vdx/v1/tipologia/${encodeURIComponent(tipologia)}/fotorrealista?largura=${largura}&altura=${altura}&cor=${corVidro}&acabamento=${acabamento}`
+  const [debouncedFotoUrl, setDebouncedFotoUrl] = useState(fotoUrl)
+  const prevFotoUrlRef = useRef(fotoUrl)
+
+  useEffect(() => {
+    if (prevFotoUrlRef.current === fotoUrl) return
+    prevFotoUrlRef.current = fotoUrl
+    if (imgUrlRef.current) clearTimeout(imgUrlRef.current)
+    imgUrlRef.current = setTimeout(() => {
+      setDebouncedFotoUrl(fotoUrl)
+      setImgLoaded(false)
+      setImgError(false)
+    }, 300)
+    return () => { if (imgUrlRef.current) clearTimeout(imgUrlRef.current) }
+  }, [fotoUrl])
 
   const loadFerragens = useCallback(
     async (larg: number, alt: number, cor: string, esp: number) => {
@@ -75,14 +90,10 @@ export default function ConfigurarPage() {
 
   const handleLargura = (v: number) => {
     setLargura(v)
-    setImgLoaded(false)
-    setImgError(false)
     triggerReload(v, altura, corVidro, espessura)
   }
   const handleAltura = (v: number) => {
     setAltura(v)
-    setImgLoaded(false)
-    setImgError(false)
     triggerReload(largura, v, corVidro, espessura)
   }
   const handleEspessura = (v: number) => {
@@ -91,14 +102,10 @@ export default function ConfigurarPage() {
   }
   const handleCorVidro = (v: string) => {
     setCorVidro(v)
-    setImgLoaded(false)
-    setImgError(false)
     triggerReload(largura, altura, v, espessura)
   }
   const handleAcabamento = (v: string) => {
     setAcabamento(v)
-    setImgLoaded(false)
-    setImgError(false)
   }
 
   const handleExportPng = async () => {
@@ -362,8 +369,7 @@ export default function ConfigurarPage() {
         )}
 
         <img
-          key={fotoUrl}
-          src={fotoUrl}
+          src={debouncedFotoUrl}
           alt={`${label} — ${corVidro} ${acabamento}`}
           className={`max-w-full max-h-full object-contain p-6 transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setImgLoaded(true)}

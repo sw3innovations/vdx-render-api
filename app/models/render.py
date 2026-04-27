@@ -124,6 +124,7 @@ class RenderRequest(BaseModel):
         description=f"Espessura do vidro em mm ({ESPESSURA_MIN_MM}–{ESPESSURA_MAX_MM})",
     )  # ex: 8.0, 10.0
     tipo_vidro: Optional[str] = None             # "temperado"|"laminado"|"aramado"|"comum"
+    cor_vidro: str = "incolor"                   # "incolor"|"verde"|"fume"|"bronze"|"azul"
 
     model_config = {
         "json_schema_extra": {

@@ -32,12 +32,60 @@ _ACABAMENTO: dict[str, str] = {
 # ─── Constantes de layout ─────────────────────────────────────────────────────
 
 VW, VH = 600, 800
-ML, MT, MR, MB = 65, 52, 112, 40   # margem left/top/right/bottom em px
-GAP_PX = 12                          # gap entre peças side-by-side
+ML, MT, MR, MB = 65, 52, 112, 40
 
 _COR_COTA  = "#4A7098"
 _COR_COTAL = "#7A9AAA"
 _COR_LABEL = "#503880"
+
+BANDEIRA_H_MM = 300   # altura fixa da bandeira em arrangement "v"
+GAP_V_MM      = 20    # gap vertical entre bandeira e porta (mm)
+
+# ─── Schemas explícitos das 29 tipologias ────────────────────────────────────
+# (arrangement, [panel_types])
+# arrangement: "h" = side-by-side  |  "L" = canto 90°  |
+#              "v" = bandeira+porta |  "landscape" = painel horizontal plano
+
+_SCHEMAS: dict[str, tuple[str, list[str]]] = {
+    "balcão_de_pia_duas_folhas":          ("h", ["movel", "movel"]),
+    "balcão_de_pia_quatro_folhas":        ("h", ["movel", "movel", "movel", "movel"]),
+    "box_articulado":                     ("h", ["movel"]),
+    "box_canto_90":                       ("L", ["movel", "fixa"]),
+    "box_de_giro":                        ("h", ["movel"]),
+    "box_flex":                           ("h", ["movel"]),
+    "box_frontal_2_folhas":               ("h", ["fixa", "movel"]),
+    "cobertura":                          ("landscape", ["fixo"]),
+    "divisoria_porta_pivotante":          ("h", ["fixa", "movel"]),
+    "diâmetro":                           ("h", ["fixo"]),
+    "diâmetro_com_furo_no_meio":          ("h", ["fixo"]),
+    "fachada_fixa":                       ("h", ["fixo"]),
+    "fechamento_de_sacada_6_folhas":      ("h", ["correr", "correr", "correr",
+                                                  "correr", "correr", "correr"]),
+    "guarda_corpo_linear":                ("landscape", ["fixo"]),
+    "janela_3_folhas":                    ("h", ["fixa", "movel", "movel"]),
+    "janela_basculante":                  ("h", ["movel"]),
+    "janela_correr_2_folhas":             ("h", ["fixa", "correr"]),
+    "janela_correr_2_folhas_oriun_plus":  ("h", ["fixa", "correr"]),
+    "janela_maxim_ar":                    ("h", ["movel"]),
+    "janela_pivotante":                   ("h", ["movel"]),
+    "janela_quatro_folhas":               ("h", ["fixa", "correr", "correr", "fixa"]),
+    "janela_quatro_folhas_orion_plus":    ("h", ["movel"]),
+    "porta_abrir":                        ("h", ["movel"]),
+    "porta_correr_2_folhas":              ("h", ["fixa", "correr"]),
+    "porta_correr_3_folhas":              ("h", ["correr", "correr", "correr"]),
+    "porta_pivotante_dupla_bandeira":     ("v", ["fixa", "movel"]),
+    "porta_pivotante_simples":            ("h", ["movel"]),
+    "porta_quatro_folhas":                ("h", ["fixa", "correr", "correr", "fixa"]),
+    "vitrine":                            ("h", ["movel"]),
+}
+
+
+def _gap_px(n: int) -> float:
+    if n <= 1: return 0.0
+    if n == 2: return 10.0
+    if n <= 4: return 7.0
+    return 4.0
+
 
 # ─── Primitivas SVG ───────────────────────────────────────────────────────────
 
@@ -169,40 +217,35 @@ def _sim_bate_fecha(px, py, acab) -> str:
 
 def _simbolo(tipo: str, px: float, py: float, acab: str) -> str:
     t = tipo.lower()
-    if "dobradica" in t or "dobradiça" in t:
-        return _sim_dobradica(px, py, acab)
-    if "pivo" in t or "pivô" in t:
-        return _sim_pivo(px, py, acab)
-    if "fechadura" in t:
-        return _sim_fechadura(px, py, acab)
-    if "puxador" in t:
-        return _sim_puxador(px, py, acab)
-    if "roldana" in t:
-        return _sim_roldana(px, py, acab)
-    if "suporte" in t:
-        return _sim_suporte(px, py, acab)
-    if "trinco" in t:
-        return _sim_trinco(px, py, acab)
-    if "bate" in t:
-        return _sim_bate_fecha(px, py, acab)
+    if "dobradica" in t or "dobradiça" in t: return _sim_dobradica(px, py, acab)
+    if "pivo" in t or "pivô" in t:           return _sim_pivo(px, py, acab)
+    if "fechadura" in t:                      return _sim_fechadura(px, py, acab)
+    if "puxador" in t:                        return _sim_puxador(px, py, acab)
+    if "roldana" in t:                        return _sim_roldana(px, py, acab)
+    if "suporte" in t:                        return _sim_suporte(px, py, acab)
+    if "trinco" in t:                         return _sim_trinco(px, py, acab)
+    if "bate" in t:                           return _sim_bate_fecha(px, py, acab)
     return _sim_suporte(px, py, acab)
 
 
 # ─── Cotas ────────────────────────────────────────────────────────────────────
 
-def _cotas(gx, gy, gw, gh, largura_mm, altura_mm) -> str:
-    parts = []
+def _cota_h(gx: float, gy: float, total_gw: float, largura_mm: float) -> str:
     cy = gy - 20
-    parts += [
-        _line(gx, cy, gx + gw, cy, _COR_COTAL, 1.0),
+    parts = [
+        _line(gx, cy, gx + total_gw, cy, _COR_COTAL, 1.0),
         _line(gx, gy, gx, cy, _COR_COTAL, 0.7, "2 2"),
-        _line(gx + gw, gy, gx + gw, cy, _COR_COTAL, 0.7, "2 2"),
+        _line(gx + total_gw, gy, gx + total_gw, cy, _COR_COTAL, 0.7, "2 2"),
         _arrow_h(gx + 7, cy, gx, _COR_COTA),
-        _arrow_h(gx + gw - 7, cy, gx + gw, _COR_COTA),
-        _text(gx + gw / 2, cy - 9, f"{largura_mm:.0f} mm", _COR_COTA, 9),
+        _arrow_h(gx + total_gw - 7, cy, gx + total_gw, _COR_COTA),
+        _text(gx + total_gw / 2, cy - 9, f"{largura_mm:.0f} mm", _COR_COTA, 9),
     ]
+    return "\n".join(parts)
+
+
+def _cota_v(gx: float, gy: float, gh: float, altura_mm: float) -> str:
     cx = gx - 20
-    parts += [
+    parts = [
         _line(cx, gy, cx, gy + gh, _COR_COTAL, 1.0),
         _line(gx, gy, cx, gy, _COR_COTAL, 0.7, "2 2"),
         _line(gx, gy + gh, cx, gy + gh, _COR_COTAL, 0.7, "2 2"),
@@ -215,9 +258,16 @@ def _cotas(gx, gy, gw, gh, largura_mm, altura_mm) -> str:
 
 # ─── Ferragens + labels ───────────────────────────────────────────────────────
 
-def _ferragens_svg(ferragens: list[dict], gx, gy, gw, gh, sc, acab, label_x) -> str:
-    parts = []
-    posicoes = []
+def _ferragens_svg(ferragens: list[dict], gx, gy, gw, gh, sc,
+                   acab, label_x: float | None) -> str:
+    """
+    Renderiza ferragens num painel.
+    label_x=None → só símbolos (sem labels/guias).
+    label_x=float → símbolos + linhas-guia + labels à direita.
+    """
+    parts: list[str] = []
+    posicoes: list[tuple[float, float]] = []
+
     for f in ferragens:
         fx = gx + f["x_mm"] * sc
         fy = gy + gh - f["y_mm"] * sc
@@ -225,38 +275,79 @@ def _ferragens_svg(ferragens: list[dict], gx, gy, gw, gh, sc, acab, label_x) -> 
         fy = max(gy + 5, min(gy + gh - 5, fy))
         posicoes.append((fx, fy))
 
-    # Anti-collision para labels (empurra para baixo se conflito)
-    label_ys = [fy for _, fy in posicoes]
-    order = sorted(range(len(label_ys)), key=lambda i: label_ys[i])
-    for _ in range(8):
-        changed = False
-        for k in range(1, len(order)):
-            pi, ci = order[k - 1], order[k]
-            if label_ys[ci] - label_ys[pi] < 16:
-                label_ys[ci] = label_ys[pi] + 16
-                changed = True
-        if not changed:
-            break
+    label_ys: list[float] = []
+    if label_x is not None:
+        label_ys = [fy for _, fy in posicoes]
+        order = sorted(range(len(label_ys)), key=lambda i: label_ys[i])
+        for _ in range(8):
+            changed = False
+            for k in range(1, len(order)):
+                pi, ci = order[k - 1], order[k]
+                if label_ys[ci] - label_ys[pi] < 16:
+                    label_ys[ci] = label_ys[pi] + 16
+                    changed = True
+            if not changed:
+                break
 
     for i, f in enumerate(ferragens):
         fx, fy = posicoes[i]
-        lfy = max(gy + 5, min(gy + gh - 5, label_ys[i]))
-
         parts.append(_simbolo(f["tipo"], fx, fy, acab))
 
-        # Linha guia tracejada símbolo → label
-        ex = min(fx + 10, label_x - 4)
-        if abs(lfy - fy) > 6:
-            parts.append(_line(ex, fy, label_x - 4, lfy, _COR_LABEL, 0.5, "2 2"))
-        else:
-            parts.append(_line(ex, fy, label_x - 4, lfy, _COR_LABEL, 0.5))
-
-        cod = f.get("codigo", "")
-        nome = f.get("nome", "")
-        label = f"{cod}: {nome}" if cod else nome
-        parts.append(_text(label_x, lfy, label, _COR_LABEL, 8, "start"))
+        if label_x is not None:
+            lfy = max(gy + 5, min(gy + gh - 5, label_ys[i]))
+            ex = min(fx + 10, label_x - 4)
+            dash = "2 2" if abs(lfy - fy) > 6 else ""
+            parts.append(_line(ex, fy, label_x - 4, lfy, _COR_LABEL, 0.5, dash))
+            cod = f.get("codigo", "")
+            nome = f.get("nome", "")
+            label = f"{cod}: {nome}" if cod else nome
+            parts.append(_text(label_x, lfy, label, _COR_LABEL, 8, "start"))
 
     return "\n".join(parts)
+
+
+# ─── Indicadores de movimento ─────────────────────────────────────────────────
+
+def _ind_correr(gx, gy, gw, gh, borda) -> str:
+    cy = gy + gh * 0.5
+    cx = gx + gw / 2
+    hw = min(gw * 0.35, 30)
+    return "\n".join([
+        _arrow_h(cx + hw * 0.1, cy, cx - hw, borda, 5.0),
+        _arrow_h(cx - hw * 0.1, cy + 1, cx + hw, borda, 5.0),
+    ])
+
+
+def _ind_basculante(gx, gy, gw, gh, borda) -> str:
+    return _line(gx, gy + gh, gx + gw, gy, borda, 1.0, "6 3")
+
+
+def _ind_maxim(gx, gy, gw, gh, borda) -> str:
+    mx = gx + gw / 2
+    return "\n".join([
+        _line(gx + gw * 0.1, gy + gh * 0.5, mx, gy + gh * 0.15, borda, 1.2),
+        _line(gx + gw * 0.9, gy + gh * 0.5, mx, gy + gh * 0.15, borda, 1.2),
+    ])
+
+
+def _marcador_90(cx, cy, acab) -> str:
+    sz = 10
+    return "\n".join([
+        _line(cx, cy - sz, cx, cy, acab, 1.5),
+        _line(cx, cy, cx + sz, cy, acab, 1.5),
+        _circle(cx, cy, 2.5, acab, acab, 0),
+    ])
+
+
+# ─── Painel de vidro ──────────────────────────────────────────────────────────
+
+def _painel(gx, gy, gw, gh, fill, borda) -> list[str]:
+    hl_w = max(gw * 0.07 + 3, 6)
+    return [
+        _rect(gx, gy, gw, gh, fill, borda, 1.5),
+        _rect(gx, gy, gw, gh, "url(#gh)", "none", 0),
+        _rect(gx + 3, gy + 4, hl_w, gh - 8, "url(#vhl)", "none", 0),
+    ]
 
 
 # ─── Render principal ─────────────────────────────────────────────────────────
@@ -267,16 +358,13 @@ def render(tipologia: str, largura: float, altura: float,
     Renderiza uma tipologia como SVG de catálogo.
 
     Args:
-        tipologia: chave da tipologia (ex: 'porta', 'porta_correr_2_folhas')
-        largura: largura da peça em mm
-        altura: altura da peça em mm
-        cor: cor do vidro — incolor | verde | fume | bronze | azul | espelho
-        acabamento: acabamento da ferragem — cromado | inox | preto | dourado
-
-    Returns:
-        String SVG completa, viewBox 600×800
+        tipologia: chave da tipologia (ex: 'porta_correr_3_folhas')
+        largura:   largura total do sistema em mm
+        altura:    altura da peça em mm
+        cor:       incolor | verde | fume | bronze | azul | espelho
+        acabamento: cromado | inox | preto | dourado
     """
-    # ── 1. Consultar DB ───────────────────────────────────────────────────────
+    # ── 1. DB ─────────────────────────────────────────────────────────────────
     tipologia_dados: dict | None = None
     try:
         conn = sqlite3.connect(str(DB_PATH))
@@ -290,48 +378,68 @@ def render(tipologia: str, largura: float, altura: float,
     except Exception:
         pass
 
-    # ── 2. Coletar peças com ferragens ────────────────────────────────────────
-    # Cada entrada: (label_tipo, lista de ferragens avaliadas)
-    pieces: list[tuple[str, list[dict]]] = []
-    if tipologia_dados:
-        fpb = tipologia_dados.get("ferragens_por_peca", {})
-        for key in ("movel", "correr", "fixo", "fixa"):
-            lst = fpb.get(key) or []
-            if not lst:
-                continue
-            evaluated = []
-            for f in lst:
-                x = _eval_formula(f.get("x_formula", "0"), largura, altura)
-                y = _eval_formula(f.get("y_formula", "0"), largura, altura)
-                evaluated.append({**f, "x_mm": x, "y_mm": y})
-            pieces.append((key, evaluated))
+    # ── 2. Schema ─────────────────────────────────────────────────────────────
+    arrangement, panel_types = _SCHEMAS.get(tipologia, ("h", ["movel"]))
+    n = len(panel_types)
+    fpb: dict = tipologia_dados.get("ferragens_por_peca", {}) if tipologia_dados else {}
 
-    if not pieces:
-        pieces = [("vidro", [])]
-
-    # ── 3. Layout ─────────────────────────────────────────────────────────────
-    n = len(pieces)
-    area_w = VW - ML - MR
-    area_h = VH - MT - MB
-
-    sc = min(
-        (area_w - GAP_PX * (n - 1)) / (largura * n),
-        area_h / altura,
-    )
-    gw = largura * sc
-    gh = altura * sc
-
-    total_gw = gw * n + GAP_PX * (n - 1)
-    ox = ML + (area_w - total_gw) / 2
-    oy = MT + (area_h - gh) / 2
-
-    # ── 4. Cores ──────────────────────────────────────────────────────────────
+    # ── 3. Cores ──────────────────────────────────────────────────────────────
     vidro_fill, vidro_borda = _VIDRO.get(cor.lower(), _VIDRO["incolor"])
     acab = _ACABAMENTO.get(acabamento.lower(), _ACABAMENTO["cromado"])
 
-    # ── 5. Montar SVG ─────────────────────────────────────────────────────────
-    hatch_stroke = vidro_borda
+    # ── 4. Geometria ──────────────────────────────────────────────────────────
+    area_w = VW - ML - MR   # 423
+    area_h = VH - MT - MB   # 708
 
+    # panel_boxes: list of (gx, gy, gw, gh) in SVG px
+    panel_boxes: list[tuple[float, float, float, float]] = []
+    sc_f: float = 1.0        # escala usada para converter mm → px nas ferragens
+
+    if arrangement == "landscape":
+        sc = min(area_w / largura, area_h / altura)
+        pw, ph = largura * sc, altura * sc
+        ox = ML + (area_w - pw) / 2
+        oy = MT + (area_h - ph) / 2
+        panel_boxes = [(ox, oy, pw, ph)]
+        sc_f = sc
+
+    elif arrangement == "v":
+        band_mm = BANDEIRA_H_MM
+        total_mm = band_mm + GAP_V_MM + altura
+        sc = min(area_w / largura, area_h / total_mm)
+        pw       = largura * sc
+        ph_band  = band_mm * sc
+        ph_door  = altura  * sc
+        gap_sc   = GAP_V_MM * sc
+        ox = ML + (area_w - pw) / 2
+        total_px = ph_band + gap_sc + ph_door
+        oy = MT + (area_h - total_px) / 2
+        panel_boxes = [
+            (ox, oy, pw, ph_band),
+            (ox, oy + ph_band + gap_sc, pw, ph_door),
+        ]
+        sc_f = sc
+
+    else:  # "h" or "L"
+        gap = _gap_px(n)
+        pl_mm = largura / n          # largura por painel em mm (CRÍTICO)
+        sc = min((area_w - gap * (n - 1)) / largura, area_h / altura)
+        pw_panel = pl_mm * sc
+        gh = altura * sc
+        total_gw = pw_panel * n + gap * (n - 1)
+        ox = ML + (area_w - total_gw) / 2
+        oy = MT + (area_h - gh) / 2
+        panel_boxes = [(ox + i * (pw_panel + gap), oy, pw_panel, gh) for i in range(n)]
+        sc_f = sc
+
+    # métricas do conjunto para cotas/labels
+    gx0      = panel_boxes[0][0]
+    last_box = panel_boxes[-1]
+    total_gw_px = last_box[0] + last_box[2] - gx0
+    label_x     = last_box[0] + last_box[2] + 8
+
+    # ── 5. SVG header ─────────────────────────────────────────────────────────
+    hatch_stroke = vidro_borda
     defs = (
         "  <defs>\n"
         f'    <pattern id="gh" patternUnits="userSpaceOnUse" width="10" height="10">\n'
@@ -344,7 +452,6 @@ def render(tipologia: str, largura: float, altura: float,
         f'    </linearGradient>\n'
         f'  </defs>'
     )
-
     parts: list[str] = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         (f'<!-- VDX v2 | tipologia={tipologia} | {largura:.0f}x{altura:.0f}mm'
@@ -356,28 +463,58 @@ def render(tipologia: str, largura: float, altura: float,
         '  <g id="desenho">',
     ]
 
-    label_x = ox + total_gw + 8  # labels à direita de todas as peças
+    # ── 6. Cotas ──────────────────────────────────────────────────────────────
+    # Horizontal: sempre no topo do primeiro painel
+    parts.append(_cota_h(gx0, panel_boxes[0][1], total_gw_px, largura))
+    # Vertical: no painel de porta (índice 1 em "v", índice 0 nos demais)
+    v_box = panel_boxes[1] if arrangement == "v" else panel_boxes[0]
+    parts.append(_cota_v(v_box[0], v_box[1], v_box[3], altura))
 
-    for idx, (ptype, ferragens) in enumerate(pieces):
-        gx = ox + idx * (gw + GAP_PX)
-        gy = oy
+    # ── 7. Último painel com ferragens (recebe labels) ────────────────────────
+    label_panel_idx = -1
+    if arrangement != "landscape":
+        for i, pt in enumerate(panel_types):
+            if fpb.get(pt):
+                label_panel_idx = i
 
-        # Vidro: fill sólido + hatch overlay + highlight
-        parts.append(_rect(gx, gy, gw, gh, vidro_fill, vidro_borda, 1.5))
-        parts.append(_rect(gx, gy, gw, gh, "url(#gh)", "none", 0))
-        # Faixa de destaque (reflexo)
-        hl_w = max(gw * 0.07 + 3, 6)
-        parts.append(_rect(gx + 3, gy + 4, hl_w, gh - 8, "url(#vhl)", "none", 0))
+    # ── 8. Painéis ────────────────────────────────────────────────────────────
+    tip_lower = tipologia.lower()
+    for idx, (gx, gy, gw, gh) in enumerate(panel_boxes):
+        ptype = panel_types[idx] if idx < len(panel_types) else "fixo"
 
-        # Cotas somente na primeira peça
-        if idx == 0:
-            parts.append(_cotas(gx, gy, gw, gh, largura, altura))
+        parts.extend(_painel(gx, gy, gw, gh, vidro_fill, vidro_borda))
 
-        # Ferragens e labels
-        if ferragens:
-            parts.append(_ferragens_svg(ferragens, gx, gy, gw, gh, sc, acab, label_x))
+        # Indicadores de movimento
+        if ptype == "correr":
+            parts.append(_ind_correr(gx, gy, gw, gh, vidro_borda))
+        elif ptype == "movel":
+            if "basculante" in tip_lower:
+                parts.append(_ind_basculante(gx, gy, gw, gh, vidro_borda))
+            elif "maxim" in tip_lower:
+                parts.append(_ind_maxim(gx, gy, gw, gh, vidro_borda))
+
+        lst = fpb.get(ptype) or []
+        if not lst:
+            continue
+        # pl_mm e ph_mm derivados da caixa do painel (evita re-calcular)
+        pl_mm_panel = gw / sc_f
+        ph_mm_panel = gh / sc_f
+        evaluated = [
+            {**f,
+             "x_mm": _eval_formula(f.get("x_formula", "0"), pl_mm_panel, ph_mm_panel),
+             "y_mm": _eval_formula(f.get("y_formula", "0"), pl_mm_panel, ph_mm_panel)}
+            for f in lst
+        ]
+        lx = label_x if idx == label_panel_idx else None
+        parts.append(_ferragens_svg(evaluated, gx, gy, gw, gh, sc_f, acab, lx))
+
+    # ── 9. Marcador de canto 90° ──────────────────────────────────────────────
+    if arrangement == "L" and len(panel_boxes) >= 2:
+        # Ponto de junção: centro do gap, meia altura
+        jx = panel_boxes[0][0] + panel_boxes[0][2] + _gap_px(2) / 2
+        jy = panel_boxes[0][1] + panel_boxes[0][3] / 2
+        parts.append(_marcador_90(jx, jy, acab))
 
     parts.append("  </g>")
     parts.append("</svg>")
-
     return "\n".join(parts)

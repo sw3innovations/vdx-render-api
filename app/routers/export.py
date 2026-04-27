@@ -16,6 +16,28 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["export"])
 
+_CORES_EXPORT = {"incolor", "verde", "fume", "fumê", "bronze", "azul"}
+
+
+def _dims_from_export_request(body: RenderRequest) -> tuple[float, float]:
+    """Extrai (largura_total, altura_total) do RenderRequest para svg_renderer_v2."""
+    from app.renderers.svg_renderer_v2 import _SCHEMAS
+    pecas = body.pecas or []
+    if not pecas:
+        return 900.0, 2100.0
+    arrangement = _SCHEMAS.get(body.tipologia_nome or "", ("h", []))[0]
+    if arrangement == "v":
+        # Layout dupla-bandeira: Porta tem altura_mm == altura do sistema; Bandeira é fração.
+        # Usar max garante que extraímos a altura total do sistema, não a soma.
+        return max(p.largura_mm for p in pecas), max(p.altura_mm for p in pecas)
+    # Horizontal, L ou landscape: painéis lado a lado — somar larguras
+    return sum(p.largura_mm for p in pecas), max(p.altura_mm for p in pecas)
+
+
+def _cor_export(cor_vidro: str) -> str:
+    c = (cor_vidro or "incolor").lower().strip()
+    return c if c in _CORES_EXPORT else "incolor"
+
 
 # ─── Render + conversão imediata ─────────────────────────────────────────────
 
@@ -27,10 +49,19 @@ async def render_export_png(
     scale: float = Query(2.0, ge=0.5, le=4.0, description="Fator de escala (2.0 = retina)"),
     _auth: None = Depends(validate_api_key),
 ):
-    """Gera desenho técnico e retorna diretamente como PNG."""
-    resultado = await executar(body)
+    """Gera desenho técnico via svg_renderer_v2 e retorna como PNG."""
+    from app.renderers.svg_renderer_v2 import render as render_v2
+    if not body.tipologia_nome or not body.pecas:
+        raise HTTPException(status_code=400, detail="tipologia_nome e pecas são obrigatórios")
+    largura, altura = _dims_from_export_request(body)
+    cor = _cor_export(body.cor_vidro)
     try:
-        png = conversion_service.svg_para_png(resultado.svg, scale=scale)
+        svg = render_v2(body.tipologia_nome, largura, altura, cor=cor, acabamento="cromado")
+    except Exception as e:
+        log.error(f"render_v2 falhou para '{body.tipologia_nome}': {e}")
+        raise HTTPException(status_code=500, detail=f"Falha no renderer: {e}")
+    try:
+        png = conversion_service.svg_para_png(svg, scale=scale)
     except Exception as e:
         log.error(f"Erro na conversão SVG→PNG: {e}")
         raise HTTPException(status_code=500, detail=f"Falha na conversão PNG: {e}")
@@ -48,10 +79,19 @@ async def render_export_pdf(
     body: RenderRequest,
     _auth: None = Depends(validate_api_key),
 ):
-    """Gera desenho técnico e retorna diretamente como PDF."""
-    resultado = await executar(body)
+    """Gera desenho técnico via svg_renderer_v2 e retorna como PDF."""
+    from app.renderers.svg_renderer_v2 import render as render_v2
+    if not body.tipologia_nome or not body.pecas:
+        raise HTTPException(status_code=400, detail="tipologia_nome e pecas são obrigatórios")
+    largura, altura = _dims_from_export_request(body)
+    cor = _cor_export(body.cor_vidro)
     try:
-        pdf = conversion_service.svg_para_pdf(resultado.svg)
+        svg = render_v2(body.tipologia_nome, largura, altura, cor=cor, acabamento="cromado")
+    except Exception as e:
+        log.error(f"render_v2 falhou para '{body.tipologia_nome}': {e}")
+        raise HTTPException(status_code=500, detail=f"Falha no renderer: {e}")
+    try:
+        pdf = conversion_service.svg_para_pdf(svg)
     except Exception as e:
         log.error(f"Erro na conversão SVG→PDF: {e}")
         raise HTTPException(status_code=500, detail=f"Falha na conversão PDF: {e}")

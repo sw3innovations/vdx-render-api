@@ -276,7 +276,7 @@ async def tipologia_fotorrealista(
         media_type="image/png",
         headers={
             "Content-Disposition": f'inline; filename="{chave}_{int(largura)}x{int(altura)}_{cor_norm}_{acab_norm}.png"',
-            "Cache-Control": "public, max-age=86400",
+            "Cache-Control": "no-store",
         },
     )
 
