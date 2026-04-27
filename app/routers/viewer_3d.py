@@ -246,7 +246,7 @@ _ACABAMENTOS_VALIDOS = {"cromado", "inox", "dourado", "preto"}
 
 
 @router.get("/api/v1/tipologia/{chave}/fotorrealista")
-@limiter.limit("10/minute")
+@limiter.limit("60/minute")
 async def tipologia_fotorrealista(
     request: Request,
     chave: str,
