@@ -175,16 +175,21 @@ def render_geometria_livre(tipologia: TipologiaImportadaSchema) -> str:
                 parts.append(_ind_pivotante(gx, gy, gw, gh, vidro_borda))
 
         if painel.ferragens:
-            ferragens_dict = [
-                {
+            from app.services.ferragem_lookup import buscar_dimensoes_puxador
+            ferragens_dict = []
+            for f in painel.ferragens:
+                entry: dict = {
                     "tipo": f.tipo,
                     "codigo": f.codigo,
                     "nome": f.tipo,
                     "x_mm": f.x_mm,
                     "y_mm": f.y_mm,
                 }
-                for f in painel.ferragens
-            ]
+                if "puxador" in f.tipo.lower():
+                    dims = buscar_dimensoes_puxador(f.codigo, f.fabricante_id)
+                    if dims is not None:
+                        entry["dimensoes"] = dims
+                ferragens_dict.append(entry)
             lx = label_x if idx == n - 1 else None
             parts.append(_ferragens_svg(ferragens_dict, gx, gy, gw, gh, sc, acab, lx))
 

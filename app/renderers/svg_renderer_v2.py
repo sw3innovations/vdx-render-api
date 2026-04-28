@@ -291,7 +291,12 @@ def _ferragens_svg(ferragens: list[dict], gx, gy, gw, gh, sc,
 
     for i, f in enumerate(ferragens):
         fx, fy = posicoes[i]
-        parts.append(_simbolo(f["tipo"], fx, fy, acab))
+        dimensoes = f.get("dimensoes")
+        if dimensoes is not None and "puxador" in f["tipo"].lower():
+            from app.renderers._helpers_ferragens import desenhar_puxador_dinamico
+            parts.append(desenhar_puxador_dinamico(dimensoes, fx, fy, sc, acab))
+        else:
+            parts.append(_simbolo(f["tipo"], fx, fy, acab))
 
         if label_x is not None:
             lfy = max(gy + 5, min(gy + gh - 5, label_ys[i]))
@@ -385,14 +390,38 @@ def render(tipologia: str, largura: float, altura: float,
     n = len(panel_types)
     fpb: dict = tipologia_dados.get("ferragens_por_peca", {}) if tipologia_dados else {}
 
-    # ── 2b. Override de puxador (Fase 1: label only, sem novo desenho) ────────
+    # ── 2b. Override de puxador: injeta código + dimensões reais do catálogo ────
     if puxador_codigo:
         import copy
+        from app.services.ferragem_lookup import buscar_dimensoes_puxador
         fpb = copy.deepcopy(fpb)
+        dims = buscar_dimensoes_puxador(puxador_codigo)
+        dimensoes_entry = dims if dims is not None else {}
+
+        # Caso 1: puxador já listado em fpb (outras tipologias)
+        found_in_fpb = False
         for ptype in list(fpb.keys()):
             for entry in fpb[ptype]:
                 if isinstance(entry, dict) and entry.get("tipo") == "puxador":
                     entry["codigo"] = puxador_codigo
+                    entry["dimensoes"] = dimensoes_entry
+                    found_in_fpb = True
+
+        # Caso 2: puxador definido via puxador_config dentro de ferragens_por_peca
+        if not found_in_fpb and fpb.get("puxador_config"):
+            pc = fpb["puxador_config"]
+            puxador_entry = {
+                "codigo": puxador_codigo,
+                "nome": "Puxador",
+                "tipo": "puxador",
+                "x_formula": pc.get("x_formula", "largura - 35"),
+                "y_formula": pc.get("y_formula", "altura * 0.50"),
+                "dimensoes": dimensoes_entry,
+            }
+            target_ptype = next(
+                (pt for pt in panel_types if pt == "movel"), panel_types[0]
+            )
+            fpb.setdefault(target_ptype, []).append(puxador_entry)
 
     # ── 3. Cores ──────────────────────────────────────────────────────────────
     vidro_fill, vidro_borda = _VIDRO.get(cor.lower(), _VIDRO["incolor"])
