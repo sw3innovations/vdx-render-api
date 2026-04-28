@@ -11,21 +11,33 @@ class FerragemPosicaoSchema(BaseModel):
     y_mm: float = Field(..., ge=0)
 
 
+class AberturaSchema(BaseModel):
+    modo: Literal["abrir", "correr", "basculante", "maxim_ar", "pivotante"]
+    lado_dobradica: Optional[Literal["esquerda", "direita", "topo", "base"]] = None
+    angulo_max_graus: Optional[int] = 90
+
+
 class PainelSchema(BaseModel):
     nome: str = Field(..., min_length=1, max_length=100)
     largura_mm: float = Field(..., ge=100, le=6000)
     altura_mm: float = Field(..., ge=100, le=6000)
     classificacao: Literal["movel", "fixo", "correr", "bandeira"] = "movel"
     ferragens: list[FerragemPosicaoSchema] = []
+    posicao_x_mm: Optional[float] = None
+    posicao_y_mm: Optional[float] = None
+    abertura: Optional[AberturaSchema] = None
 
 
 class OpcoesRenderSchema(BaseModel):
     cor: Literal["incolor", "verde", "fume", "bronze", "azul", "espelho"] = "incolor"
     acabamento: Literal["cromado", "inox", "preto", "dourado"] = "cromado"
     incluir_png: bool = True
+    incluir_pdf: bool = False
+    incluir_3d: bool = False
 
 
 class TipologiaImportadaSchema(BaseModel):
     nome: str = Field(..., min_length=1, max_length=200)
+    categoria: Optional[Literal["porta", "janela", "box", "outro"]] = None
     paineis: list[PainelSchema] = Field(..., min_length=1)
     opcoes: OpcoesRenderSchema = OpcoesRenderSchema()
