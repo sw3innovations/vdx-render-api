@@ -681,6 +681,30 @@ def seed():
         for alias in alias_list:
             registrar_alias(alias, canonical, "classificacao_peca")
 
+    # ═══ FERRAGENS — seed mínimo para testes (CI / fresh DB) ═════════════════
+    from app.core.constitution import _get_conn
+    _conn = _get_conn()
+    _conn.executemany(
+        "INSERT OR IGNORE INTO fabricantes (id, nome, prefixo) VALUES (?, ?, ?)",
+        [
+            ("HE", "HELA",       "HE"),
+            ("SM", "Glasspecas", "SM"),
+        ],
+    )
+    _conn.executemany(
+        "INSERT OR IGNORE INTO ferragens"
+        " (codigo, codigo_normalizado, fabricante_id, nome, tipo, material,"
+        "  dimensoes_json, espessura_vidro, confianca, fonte)"
+        " VALUES (?, ?, ?, ?, ?, ?, '{}', '[]', 1.0, 'seed')",
+        [
+            ("AL1629A", "1629", "HE", "Puxador HE 1629A",  "puxador",  "Alumínio"),
+            ("SM1101",  "1101", "SM", "Dobradiça SM 1101", "dobradica","Aço Inox"),
+            ("SM1201",  "1201", "SM", "Pivô SM 1201",      "pivo",     "Aço Inox"),
+        ],
+    )
+    _conn.commit()
+    _conn.close()
+
     log.info("Seed completo. Entries e aliases registrados.")
 
 
