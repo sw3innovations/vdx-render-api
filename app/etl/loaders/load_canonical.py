@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass, field
 
@@ -25,6 +26,8 @@ class ETLStats:
     modelos: int = 0
     pecas_geometria: int = 0
     ferragens: int = 0
+    ferragens_render: int = 0
+    ferragens_fundidas: int = 0
     auditoria_entries: int = 0
     erros: list[str] = field(default_factory=list)
 
@@ -50,6 +53,7 @@ class CanonicalLoader:
         self._load_modelos(stats)
         self._load_pecas_geometria(stats)
         self._load_ferragens_catalogo(stats)
+        self._load_ferragens_render(stats)
         self._conn.commit()
         self._log_audit(stats)
         return stats
@@ -226,6 +230,109 @@ class CanonicalLoader:
             )
             stats.ferragens += 1
 
+    # ── ferragens do Render ───────────────────────────────────────────────────
+
+    def _extrair_material_id(self, material_text: str | None) -> int | None:
+        if not material_text:
+            return None
+        tokens = re.split(r'[,/]|\se\s| ', material_text)
+        for token in tokens:
+            token = token.strip()
+            if not token:
+                continue
+            codigo = normalizar_material(token)
+            if codigo != "OUTRO":
+                mat_id = linker.lookup_material_id(self._conn, codigo)
+                if mat_id is not None:
+                    return mat_id
+        return None
+
+    def _load_ferragens_render(self, stats: ETLStats) -> None:
+        rows = self._conn.execute(
+            """SELECT f.codigo, f.codigo_normalizado, f.fabricante_id, f.nome,
+                      f.tipo, f.material, f.dimensoes_json
+               FROM ferragens f"""
+        ).fetchall()
+
+        for codigo, codigo_norm, fabricante_id, nome, tipo, material, dims_raw in rows:
+            dims = {}
+            if dims_raw:
+                try:
+                    dims = json.loads(dims_raw)
+                except (json.JSONDecodeError, TypeError):
+                    dims = {}
+
+            comprimento_mm = dims.get("comprimento")
+            largura_mm = dims.get("largura")
+            profundidade_mm = dims.get("profundidade")
+            diametro_mm = dims.get("diametro")
+            mat_id = self._extrair_material_id(material)
+
+            existing = self._conn.execute(
+                "SELECT id, fontes_json FROM ferragens_canonicas WHERE codigo_normalizado = ? LIMIT 1",
+                (codigo_norm,),
+            ).fetchone()
+
+            if existing:
+                can_id, fontes_raw = existing
+                fontes = json.loads(fontes_raw) if fontes_raw else []
+                if "render" not in fontes:
+                    fontes.append("render")
+                    self._conn.execute(
+                        "UPDATE ferragens_canonicas SET fontes_json = ? WHERE id = ?",
+                        (json.dumps(fontes), can_id),
+                    )
+                self._conn.execute(
+                    """INSERT OR IGNORE INTO ferragens_aliases
+                       (ferragem_id, codigo_alias, fabricante, fonte)
+                       VALUES (?,?,?,?)""",
+                    (can_id, codigo, fabricante_id, "render"),
+                )
+                stats.ferragens_fundidas += 1
+            else:
+                self._conn.execute(
+                    """INSERT OR IGNORE INTO ferragens_canonicas
+                       (codigo_normalizado, tipo, nome_apresentacao,
+                        material_id, acabamento_id, fabricante_codigo,
+                        comprimento_mm, largura_mm, profundidade_mm, diametro_mm, fontes_json)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        codigo_norm, tipo, nome,
+                        mat_id, None, fabricante_id,
+                        comprimento_mm, largura_mm, profundidade_mm, diametro_mm,
+                        json.dumps(["render"]),
+                    ),
+                )
+                can_row = self._conn.execute(
+                    "SELECT id FROM ferragens_canonicas WHERE codigo_normalizado = ? LIMIT 1",
+                    (codigo_norm,),
+                ).fetchone()
+                if can_row:
+                    self._conn.execute(
+                        """INSERT OR IGNORE INTO ferragens_aliases
+                           (ferragem_id, codigo_alias, fabricante, fonte)
+                           VALUES (?,?,?,?)""",
+                        (can_row[0], codigo, fabricante_id, "render"),
+                    )
+                stats.ferragens_render += 1
+
+        # Aliases from equivalencias table
+        equiv_rows = self._conn.execute(
+            "SELECT codigo_normalizado, fabricante_id, codigo_fabricante FROM equivalencias"
+        ).fetchall()
+        for eq_norm, eq_fab, eq_codigo_fab in equiv_rows:
+            can_row = self._conn.execute(
+                "SELECT id FROM ferragens_canonicas WHERE codigo_normalizado = ? LIMIT 1",
+                (eq_norm,),
+            ).fetchone()
+            if can_row:
+                self._conn.execute(
+                    """INSERT OR IGNORE INTO ferragens_aliases
+                       (ferragem_id, codigo_alias, fabricante, fonte)
+                       VALUES (?,?,?,?)""",
+                    (can_row[0], eq_codigo_fab, eq_fab, f"equivalencias_{eq_fab}"),
+                )
+
     # ── auditoria ─────────────────────────────────────────────────────────────
 
     def _log_audit(self, stats: ETLStats) -> None:
@@ -236,7 +343,8 @@ class CanonicalLoader:
             ("load_tipologias","CanonicalLoader", "tipologias_canonicas",      stats.tipologias,  stats.tipologias,  0),
             ("load_modelos",   "CanonicalLoader", "modelos_canonicos",         stats.modelos,     stats.modelos,     len(stats.erros)),
             ("load_pecas",     "CanonicalLoader", "pecas_geometria_canonicas", stats.pecas_geometria, stats.pecas_geometria, 0),
-            ("load_ferragens", "CanonicalLoader", "ferragens_canonicas",       stats.ferragens,   stats.ferragens,   0),
+            ("load_ferragens",        "CanonicalLoader", "ferragens_canonicas", stats.ferragens,       stats.ferragens,       0),
+            ("load_ferragens_render", "CanonicalLoader", "ferragens_canonicas", stats.ferragens_render + stats.ferragens_fundidas, stats.ferragens_render, 0),
         ]
         for estagio, transformer, tabela, processados, aceitos, rejeitados in entries:
             self._conn.execute(
