@@ -38,7 +38,7 @@ def seed():
                 "x_formula": "largura - 35",
                 "lado": "direito",
                 "aceita_eixo": True,
-                "default": {"codigo": "1502", "nome": "Puxador Barra", "visual": "barra"}
+                "default": {"codigo": "PUXADOR 200", "fabricante_id": "HE", "nome": "Puxador Barra", "visual": "barra"}
             }
         },
         "kit": {
@@ -79,7 +79,7 @@ def seed():
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 35",
                 "lado": "direito", "aceita_eixo": True,
-                "default": {"codigo": "1502", "nome": "Puxador Barra", "visual": "barra"}
+                "default": {"codigo": "PUXADOR 200", "fabricante_id": "HE", "nome": "Puxador Barra", "visual": "barra"}
             }
         },
         "kit": {
@@ -116,7 +116,7 @@ def seed():
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 40",
                 "lado": "direito", "aceita_eixo": False,
-                "default": {"codigo": "1504", "nome": "Puxador Botão", "visual": "circulo"}
+                "default": {"codigo": "1629", "fabricante_id": "HE", "nome": "Puxador Botão", "visual": "circulo"}
             }
         },
         "kit": {
@@ -151,7 +151,7 @@ def seed():
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 40",
                 "lado": "direito", "aceita_eixo": False,
-                "default": {"codigo": "1504", "nome": "Puxador Botão", "visual": "circulo"}
+                "default": {"codigo": "1629", "fabricante_id": "HE", "nome": "Puxador Botão", "visual": "circulo"}
             }
         },
         "kit": {
@@ -189,7 +189,8 @@ def seed():
             ],
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura / 2",
-                "lado": "centro", "aceita_eixo": True
+                "lado": "centro", "aceita_eixo": True,
+                "default": {"codigo": "1629", "fabricante_id": "HE", "nome": "Puxador Botão", "visual": "circulo"}
             }
         },
         "kit": {
@@ -311,7 +312,8 @@ def seed():
             ],
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 35",
-                "lado": "direito", "aceita_eixo": True
+                "lado": "direito", "aceita_eixo": True,
+                "default": {"codigo": "PUXADOR 200", "fabricante_id": "HE", "nome": "Puxador Barra", "visual": "barra"}
             }
         },
         "kit": {
@@ -373,7 +375,7 @@ def seed():
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 35",
                 "lado": "direito", "aceita_eixo": True,
-                "default": {"codigo": "1502", "nome": "Puxador Barra", "visual": "barra"}
+                "default": {"codigo": "PUXADOR 200", "fabricante_id": "HE", "nome": "Puxador Barra", "visual": "barra"}
             }
         },
         "kit": {
@@ -410,7 +412,8 @@ def seed():
             ],
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura / 2",
-                "lado": "centro", "aceita_eixo": True
+                "lado": "centro", "aceita_eixo": True,
+                "default": {"codigo": "1629", "fabricante_id": "HE", "nome": "Puxador Botão", "visual": "circulo"}
             }
         },
         "kit": {
@@ -444,7 +447,7 @@ def seed():
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 40",
                 "lado": "direito", "aceita_eixo": False,
-                "default": {"codigo": "1504", "nome": "Puxador Botão", "visual": "circulo"}
+                "default": {"codigo": "1629", "fabricante_id": "HE", "nome": "Puxador Botão", "visual": "circulo"}
             }
         },
         "kit": {
@@ -480,7 +483,8 @@ def seed():
             ],
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura / 2",
-                "lado": "centro", "aceita_eixo": True
+                "lado": "centro", "aceita_eixo": True,
+                "default": {"codigo": "1629", "fabricante_id": "HE", "nome": "Puxador Botão", "visual": "circulo"}
             }
         },
         "kit": {
@@ -586,7 +590,8 @@ def seed():
             ],
             "puxador_config": {
                 "y_formula": "altura * 0.50", "x_formula": "largura - 35",
-                "lado": "direito", "aceita_eixo": True
+                "lado": "direito", "aceita_eixo": True,
+                "default": {"codigo": "PUXADOR 200", "fabricante_id": "HE", "nome": "Puxador Barra", "visual": "barra"}
             }
         },
         "kit": {

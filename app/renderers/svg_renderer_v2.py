@@ -419,9 +419,33 @@ def render(tipologia: str, largura: float, altura: float,
                 "dimensoes": dimensoes_entry,
             }
             target_ptype = next(
-                (pt for pt in panel_types if pt == "movel"), panel_types[0]
+                (pt for pt in panel_types if pt in ("movel", "correr")), panel_types[-1]
             )
             fpb.setdefault(target_ptype, []).append(puxador_entry)
+
+    # ── 2c. Puxador padrão: sem puxador_codigo mas puxador_config tem default ──
+    elif not puxador_codigo and fpb.get("puxador_config"):
+        pc = fpb["puxador_config"]
+        pc_default = pc.get("default")
+        if pc_default:
+            import copy
+            from app.services.ferragem_lookup import buscar_dimensoes_puxador
+            fpb = copy.deepcopy(fpb)
+            default_cod = pc_default.get("codigo")
+            dims = buscar_dimensoes_puxador(default_cod) if default_cod else None
+            default_entry: dict = {
+                "codigo": default_cod,
+                "nome": pc_default.get("nome", "Puxador"),
+                "tipo": "puxador",
+                "x_formula": pc.get("x_formula", "largura - 35"),
+                "y_formula": pc.get("y_formula", "altura * 0.50"),
+            }
+            if dims is not None:
+                default_entry["dimensoes"] = dims
+            target_ptype = next(
+                (pt for pt in panel_types if pt in ("movel", "correr")), panel_types[-1]
+            )
+            fpb.setdefault(target_ptype, []).append(default_entry)
 
     # ── 3. Cores ──────────────────────────────────────────────────────────────
     vidro_fill, vidro_borda = _VIDRO.get(cor.lower(), _VIDRO["incolor"])

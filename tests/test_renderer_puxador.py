@@ -99,3 +99,35 @@ def test_render_com_codigo_inexistente_fallback_padrao_sem_quebrar():
     svg = render("porta_abrir", 900, 2100, puxador_codigo="CODIGO_INEXISTENTE_99999")
     assert "<svg" in svg
     assert "<!-- puxador padrão (sem dimensões) -->" in svg
+
+
+# ─── Causa 1 — default puxador quando nenhum puxador_codigo selecionado ──────
+
+def test_render_porta_abrir_default_mostra_puxador_barra():
+    from app.renderers.svg_renderer_v2 import render
+    svg = render("porta_abrir", 900, 2100)
+    # PUXADOR 200 (barra, comprimento=200) → desenhar_puxador_dinamico → +2 circles (endcaps) +1 rect
+    circles = svg.count("<circle")
+    assert circles > 5, f"Esperado >5 círculos (puxador padrão deve aparecer), got {circles}"
+
+
+def test_render_porta_abrir_default_diferente_de_puxador_400():
+    from app.renderers.svg_renderer_v2 import render
+    svg_default = render("porta_abrir", 900, 2100)
+    svg_400 = render("porta_abrir", 900, 2100, puxador_codigo="PUXADOR 400")
+    assert svg_default != svg_400, "SVG default (PUXADOR 200) deve diferir do PUXADOR 400"
+
+
+def test_render_porta_correr_default_mostra_puxador_botao():
+    from app.renderers.svg_renderer_v2 import render
+    svg = render("porta_correr_2_folhas", 1200, 2100)
+    # 1629 HE (diâmetro 18mm) → círculo → +2 circles
+    circles = svg.count("<circle")
+    assert circles > 5, f"Esperado >5 círculos (puxador botão default), got {circles}"
+
+
+def test_render_default_nao_quebra_sem_puxador_config():
+    from app.renderers.svg_renderer_v2 import render
+    # fachada_fixa não tem puxador_config → deve renderizar normalmente
+    svg = render("fachada_fixa", 1200, 2100)
+    assert "<svg" in svg
