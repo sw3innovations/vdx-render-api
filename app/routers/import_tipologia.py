@@ -1,4 +1,5 @@
 """Router de importação de tipologia livre — POST /api/v1/import/tipologia."""
+import json
 import uuid
 from pathlib import Path
 
@@ -78,7 +79,7 @@ async def importar_tipologia(
         except Exception as exc:
             avisos.append(f"Viewer 3D não gerado: {exc}")
 
-    return JSONResponse({
+    manifest = {
         "tipologia_chave": uid,
         "svg": svg,
         "png_url": png_url,
@@ -86,4 +87,20 @@ async def importar_tipologia(
         "viewer_3d_url": viewer_3d_url,
         "ferragens_resolvidas": ferragens_resolvidas,
         "avisos": avisos,
-    })
+    }
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    except Exception:
+        pass
+
+    return JSONResponse(manifest)
+
+
+@router.get("/{chave}")
+def recuperar_tipologia(chave: str) -> JSONResponse:
+    """Retorna manifest persistido de uma importação anterior."""
+    manifest_path = _UPLOADS / chave / "manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Tipologia não encontrada")
+    return JSONResponse(json.loads(manifest_path.read_text(encoding="utf-8")))

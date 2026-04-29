@@ -56,8 +56,16 @@ export default function HomePage() {
               Configurador de esquadrias de vidro — visualização 3D fotorrealista
             </p>
           </div>
-          <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
-            {TIPOLOGIAS_V1.length} tipologias
+          <div className="flex items-center gap-4">
+            <Link
+              href="/importar"
+              className="hidden sm:flex items-center gap-1.5 text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors"
+            >
+              ↑ Importar JSON
+            </Link>
+            <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
+              {TIPOLOGIAS_V1.length} tipologias
+            </div>
           </div>
         </div>
       </header>
