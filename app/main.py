@@ -20,7 +20,7 @@ from app import __version__
 from app.config import settings
 from app.core.limiter import limiter
 from app.models.error import ErrorResponse, status_to_code
-from app.routers import render, chat, feedback, preview, tipologia_image, tipologia_sync, export, viewer_3d, proposal, smart_vision, catalogo, import_tipologia
+from app.routers import render, chat, feedback, preview, tipologia_image, tipologia_sync, export, viewer_3d, proposal, smart_vision, catalogo, import_tipologia, dump_query, catalogo_query
 from app.core.constitution import init_db
 from app.core.constitution_seed import seed as _constitution_seed
 
@@ -153,6 +153,8 @@ app.include_router(proposal.router)
 app.include_router(smart_vision.router)
 app.include_router(catalogo.router)
 app.include_router(import_tipologia.router)
+app.include_router(dump_query.router)
+app.include_router(catalogo_query.router)
 
 
 # ─── Middlewares ──────────────────────────────────────────────────────────────

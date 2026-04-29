@@ -247,6 +247,144 @@ def _m006_cleanup_artefatos(conn) -> None:
     )
 
 
+def _m007_dump_tabelas(conn) -> None:
+    """Sprint 9 — tabelas dump_* para dados importados do sistema legado VDX."""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS dump_tipologias (
+            nu_tip       INTEGER PRIMARY KEY,
+            ds_tmd       TEXT NOT NULL,
+            id_ativo     TEXT,
+            sacada       TEXT,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS dump_modelos (
+            nu_mod       INTEGER PRIMARY KEY,
+            ds_mod       TEXT NOT NULL,
+            nu_tip       INTEGER,
+            div_largura  INTEGER,
+            div_altura   INTEGER,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_dump_modelos_tip ON dump_modelos(nu_tip);
+
+        CREATE TABLE IF NOT EXISTS dump_geometria_pecas (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            nu_dmd       INTEGER,
+            nu_mod       INTEGER NOT NULL,
+            nu_peca      INTEGER NOT NULL,
+            eixo_x_alt   REAL,
+            eixo_x_lar   REAL,
+            eixo_y_alt   REAL,
+            eixo_y_lar   REAL,
+            ds_formula_alt TEXT,
+            ds_formula_lar TEXT,
+            ds_tipo      TEXT,
+            ds_peca      TEXT,
+            ds_descricao TEXT,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(nu_mod, nu_peca)
+        );
+        CREATE INDEX IF NOT EXISTS idx_dump_geo_mod  ON dump_geometria_pecas(nu_mod);
+        CREATE INDEX IF NOT EXISTS idx_dump_geo_tipo ON dump_geometria_pecas(ds_tipo);
+
+        CREATE TABLE IF NOT EXISTS dump_variaveis_altura (
+            nu_mda        INTEGER PRIMARY KEY,
+            nu_mod        INTEGER NOT NULL,
+            ds_altura     TEXT,
+            var_altura    INTEGER,
+            altura_padrao REAL,
+            importado_em  TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_dump_var_alt_mod ON dump_variaveis_altura(nu_mod);
+        CREATE INDEX IF NOT EXISTS idx_dump_var_alt_ds  ON dump_variaveis_altura(ds_altura);
+
+        CREATE TABLE IF NOT EXISTS dump_variaveis_largura (
+            nu_mdl        INTEGER PRIMARY KEY,
+            nu_mod        INTEGER NOT NULL,
+            ds_largura    TEXT,
+            var_largura   INTEGER,
+            largura_padrao REAL,
+            importado_em  TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_dump_var_larg_mod ON dump_variaveis_largura(nu_mod);
+
+        CREATE TABLE IF NOT EXISTS dump_formulas_marcacao (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            nu_mod       INTEGER,
+            ds_formula   TEXT,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS dump_categorias_ferragens (
+            nu_cat       INTEGER PRIMARY KEY,
+            ds_cat       TEXT NOT NULL,
+            id_ativo     TEXT,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS dump_ferragens_individuais (
+            nu_fer       INTEGER PRIMARY KEY,
+            ds_fer       TEXT,
+            nu_cat       INTEGER,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS dump_projetos_anonimizados (
+            nu_prj_hash  TEXT PRIMARY KEY,
+            nu_mod       INTEGER,
+            largura_mm   REAL,
+            altura_mm    REAL,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+    """)
+
+
+def _m008_catalogo_tabelas(conn) -> None:
+    """Sprint 9 — tabelas catalogo_* para produtos de catálogos PDF de puxadores."""
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS catalogo_fabricantes (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo       TEXT NOT NULL UNIQUE,
+            nome         TEXT,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS catalogo_puxadores (
+            id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+            fabricante_id        TEXT NOT NULL,
+            codigo               TEXT,
+            codigo_normalizado   TEXT,
+            nome                 TEXT,
+            tipo_visual          TEXT,
+            comp_mm              REAL,
+            diametro_mm          REAL,
+            largura_mm           REAL,
+            altura_mm            REAL,
+            profundidade_mm      REAL,
+            distancia_furos_mm   REAL,
+            material             TEXT,
+            acabamento           TEXT,
+            observacoes          TEXT,
+            pagina_origem        INTEGER,
+            importado_em         TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_cat_pux_fab      ON catalogo_puxadores(fabricante_id);
+        CREATE INDEX IF NOT EXISTS idx_cat_pux_codigo   ON catalogo_puxadores(codigo_normalizado);
+        CREATE INDEX IF NOT EXISTS idx_cat_pux_tipo     ON catalogo_puxadores(tipo_visual);
+        CREATE INDEX IF NOT EXISTS idx_cat_pux_material ON catalogo_puxadores(material);
+
+        CREATE TABLE IF NOT EXISTS catalogo_puxador_equivalencias (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            puxador_a_id INTEGER NOT NULL,
+            puxador_b_id INTEGER NOT NULL,
+            tipo_equiv   TEXT,
+            importado_em TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(puxador_a_id, puxador_b_id)
+        );
+    """)
+
+
 # Registro central — adicionar novas migrações AQUI (nunca alterar as anteriores)
 _MIGRATIONS = [
     (1, "create_fabricantes_ferragens_kits",  _m001_fabricantes_ferragens_kits),
@@ -255,7 +393,8 @@ _MIGRATIONS = [
     (4, "add_contexto_aplicacao",             _m004_add_contexto_aplicacao),
     (5, "normalize_formula_vars",             _m005_normalize_formula_vars),
     (6, "cleanup_artefatos_teste",            _m006_cleanup_artefatos),
-    # Sprint 5+: (7, "descricao", _m007_fn), ...
+    (7, "dump_tabelas",                       _m007_dump_tabelas),
+    (8, "catalogo_tabelas",                   _m008_catalogo_tabelas),
 ]
 
 
