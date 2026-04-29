@@ -385,6 +385,158 @@ def _m008_catalogo_tabelas(conn) -> None:
     """)
 
 
+def _m009_canonical_schema(conn) -> None:
+    """Sprint 10 — schema canônico 3NF unificando Render + Dump VDX + Catálogo PDF."""
+    conn.executescript("""
+        -- ── lookup: materiais ────────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS materiais_canonicos (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo            TEXT NOT NULL UNIQUE,
+            nome_apresentacao TEXT NOT NULL,
+            densidade_kg_m3   REAL,
+            observacoes       TEXT,
+            created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS materiais_aliases (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            material_id  INTEGER NOT NULL REFERENCES materiais_canonicos(id),
+            alias        TEXT NOT NULL,
+            fonte        TEXT NOT NULL,
+            UNIQUE(alias, fonte)
+        );
+        CREATE INDEX IF NOT EXISTS idx_mat_aliases_alias ON materiais_aliases(alias);
+
+        -- ── lookup: acabamentos ───────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS acabamentos_canonicos (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo            TEXT NOT NULL UNIQUE,
+            nome_apresentacao TEXT NOT NULL,
+            created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS acabamentos_aliases (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            acabamento_id  INTEGER NOT NULL REFERENCES acabamentos_canonicos(id),
+            alias          TEXT NOT NULL,
+            fonte          TEXT NOT NULL,
+            UNIQUE(alias, fonte)
+        );
+        CREATE INDEX IF NOT EXISTS idx_acab_aliases_alias ON acabamentos_aliases(alias);
+
+        -- ── lookup: variaveis ─────────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS variaveis_canonicas (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo            TEXT NOT NULL UNIQUE,
+            nome_apresentacao TEXT NOT NULL,
+            eixo              TEXT NOT NULL CHECK(eixo IN ('altura','largura','neutro')),
+            unidade           TEXT NOT NULL DEFAULT 'mm',
+            descricao         TEXT,
+            created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS variaveis_aliases (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            variavel_id INTEGER NOT NULL REFERENCES variaveis_canonicas(id),
+            alias       TEXT NOT NULL,
+            fonte       TEXT NOT NULL,
+            UNIQUE(alias, fonte)
+        );
+        CREATE INDEX IF NOT EXISTS idx_var_aliases_alias ON variaveis_aliases(alias);
+
+        -- ── tipologias canônicas ──────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS tipologias_canonicas (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo            TEXT NOT NULL UNIQUE,
+            nome_apresentacao TEXT NOT NULL,
+            categoria         TEXT,
+            schema_render     TEXT,
+            nu_tip_dump       INTEGER,
+            fonte_origem      TEXT,
+            created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_tip_can_nu_tip ON tipologias_canonicas(nu_tip_dump);
+
+        -- ── modelos canônicos ─────────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS modelos_canonicos (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            tipologia_id  INTEGER NOT NULL REFERENCES tipologias_canonicas(id),
+            nu_mod_dump   INTEGER UNIQUE,
+            nome          TEXT,
+            nome_inferido INTEGER NOT NULL DEFAULT 0,
+            largura_div   INTEGER,
+            altura_div    INTEGER,
+            fonte_origem  TEXT,
+            created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_mod_can_tipologia ON modelos_canonicos(tipologia_id);
+
+        -- ── ferragens canônicas ───────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS ferragens_canonicas (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo_normalizado  TEXT NOT NULL,
+            tipo                TEXT,
+            subtipo             TEXT,
+            nome_apresentacao   TEXT NOT NULL,
+            material_id         INTEGER REFERENCES materiais_canonicos(id),
+            acabamento_id       INTEGER REFERENCES acabamentos_canonicos(id),
+            fabricante_codigo   TEXT,
+            comprimento_mm      REAL,
+            diametro_mm         REAL,
+            largura_mm          REAL,
+            altura_mm           REAL,
+            profundidade_mm     REAL,
+            distancia_furos_mm  REAL,
+            fontes_json         TEXT,
+            observacoes         TEXT,
+            created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(codigo_normalizado, fabricante_codigo)
+        );
+        CREATE INDEX IF NOT EXISTS idx_ferr_can_codigo  ON ferragens_canonicas(codigo_normalizado);
+        CREATE INDEX IF NOT EXISTS idx_ferr_can_fab     ON ferragens_canonicas(fabricante_codigo);
+        CREATE INDEX IF NOT EXISTS idx_ferr_can_tipo    ON ferragens_canonicas(tipo);
+        CREATE TABLE IF NOT EXISTS ferragens_aliases (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            ferragem_id  INTEGER NOT NULL REFERENCES ferragens_canonicas(id),
+            codigo_alias TEXT NOT NULL,
+            fabricante   TEXT,
+            fonte        TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_ferr_aliases_codigo ON ferragens_aliases(codigo_alias);
+
+        -- ── peças geometria canônicas ─────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS pecas_geometria_canonicas (
+            id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+            modelo_id                INTEGER NOT NULL REFERENCES modelos_canonicos(id),
+            nu_peca                  INTEGER NOT NULL,
+            ds_peca                  TEXT,
+            tipo_peca                TEXT,
+            eixo_x_alt               REAL,
+            eixo_y_alt               REAL,
+            eixo_x_larg              REAL,
+            eixo_y_larg              REAL,
+            formula_alt_original     TEXT,
+            formula_alt_normalizada  TEXT,
+            formula_larg_original    TEXT,
+            formula_larg_normalizada TEXT,
+            fonte_origem             TEXT,
+            created_at               TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_pec_geo_can_modelo ON pecas_geometria_canonicas(modelo_id);
+
+        -- ── auditoria ETL ─────────────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS etl_auditoria (
+            id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp                TEXT NOT NULL DEFAULT (datetime('now')),
+            estagio                  TEXT NOT NULL,
+            transformer              TEXT,
+            tabela_destino           TEXT,
+            registros_processados    INTEGER DEFAULT 0,
+            registros_aceitos        INTEGER DEFAULT 0,
+            registros_rejeitados     INTEGER DEFAULT 0,
+            motivos_rejeicao_json    TEXT,
+            observacoes              TEXT
+        );
+    """)
+
+
 # Registro central — adicionar novas migrações AQUI (nunca alterar as anteriores)
 _MIGRATIONS = [
     (1, "create_fabricantes_ferragens_kits",  _m001_fabricantes_ferragens_kits),
@@ -395,6 +547,7 @@ _MIGRATIONS = [
     (6, "cleanup_artefatos_teste",            _m006_cleanup_artefatos),
     (7, "dump_tabelas",                       _m007_dump_tabelas),
     (8, "catalogo_tabelas",                   _m008_catalogo_tabelas),
+    (9, "canonical_schema",                   _m009_canonical_schema),
 ]
 
 
