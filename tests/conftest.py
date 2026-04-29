@@ -33,8 +33,94 @@ def _force_test_env(monkeypatch):
 @pytest.fixture(scope="session", autouse=True)
 def db_ready():
     """Inicializa o banco e popula com o seed antes de qualquer teste."""
+    import json
+    import sqlite3
+    from pathlib import Path
+
     init_db()
     seed()
+
+    db_path = Path(__file__).parent.parent / "data" / "constitution.db"
+    conn = sqlite3.connect(str(db_path))
+
+    # ── fabricantes (for ferragens FK) ────────────────────────────────────────
+    for fab_id, nome, prefixo in [
+        ("SM", "Glasspeças/Santa Marina", "SM"),
+        ("HE", "Fechaduras Hela", "HE"),
+        ("AL", "AL Indústria", "AL"),
+    ]:
+        conn.execute(
+            "INSERT OR IGNORE INTO fabricantes (id, nome, prefixo) VALUES (?,?,?)",
+            (fab_id, nome, prefixo),
+        )
+
+    # ── catalogo_fabricantes (for catalogo_puxadores FK) ─────────────────────
+    for codigo, nome in [("SM", "Santa Marina"), ("HE", "Hela"), ("AL", "AL Indústria")]:
+        conn.execute(
+            "INSERT OR IGNORE INTO catalogo_fabricantes (codigo, nome) VALUES (?,?)",
+            (codigo, nome),
+        )
+
+    # ── catalogo_puxadores ────────────────────────────────────────────────────
+    # FUSE-001 normalizes to FUSE001, matching the ferragens seed below (fusion test)
+    for row_id, codigo, nome, tipo, material, acabamento, comp_mm, diam_mm, fab in [
+        (9001, "FUSE-001", "Puxador Fusão CI", "puxador", "Aluminio", "polido", 300.0, None, "SM"),
+        (9002, "PUXADOR 400", "Puxador Barra 400mm", "puxador", None, None, 400.0, None, "SM"),
+        (9003, "PUXADOR 300", "Puxador Barra 300mm", "puxador", None, None, 300.0, None, "HE"),
+    ]:
+        conn.execute(
+            """INSERT OR IGNORE INTO catalogo_puxadores
+               (id, codigo, nome, tipo_visual, material, acabamento, comp_mm, diametro_mm, fabricante_id)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (row_id, codigo, nome, tipo, material, acabamento, comp_mm, diam_mm, fab),
+        )
+
+    # ── ferragens (render staging) ────────────────────────────────────────────
+    # 'PUXADOR 400'/'PUXADOR 300' feed buscar_dimensoes_puxador() tests
+    # 'FUSE001' has same codigo_normalizado as catalog FUSE-001 → triggers fusion
+    # 'NEWCI001' is a truly new canonical from render
+    for codigo, norm, fab_id, nome, tipo, material, dims in [
+        ("PUXADOR 400", "PUXADOR 400", "SM", "Puxador Barra 400mm", "puxador", "Aluminio",
+         json.dumps({"comprimento": 400})),
+        ("PUXADOR 300", "PUXADOR 300", "HE", "Puxador Barra 300mm", "puxador", "Inox",
+         json.dumps({"comprimento": 300})),
+        ("FUSE001", "FUSE001", "SM", "Ferragem para Fusão CI", "puxador", "Aluminio", None),
+        ("NEWCI001", "NEWCI001", "SM", "Ferragem Nova CI", "dobradica", "Zamac", None),
+    ]:
+        conn.execute(
+            """INSERT OR IGNORE INTO ferragens
+               (codigo, codigo_normalizado, fabricante_id, nome, tipo, material, dimensoes_json, confianca, fonte)
+               VALUES (?,?,?,?,?,?,?,0.9,'ci_seed')""",
+            (codigo, norm, fab_id, nome, tipo, material, dims),
+        )
+
+    # ── dump_tipologias ───────────────────────────────────────────────────────
+    conn.execute(
+        """INSERT OR IGNORE INTO dump_tipologias (nu_tip, ds_tmd, id_ativo)
+           VALUES (100, 'JANELA DE CORRER 2 FOLHAS', 1)"""
+    )
+
+    # ── dump_modelos ──────────────────────────────────────────────────────────
+    conn.execute(
+        """INSERT OR IGNORE INTO dump_modelos (nu_mod, nu_tip, ds_mod, div_largura, div_altura)
+           VALUES (9001, NULL, 'Modelo CI Teste', 1, 1)"""
+    )
+
+    # ── dump_geometria_pecas ──────────────────────────────────────────────────
+    conn.execute(
+        """INSERT OR IGNORE INTO dump_geometria_pecas
+           (nu_mod, nu_peca, ds_peca, ds_tipo, eixo_x_alt, eixo_y_alt, eixo_x_lar, eixo_y_lar)
+           VALUES (9001, 1, 'Folha CI', 'folha', 0.0, 1.0, 0.0, 1.0)"""
+    )
+
+    # ── equivalencias ─────────────────────────────────────────────────────────
+    conn.execute(
+        """INSERT OR IGNORE INTO equivalencias (codigo_normalizado, fabricante_id, codigo_fabricante)
+           VALUES ('NEWCI001', 'SM', 'NEWCI001SG')"""
+    )
+
+    conn.commit()
+    conn.close()
 
 
 # ── Request helpers ───────────────────────────────────────────────────────────
