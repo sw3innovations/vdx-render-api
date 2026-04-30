@@ -8,12 +8,12 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
+  useDraggable,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { useDraggable } from '@dnd-kit/core'
 import { useEditorStore } from '@/stores/editor-store'
-import type { Painel } from '@/stores/editor-store'
+import type { Painel, FerragemPosicao } from '@/stores/editor-store'
 
 const CANVAS_PADDING = 100
 
@@ -23,6 +23,7 @@ export default function EditorCanvas() {
   const gridSize = useEditorStore((s) => s.gridSize)
   const setPainelSelecionado = useEditorStore((s) => s.setPainelSelecionado)
   const atualizarPainel = useEditorStore((s) => s.atualizarPainel)
+  const atualizarFerragem = useEditorStore((s) => s.atualizarFerragem)
   const svgRef = useRef<SVGSVGElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
 
@@ -60,26 +61,50 @@ export default function EditorCanvas() {
   const handleDragEnd = useCallback(
     (e: DragEndEvent) => {
       setDraggingId(null)
-      const painelNome = String(e.active.id).replace(/^painel-/, '')
-      const painel = tipologia.paineis.find((p) => p.nome === painelNome)
-      if (!painel) return
-
+      const id = String(e.active.id)
       const scale = getSvgScale()
-      const deltaX_mm = e.delta.x / scale
-      const deltaY_mm = e.delta.y / scale
 
-      const rawX = (painel.posicao_x_mm ?? 0) + deltaX_mm
-      const rawY = (painel.posicao_y_mm ?? 0) + deltaY_mm
+      if (id.startsWith('painel-')) {
+        const painelNome = id.slice('painel-'.length)
+        const painel = tipologia.paineis.find((p) => p.nome === painelNome)
+        if (!painel) return
 
-      const snappedX = Math.round(rawX / gridSize) * gridSize
-      const snappedY = Math.round(rawY / gridSize) * gridSize
+        const deltaX_mm = e.delta.x / scale
+        const deltaY_mm = e.delta.y / scale
+        const snappedX = Math.round(((painel.posicao_x_mm ?? 0) + deltaX_mm) / gridSize) * gridSize
+        const snappedY = Math.round(((painel.posicao_y_mm ?? 0) + deltaY_mm) / gridSize) * gridSize
 
-      atualizarPainel(painelNome, {
-        posicao_x_mm: Math.max(0, snappedX),
-        posicao_y_mm: Math.max(0, snappedY),
-      })
+        atualizarPainel(painelNome, {
+          posicao_x_mm: Math.max(0, snappedX),
+          posicao_y_mm: Math.max(0, snappedY),
+        })
+      } else if (id.startsWith('ferragem-')) {
+        const parts = id.slice('ferragem-'.length).split('-')
+        const idx = parseInt(parts.pop()!, 10)
+        const painelNome = parts.join('-')
+
+        const painel = tipologia.paineis.find((p) => p.nome === painelNome)
+        if (!painel || isNaN(idx)) return
+
+        const ferragem = painel.ferragens[idx]
+        if (!ferragem) return
+
+        const deltaX_mm = e.delta.x / scale
+        const deltaY_mm = e.delta.y / scale
+
+        const rawX = ferragem.x_mm + deltaX_mm
+        const rawY = ferragem.y_mm + deltaY_mm
+
+        const snappedX = Math.round(rawX / gridSize) * gridSize
+        const snappedY = Math.round(rawY / gridSize) * gridSize
+
+        atualizarFerragem(painelNome, idx, {
+          x_mm: Math.max(0, Math.min(painel.largura_mm, snappedX)),
+          y_mm: Math.max(0, Math.min(painel.altura_mm, snappedY)),
+        })
+      }
     },
-    [tipologia.paineis, getSvgScale, gridSize, atualizarPainel]
+    [tipologia.paineis, getSvgScale, gridSize, atualizarPainel, atualizarFerragem]
   )
 
   const hasOverlap = tipologia.paineis.some((a, i) =>
@@ -97,6 +122,10 @@ export default function EditorCanvas() {
       )
     })
   )
+
+  const draggingFerragemPainelNome = draggingId?.startsWith('ferragem-')
+    ? draggingId.slice('ferragem-'.length).split('-').slice(0, -1).join('-')
+    : null
 
   return (
     <div className="flex-1 flex flex-col bg-gray-100 rounded-lg border border-gray-300 min-h-0 overflow-hidden">
@@ -200,7 +229,8 @@ export default function EditorCanvas() {
                   key={painel.nome}
                   painel={painel}
                   selected={painelSelecionadoNome === painel.nome}
-                  isDragging={draggingId === `painel-${painel.nome}`}
+                  isPainelDragging={draggingId === `painel-${painel.nome}`}
+                  isFeiragemDragParent={draggingFerragemPainelNome === painel.nome}
                   offsetX={CANVAS_PADDING}
                   offsetY={CANVAS_PADDING}
                   svgScale={svgPixelWidth / canvasWidth}
@@ -218,7 +248,8 @@ export default function EditorCanvas() {
 interface DraggablePainelProps {
   painel: Painel
   selected: boolean
-  isDragging: boolean
+  isPainelDragging: boolean
+  isFeiragemDragParent: boolean
   offsetX: number
   offsetY: number
   svgScale: number
@@ -228,7 +259,8 @@ interface DraggablePainelProps {
 function DraggablePainel({
   painel,
   selected,
-  isDragging,
+  isPainelDragging,
+  isFeiragemDragParent,
   offsetX,
   offsetY,
   svgScale,
@@ -248,8 +280,7 @@ function DraggablePainel({
 
   return (
     <>
-      {/* Ghost at origin while dragging */}
-      {isDragging && (
+      {isPainelDragging && (
         <rect
           x={baseX}
           y={baseY}
@@ -268,16 +299,35 @@ function DraggablePainel({
         {...listeners}
         {...attributes}
         onClick={(e) => { e.stopPropagation(); onSelect() }}
-        style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+        style={{ cursor: isPainelDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
+        {/* Highlight panel boundary when ferragem is being dragged inside */}
+        {isFeiragemDragParent && (
+          <rect
+            x={x}
+            y={y}
+            width={painel.largura_mm}
+            height={painel.altura_mm}
+            fill="#eff6ff"
+            stroke="#93c5fd"
+            strokeWidth="2"
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
+
         <rect
           x={x}
           y={y}
           width={painel.largura_mm}
           height={painel.altura_mm}
-          fill={selected ? '#dbeafe' : isDragging ? '#eff6ff' : '#e8f4fd'}
-          stroke={selected ? '#3b82f6' : isDragging ? '#60a5fa' : '#1a5276'}
-          strokeWidth={selected || isDragging ? 2 : 1}
+          fill={selected ? '#dbeafe' : isPainelDragging ? '#eff6ff' : isFeiragemDragParent ? '#eff6ff' : '#e8f4fd'}
+          stroke={
+            selected ? '#3b82f6'
+            : isPainelDragging ? '#60a5fa'
+            : isFeiragemDragParent ? '#93c5fd'
+            : '#1a5276'
+          }
+          strokeWidth={selected || isPainelDragging || isFeiragemDragParent ? 2 : 1}
           style={{ pointerEvents: 'all' }}
         />
 
@@ -299,24 +349,24 @@ function DraggablePainel({
           fill={selected ? '#3b82f6' : '#374151'}
           style={{ pointerEvents: 'none', userSelect: 'none' }}
         >
-          {isDragging
-            ? `${Math.round((painel.posicao_x_mm ?? 0) + dragOffsetX)}×${Math.round((painel.posicao_y_mm ?? 0) + dragOffsetY)}mm`
+          {isPainelDragging
+            ? `${Math.round((painel.posicao_x_mm ?? 0) + dragOffsetX)},${Math.round((painel.posicao_y_mm ?? 0) + dragOffsetY)}mm`
             : `${painel.largura_mm}×${painel.altura_mm}mm`}
         </text>
 
         {painel.ferragens.map((f, i) => (
-          <circle
+          <DraggableFerragem
             key={i}
-            cx={x + f.x_mm}
-            cy={y + f.y_mm}
-            r={6}
-            fill="#f59e0b"
-            stroke="#92400e"
-            strokeWidth="1"
+            ferragem={f}
+            idx={i}
+            painelNome={painel.nome}
+            painelX={x}
+            painelY={y}
+            svgScale={svgScale}
           />
         ))}
 
-        {selected && !isDragging && (
+        {selected && !isPainelDragging && (
           <rect
             x={x - 2}
             y={y - 2}
@@ -331,5 +381,56 @@ function DraggablePainel({
         )}
       </g>
     </>
+  )
+}
+
+interface DraggableFerragemProps {
+  ferragem: FerragemPosicao
+  idx: number
+  painelNome: string
+  painelX: number
+  painelY: number
+  svgScale: number
+}
+
+function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgScale }: DraggableFerragemProps) {
+  const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
+    id: `ferragem-${painelNome}-${idx}`,
+  })
+
+  const dragOffsetX = transform ? transform.x / svgScale : 0
+  const dragOffsetY = transform ? transform.y / svgScale : 0
+  const cx = painelX + ferragem.x_mm + dragOffsetX
+  const cy = painelY + ferragem.y_mm + dragOffsetY
+
+  return (
+    <g
+      ref={(el) => setNodeRef(el as unknown as HTMLElement)}
+      {...listeners}
+      {...attributes}
+      onClick={(e) => e.stopPropagation()}
+      style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+    >
+      <circle
+        cx={cx}
+        cy={cy}
+        r={6}
+        fill={isDragging ? '#fbbf24' : '#f59e0b'}
+        stroke={isDragging ? '#78350f' : '#92400e'}
+        strokeWidth="1.5"
+      />
+      {isDragging && (
+        <text
+          x={cx}
+          y={cy - 10}
+          textAnchor="middle"
+          fontSize="7"
+          fill="#78350f"
+          style={{ pointerEvents: 'none', userSelect: 'none' }}
+        >
+          {Math.round(ferragem.x_mm + dragOffsetX)},{Math.round(ferragem.y_mm + dragOffsetY)}
+        </text>
+      )}
+    </g>
   )
 }

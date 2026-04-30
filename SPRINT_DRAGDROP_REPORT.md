@@ -29,7 +29,15 @@
 
 ## Sub-entrega 2 — Drag de painéis + snap
 
-**Status:** —
+**Status:** ✅ concluída
+
+- Drag de painel com mouse/touch: sim (DndContext, PointerSensor, TouchSensor, KeyboardSensor)
+- Snap a grid: sim (configurable 1/5/10/50mm)
+- Ghost na origem durante drag: sim
+- Coordenadas em tempo real durante drag: sim
+- Warning de sobreposição: sim
+- pytest: 584 passed, 7 skipped
+- CI: verde (Tests)
 
 ---
 
