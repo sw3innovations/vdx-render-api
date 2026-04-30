@@ -43,7 +43,13 @@
 
 ## Sub-entrega 3 — Drag de ferragens + boundary
 
-**Status:** —
+**Status:** ✅ concluída
+
+- Ferragens draggáveis com boundary do painel (clamp): sim
+- Painel pai destaca azul durante drag ferragem: sim
+- Snap aplicado: sim
+- pytest: 584 passed, 7 skipped
+- CI: verde (Tests)
 
 ---
 
