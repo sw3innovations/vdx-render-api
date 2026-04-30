@@ -111,7 +111,9 @@ export function CanonicalTipologiaCard({ tipologia, onClick }: CanonicalCardProp
             {emBreve ? 'Em breve' : categoria}
           </span>
         </div>
-        <p className="text-xs text-gray-400 font-mono truncate">{tipologia.codigo}</p>
+        <p className="text-xs text-gray-400 font-mono truncate">
+          {emBreve ? 'Importado do ERP' : tipologia.codigo}
+        </p>
       </div>
 
       {/* Bottom CTA */}

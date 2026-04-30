@@ -15,6 +15,10 @@ _LIXO_DUMP: frozenset[str] = frozenset({
     "FIXOS",
     "VIDROS",
     "MEDIDA FINAL",
+    "PORTAS DE CORRER",
+    "ESPELHOS",
+    "ESPELHOS BISOTÊ",
+    "ESPELHOS BISOTE",
 })
 
 # DS_TMD (uppercase) → codigo in constitution_entries that this dump entry duplicates
@@ -24,6 +28,11 @@ _DUP_DUMP_TO_CONSTITUTION: dict[str, str | None] = {
     "MAXIM-AR": "janela_maxim_ar",
     "PORTA DE ABRIR": "porta_abrir",
     "PORTAS DE CORRER (E)": "porta_correr_2_folhas",
+    "JANELA 2 FOLHAS": "janela_correr_2_folhas",
+    "JANELA DE CORRER 2 FOLHAS": "janela_correr_2_folhas",
+    "BOX PADRÃO": "box_de_giro",
+    "BOX PADRAO": "box_de_giro",
+    "BOX ENGENHARIA": "box_articulado",
 }
 
 _PALAVRAS_MINUSCULAS_PT_BR = frozenset({
@@ -42,13 +51,19 @@ _CORRECOES_ACENTO: dict[str, str] = {
 def normalizar_nome(nome_bruto: str) -> str:
     """Converte 'JANELA 4 FOLHAS (-20 -60)' → 'Janela 4 Folhas'.
 
-    Passos: remove conteúdo entre parênteses, aplica title case pt-BR,
-    corrige acentos do domínio.
+    Passos: remove prefixo TIP_NNNN_, substitui underscores, remove conteúdo
+    entre parênteses, aplica title case pt-BR, corrige acentos do domínio.
     """
     if not nome_bruto:
         return nome_bruto
 
     n = nome_bruto.strip()
+
+    # Remove ETL-generated TIP_NNNN_ prefix
+    n = re.sub(r"^TIP_\d+_", "", n)
+
+    # Replace underscores with spaces (ETL codes use underscores as separators)
+    n = n.replace("_", " ")
 
     # Remove parenthesized content (dimensions, variants)
     n = re.sub(r"\s*\([^)]*\)\s*", " ", n).strip()
@@ -77,6 +92,8 @@ def avaliar_tipologia_dump(ds_tmd: str | None, codigo: str) -> dict:
       - 'REJEITAR': lixo/metacategoria, não inserir
       - 'MESCLAR': duplicata de tipologia do constitution
       - 'ACEITAR': inserir com nome normalizado
+
+    Matching order: exact → strip-clean (parens stripped) → ACEITAR.
     """
     ds_upper = (ds_tmd or "").upper().strip()
 
@@ -87,6 +104,16 @@ def avaliar_tipologia_dump(ds_tmd: str | None, codigo: str) -> dict:
         destino = _DUP_DUMP_TO_CONSTITUTION[ds_upper]
         if destino:
             return {"acao": "MESCLAR", "destino_codigo": destino}
+
+    # Strip-clean matching: remove parenthesized content then retry
+    ds_upper_clean = re.sub(r"\s*\([^)]*\)\s*", " ", ds_upper).strip()
+    if ds_upper_clean != ds_upper:
+        if ds_upper_clean in _LIXO_DUMP:
+            return {"acao": "REJEITAR", "motivo": "lixo_ou_metacategoria"}
+        if ds_upper_clean in _DUP_DUMP_TO_CONSTITUTION:
+            destino = _DUP_DUMP_TO_CONSTITUTION[ds_upper_clean]
+            if destino:
+                return {"acao": "MESCLAR", "destino_codigo": destino}
 
     return {
         "acao": "ACEITAR",

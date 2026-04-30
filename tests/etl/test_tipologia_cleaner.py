@@ -53,6 +53,63 @@ def test_avaliar_aceita_sanfonado_com_nome_normalizado():
     assert r["nome_normalizado"] == "Sanfonado"
 
 
+# ── Phase 1.6 — lixo expandido ───────────────────────────────────────────────
+
+def test_lixo_portas_de_correr_rejeitado():
+    r = avaliar_tipologia_dump("PORTAS DE CORRER", "TIP_0099_PORTAS_DE_CORRER")
+    assert r["acao"] == "REJEITAR"
+
+
+def test_lixo_espelhos_rejeitado():
+    r = avaliar_tipologia_dump("ESPELHOS", "TIP_0088_ESPELHOS")
+    assert r["acao"] == "REJEITAR"
+
+
+def test_lixo_espelhos_bisote_rejeitado():
+    r = avaliar_tipologia_dump("ESPELHOS BISOTÊ", "TIP_0089_ESPELHOS_BISOTE")
+    assert r["acao"] == "REJEITAR"
+
+
+# ── Phase 1.6 — DUP expandido ─────────────────────────────────────────────────
+
+def test_dup_janela_2_folhas_mescla():
+    r = avaliar_tipologia_dump("JANELA 2 FOLHAS", "TIP_0020_JANELA_2_FOLHAS")
+    assert r["acao"] == "MESCLAR"
+    assert r["destino_codigo"] == "janela_correr_2_folhas"
+
+
+def test_dup_janela_de_correr_2_folhas_mescla():
+    r = avaliar_tipologia_dump("JANELA DE CORRER 2 FOLHAS", "TIP_0100_JANELA_DE_CORRER_2_FOLHAS")
+    assert r["acao"] == "MESCLAR"
+    assert r["destino_codigo"] == "janela_correr_2_folhas"
+
+
+def test_dup_box_padrao_mescla():
+    r = avaliar_tipologia_dump("BOX PADRÃO", "TIP_0030_BOX_PADRAO")
+    assert r["acao"] == "MESCLAR"
+    assert r["destino_codigo"] == "box_de_giro"
+
+
+def test_dup_box_engenharia_mescla():
+    r = avaliar_tipologia_dump("BOX ENGENHARIA", "TIP_0031_BOX_ENGENHARIA")
+    assert r["acao"] == "MESCLAR"
+    assert r["destino_codigo"] == "box_articulado"
+
+
+# ── Phase 1.6 — strip-clean matching ─────────────────────────────────────────
+
+def test_strip_clean_janela_correr_com_parenteses_mescla():
+    r = avaliar_tipologia_dump("JANELA DE CORRER 2 FOLHAS (-20 -60)", "TIP_0100_JANELA_DE_CORRER_2_FOLHAS")
+    assert r["acao"] == "MESCLAR"
+    assert r["destino_codigo"] == "janela_correr_2_folhas"
+
+
+# ── Phase 1.6 — normalizar_nome TIP prefix ────────────────────────────────────
+
+def test_normalizar_nome_remove_prefixo_tip_etl():
+    assert normalizar_nome("TIP_0015_SANFONADO") == "Sanfonado"
+
+
 # ── integração com CanonicalLoader ───────────────────────────────────────────
 
 @pytest.fixture(scope="module")

@@ -14,7 +14,7 @@ from app.etl.normalizers.canonical_tipologias import ds_tmd_to_codigo, inferir_c
 from app.etl.transformers.inference import inferir_nome_modelo, inferir_nome_valido
 from app.etl.transformers.formula_parser import normalizar_formula
 from app.etl.transformers.deduplicator import normalizar_codigo_ferragem
-from app.etl.transformers.tipologia_cleaner import avaliar_tipologia_dump
+from app.etl.transformers.tipologia_cleaner import avaliar_tipologia_dump, normalizar_nome
 from app.etl.transformers import linker
 
 
@@ -141,6 +141,17 @@ class CanonicalLoader:
                 ).rowcount
                 if updated:
                     stats.tipologias_mescladas += 1
+                else:
+                    # Merge target not in constitution — insert as regular dump entry
+                    nome = normalizar_nome(ds_tmd or codigo)
+                    categoria = inferir_categoria(ds_tmd)
+                    self._conn.execute(
+                        """INSERT OR IGNORE INTO tipologias_canonicas
+                           (codigo, nome_apresentacao, categoria, nu_tip_dump, fonte_origem)
+                           VALUES (?,?,?,?,?)""",
+                        (codigo, nome, categoria, nu_tip, "dump_vdx"),
+                    )
+                    stats.tipologias += 1
                 continue
 
             # ACEITAR — insert with normalized name
