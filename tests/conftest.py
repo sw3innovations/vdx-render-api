@@ -103,6 +103,10 @@ def db_ready():
         """INSERT OR IGNORE INTO dump_tipologias (nu_tip, ds_tmd, id_ativo)
            VALUES (15, 'SANFONADO', 1)"""
     )
+    conn.execute(
+        """INSERT OR IGNORE INTO dump_tipologias (nu_tip, ds_tmd, id_ativo)
+           VALUES (5, 'PIVOTANTE', 1)"""
+    )
 
     # ── dump_modelos ──────────────────────────────────────────────────────────
     conn.execute(
