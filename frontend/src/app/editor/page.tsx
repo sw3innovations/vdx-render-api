@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
@@ -26,27 +26,55 @@ function EditorPageInner() {
   const { undo, redo, pastStates, futureStates } = useStore(useEditorStore.temporal)
   const nomeRef = useRef<HTMLInputElement>(null)
   const [showProps, setShowProps] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [savedUrl, setSavedUrl] = useState<string | null>(null)
 
   const painelSelecionado = tipologia.paineis.find(
     (p) => p.nome === painelSelecionadoNome
   ) ?? null
 
   useEffect(() => {
+    const carregarChave = searchParams.get('carregar')
     const importChave = searchParams.get('import')
-    if (importChave) {
+    if (carregarChave) {
+      fetch(`/api/v1/editor/${carregarChave}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.tipologia_json) setTipologia(data.tipologia_json as TipologiaEditor)
+        })
+        .catch(() => setTipologia(DEFAULT_TIPOLOGIA))
+    } else if (importChave) {
       fetch(`/api/v1/import/${importChave}`)
         .then((r) => r.json())
         .then((data) => {
-          if (data.tipologia_json) {
-            setTipologia(data.tipologia_json as TipologiaEditor)
-          }
+          if (data.tipologia_json) setTipologia(data.tipologia_json as TipologiaEditor)
         })
-        .catch(() => {/* use default */})
+        .catch(() => setTipologia(DEFAULT_TIPOLOGIA))
     } else {
       setTipologia(DEFAULT_TIPOLOGIA)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const handleSalvar = useCallback(async () => {
+    setSaving(true)
+    setSavedUrl(null)
+    try {
+      const resp = await fetch('/api/v1/editor/salvar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tipologia),
+      })
+      const data = await resp.json()
+      const url = `${window.location.origin}${data.url}`
+      setSavedUrl(url)
+      try { await navigator.clipboard.writeText(url) } catch { /* ignore */ }
+    } catch {
+      // silently fail
+    } finally {
+      setSaving(false)
+    }
+  }, [tipologia])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -112,9 +140,18 @@ function EditorPageInner() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="px-2.5 py-1.5 text-xs sm:text-sm bg-[#f59e0b] hover:bg-[#d97706] text-black font-semibold rounded transition-colors">
-              Salvar
+            <button
+              onClick={handleSalvar}
+              disabled={saving}
+              className="px-2.5 py-1.5 text-xs sm:text-sm bg-[#f59e0b] hover:bg-[#d97706] text-black font-semibold rounded transition-colors disabled:opacity-60"
+            >
+              {saving ? '...' : 'Salvar'}
             </button>
+            {savedUrl && (
+              <span className="text-xs text-green-300 hidden sm:inline max-w-xs truncate" title={savedUrl}>
+                ✓ Salvo! URL copiada
+              </span>
+            )}
             <nav className="hidden md:flex gap-3 text-sm shrink-0">
               <Link href="/" className="text-blue-200 hover:text-white transition-colors">Tipologias</Link>
               <Link href="/importar" className="text-blue-200 hover:text-white transition-colors">Importar</Link>

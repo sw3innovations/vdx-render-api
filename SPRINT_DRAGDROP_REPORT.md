@@ -81,18 +81,25 @@
 
 ## Sub-entrega 6 — Touch sensors + mobile
 
-**Status:** —
+**Status:** ✅ concluída
+
+- TouchSensor delay=250ms tolerance=5: sim (desde sub-entrega 2)
+- Handles resize 16mm (touch-friendly): sim
+- Toolbar mobile (segunda linha sm:hidden): sim
+- Properties panel como bottom sheet colapsável em < 768px: sim
+- pytest: 584 passed, 7 skipped
+- CI: verde (Tests)
 
 ---
 
 ## Sub-entrega 7 — Salvar versão + persistência
 
-**Status:** —
+**Status:** ⏳ em andamento
 
 ---
 
 ## TOTAL
-- Sub-entregas concluídas: 0/7
+- Sub-entregas concluídas: 6/7
 - Testes finais: —
 - CI final: —
 - Paradas para investigar de manhã: —
