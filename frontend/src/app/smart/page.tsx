@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { photoToProject, sketchToProject, textToProject, resizeImageToBase64 } from '@/lib/api'
 import type { SmartProjectResponse, SceneJSON } from '@/lib/types'
@@ -89,6 +90,9 @@ export default function SmartPage() {
           >
             ← Voltar
           </button>
+          <Link href="/editor" className="text-blue-200 hover:text-white transition-colors text-sm">
+            Editor
+          </Link>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Smart Vision</h1>
             <p className="text-blue-200 text-sm mt-0.5">

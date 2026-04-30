@@ -79,6 +79,12 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-4">
             <Link
+              href="/editor"
+              className="hidden sm:flex items-center gap-1.5 text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors"
+            >
+              ✏️ Editor
+            </Link>
+            <Link
               href="/importar"
               className="hidden sm:flex items-center gap-1.5 text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg transition-colors"
             >

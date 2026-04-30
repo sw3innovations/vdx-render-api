@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { fetchRender, exportPng, exportPdf, downloadBlob } from '@/lib/api'
 import { tipologiaLabel, formatDim } from '@/lib/utils'
 import type { FerragemInfo, PuxadorSelecionado, FerragemSelecionada } from '@/lib/types'
@@ -156,12 +157,17 @@ export default function ConfigurarPage() {
       <aside className="w-full md:w-72 lg:w-80 bg-white border-r border-gray-200 flex flex-col overflow-y-auto shrink-0 md:h-screen">
         {/* Header */}
         <div className="px-5 pt-5 pb-4 border-b border-gray-100">
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-1.5 text-sm text-[#1a5276] hover:text-[#1a5276]/70 font-medium mb-3 transition-colors"
-          >
-            <span>←</span> Voltar
-          </button>
+          <div className="flex items-center gap-3 mb-3">
+            <button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-1.5 text-sm text-[#1a5276] hover:text-[#1a5276]/70 font-medium transition-colors"
+            >
+              <span>←</span> Voltar
+            </button>
+            <Link href="/editor" className="text-sm text-[#1a5276] hover:text-[#1a5276]/70 transition-colors">
+              Editor
+            </Link>
+          </div>
           <h1 className="text-lg font-bold text-gray-900 leading-tight">{label}</h1>
           <p className="text-xs text-gray-400 font-mono mt-0.5">{tipologia}</p>
         </div>

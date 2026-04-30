@@ -81,6 +81,7 @@ async def importar_tipologia(
 
     manifest = {
         "tipologia_chave": uid,
+        "tipologia_json": body.model_dump(mode="json"),
         "svg": svg,
         "png_url": png_url,
         "pdf_url": pdf_url,

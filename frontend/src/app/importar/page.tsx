@@ -47,6 +47,9 @@ export default function ImportarPage() {
             <Link href="/" className="text-blue-200 hover:text-white transition-colors">
               Tipologias
             </Link>
+            <Link href="/editor" className="text-blue-200 hover:text-white transition-colors">
+              Editor
+            </Link>
             <Link href="/smart" className="text-blue-200 hover:text-white transition-colors">
               Smart Vision
             </Link>
