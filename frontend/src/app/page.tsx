@@ -47,7 +47,7 @@ export default function HomePage() {
   }, [tipologias])
 
   const filtered = useMemo(() => {
-    return tipologias.filter((t) => {
+    const visible = tipologias.filter((t) => {
       const cat = categoriaCanToTab(t.categoria) as Tab
       const matchesTab = activeTab === 'Todos' || cat === activeTab
       const matchesSearch =
@@ -56,6 +56,11 @@ export default function HomePage() {
         t.nome_apresentacao.toLowerCase().includes(search.toLowerCase())
       return matchesTab && matchesSearch
     })
+    // Renderizáveis primeiro, "em breve" no fim
+    return [
+      ...visible.filter((t) => t.tem_renderer),
+      ...visible.filter((t) => !t.tem_renderer),
+    ]
   }, [tipologias, activeTab, search])
 
   const totalCount = tipologias.length

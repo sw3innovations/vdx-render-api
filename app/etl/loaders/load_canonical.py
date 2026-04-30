@@ -14,6 +14,7 @@ from app.etl.normalizers.canonical_tipologias import ds_tmd_to_codigo, inferir_c
 from app.etl.transformers.inference import inferir_nome_modelo, inferir_nome_valido
 from app.etl.transformers.formula_parser import normalizar_formula
 from app.etl.transformers.deduplicator import normalizar_codigo_ferragem
+from app.etl.transformers.tipologia_cleaner import avaliar_tipologia_dump
 from app.etl.transformers import linker
 
 
@@ -24,6 +25,8 @@ class ETLStats:
     variaveis: int = 0
     tipologias: int = 0
     tipologias_constitution: int = 0
+    tipologias_rejeitadas: int = 0
+    tipologias_mescladas: int = 0
     modelos: int = 0
     pecas_geometria: int = 0
     ferragens: int = 0
@@ -50,8 +53,8 @@ class CanonicalLoader:
     def run(self) -> ETLStats:
         stats = ETLStats()
         self._seed_lookup_tables(stats)
+        self._load_tipologias_from_constitution(stats)  # constitution first (needed for merges)
         self._load_tipologias(stats)
-        self._load_tipologias_from_constitution(stats)
         self._load_modelos(stats)
         self._load_pecas_geometria(stats)
         self._load_ferragens_catalogo(stats)
@@ -122,12 +125,32 @@ class CanonicalLoader:
         ).fetchall()
         for nu_tip, ds_tmd, id_ativo in rows:
             codigo = ds_tmd_to_codigo(nu_tip, ds_tmd)
+            decisao = avaliar_tipologia_dump(ds_tmd, codigo)
+
+            if decisao["acao"] == "REJEITAR":
+                stats.tipologias_rejeitadas += 1
+                continue
+
+            if decisao["acao"] == "MESCLAR":
+                destino = decisao["destino_codigo"]
+                updated = self._conn.execute(
+                    """UPDATE tipologias_canonicas
+                       SET nu_tip_dump = ?, fonte_origem = 'ambos'
+                       WHERE codigo = ? AND fonte_origem = 'constitution'""",
+                    (nu_tip, destino),
+                ).rowcount
+                if updated:
+                    stats.tipologias_mescladas += 1
+                continue
+
+            # ACEITAR — insert with normalized name
+            nome = decisao["nome_normalizado"]
             categoria = inferir_categoria(ds_tmd)
             self._conn.execute(
                 """INSERT OR IGNORE INTO tipologias_canonicas
                    (codigo, nome_apresentacao, categoria, nu_tip_dump, fonte_origem)
                    VALUES (?,?,?,?,?)""",
-                (codigo, ds_tmd or f"Tipologia {nu_tip}", categoria, nu_tip, "dump_vdx"),
+                (codigo, nome, categoria, nu_tip, "dump_vdx"),
             )
             stats.tipologias += 1
 
@@ -370,6 +393,7 @@ class CanonicalLoader:
             ("seed_lookups",   "CanonicalLoader", "variaveis_canonicas",       stats.variaveis,   stats.variaveis,   0),
             ("load_tipologias","CanonicalLoader", "tipologias_canonicas",      stats.tipologias,  stats.tipologias,  0),
             ("load_tipologias_constitution", "CanonicalLoader", "tipologias_canonicas", stats.tipologias_constitution, stats.tipologias_constitution, 0),
+            ("clean_tipologias", "CanonicalLoader", "tipologias_canonicas", stats.tipologias_rejeitadas + stats.tipologias_mescladas, stats.tipologias_mescladas, stats.tipologias_rejeitadas),
             ("load_modelos",   "CanonicalLoader", "modelos_canonicos",         stats.modelos,     stats.modelos,     len(stats.erros)),
             ("load_pecas",     "CanonicalLoader", "pecas_geometria_canonicas", stats.pecas_geometria, stats.pecas_geometria, 0),
             ("load_ferragens",        "CanonicalLoader", "ferragens_canonicas", stats.ferragens,       stats.ferragens,       0),
