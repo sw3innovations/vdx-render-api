@@ -54,6 +54,18 @@ def listar_variaveis(
 
 # ── tipologias ────────────────────────────────────────────────────────────────
 
+_TEM_RENDERER_SQL = """
+    SELECT tc.*,
+           CASE WHEN ce.chave IS NOT NULL THEN 1 ELSE 0 END AS tem_renderer
+    FROM tipologias_canonicas tc
+    LEFT JOIN constitution_entries ce
+           ON ce.chave = tc.codigo
+          AND ce.tipo  = 'tipologia'
+          AND ce.nicho = 'vidros'
+    WHERE tc.codigo != 'SEM_TIPOLOGIA'
+"""
+
+
 @router.get("/tipologias")
 def listar_tipologias_canonicas(
     categoria: str | None = Query(None),
@@ -63,14 +75,17 @@ def listar_tipologias_canonicas(
     conn = _get_conn()
     if categoria:
         cur = conn.execute(
-            "SELECT * FROM tipologias_canonicas WHERE categoria=? ORDER BY codigo LIMIT ? OFFSET ?",
+            f"{_TEM_RENDERER_SQL} AND tc.categoria=? ORDER BY tc.codigo LIMIT ? OFFSET ?",
             (categoria.upper(), limit, offset),
         )
     else:
         cur = conn.execute(
-            "SELECT * FROM tipologias_canonicas ORDER BY codigo LIMIT ? OFFSET ?", (limit, offset)
+            f"{_TEM_RENDERER_SQL} ORDER BY tc.codigo LIMIT ? OFFSET ?",
+            (limit, offset),
         )
     rows = _rows_as_dicts(cur)
+    for r in rows:
+        r["tem_renderer"] = bool(r.get("tem_renderer", 0))
     conn.close()
     return JSONResponse({"total": len(rows), "tipologias": rows})
 
@@ -78,12 +93,37 @@ def listar_tipologias_canonicas(
 @router.get("/tipologias/{codigo}")
 def detalhe_tipologia_canonica(codigo: str):
     conn = _get_conn()
-    cur = conn.execute("SELECT * FROM tipologias_canonicas WHERE codigo=?", (codigo.upper(),))
+    cur = conn.execute(
+        """SELECT tc.*,
+                  CASE WHEN ce.chave IS NOT NULL THEN 1 ELSE 0 END AS tem_renderer
+           FROM tipologias_canonicas tc
+           LEFT JOIN constitution_entries ce
+                  ON ce.chave = tc.codigo
+                 AND ce.tipo  = 'tipologia'
+                 AND ce.nicho = 'vidros'
+           WHERE tc.codigo=?""",
+        (codigo.upper(),),
+    )
     row = cur.fetchone()
+    if row is None:
+        # Try lowercase for constitution-style codes (e.g. porta_abrir)
+        cur = conn.execute(
+            """SELECT tc.*,
+                      CASE WHEN ce.chave IS NOT NULL THEN 1 ELSE 0 END AS tem_renderer
+               FROM tipologias_canonicas tc
+               LEFT JOIN constitution_entries ce
+                      ON ce.chave = tc.codigo
+                     AND ce.tipo  = 'tipologia'
+                     AND ce.nicho = 'vidros'
+               WHERE tc.codigo=?""",
+            (codigo.lower(),),
+        )
+        row = cur.fetchone()
     if row is None:
         conn.close()
         raise HTTPException(status_code=404, detail=f"Tipologia canônica '{codigo}' não encontrada")
     result = dict(zip([d[0] for d in cur.description], row))
+    result["tem_renderer"] = bool(result.get("tem_renderer", 0))
     modelos = _rows_as_dicts(
         conn.execute("SELECT * FROM modelos_canonicos WHERE tipologia_id=? ORDER BY nu_mod_dump", (result["id"],))
     )

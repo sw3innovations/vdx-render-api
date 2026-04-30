@@ -122,3 +122,28 @@ def test_auditoria_200():
 def test_auditoria_tem_registros():
     body = client.get("/api/v1/canonical/etl/auditoria").json()
     assert body["total"] >= 7
+
+
+# ── Sprint 11 Fase 1 — tem_renderer ───────────────────────────────────────────
+
+def test_canonical_tipologias_inclui_campo_tem_renderer():
+    body = client.get("/api/v1/canonical/tipologias?limit=200").json()
+    assert "tipologias" in body
+    assert len(body["tipologias"]) > 0
+    for t in body["tipologias"]:
+        assert "tem_renderer" in t, f"tem_renderer ausente em {t.get('codigo')}"
+        assert isinstance(t["tem_renderer"], bool)
+
+
+def test_tem_renderer_true_para_porta_abrir():
+    r = client.get("/api/v1/canonical/tipologias/porta_abrir")
+    assert r.status_code == 200, f"porta_abrir não encontrada (status {r.status_code})"
+    body = r.json()
+    assert body.get("tem_renderer") is True
+
+
+def test_tem_renderer_false_para_sanfonado_sem_schema():
+    r = client.get("/api/v1/canonical/tipologias/TIP_0015_SANFONADO")
+    assert r.status_code == 200, "TIP_0015_SANFONADO não encontrada nas tipologias canonicas"
+    body = r.json()
+    assert body.get("tem_renderer") is False

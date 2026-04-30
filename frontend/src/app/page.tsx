@@ -3,27 +3,31 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { fetchTipologias } from '@/lib/api'
-import { categoriaFromChave } from '@/lib/utils'
-import type { Tipologia } from '@/lib/types'
-import TipologiaCard, { TipologiaCardSkeleton } from '@/components/tipologia-card'
-import { TIPOLOGIAS_V1 } from '@/lib/catalog'
+import { fetchCanonicalTipologias, type TipologiaCanonica } from '@/lib/canonical-api'
+import { categoriaCanToTab, CanonicalTipologiaCard } from '@/components/tipologia-card'
+import { TipologiaCardSkeleton } from '@/components/tipologia-card'
 
 const TABS = ['Todos', 'Portas', 'Janelas', 'Box', 'Outros'] as const
 type Tab = (typeof TABS)[number]
 
+const TEST_CODE_RE = /^TIP_9[89]\d{2}_/
+
 export default function HomePage() {
   const router = useRouter()
-  const [tipologias, setTipologias] = useState<Tipologia[]>([])
+  const [tipologias, setTipologias] = useState<TipologiaCanonica[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<Tab>('Todos')
 
   useEffect(() => {
-    fetchTipologias(1, 100)
+    fetchCanonicalTipologias(200)
       .then((res) => {
-        setTipologias(res.items)
+        // Exclude SEM_TIPOLOGIA and test fixture entries
+        const filtered = res.tipologias.filter(
+          (t) => t.codigo !== 'SEM_TIPOLOGIA' && !TEST_CODE_RE.test(t.codigo)
+        )
+        setTipologias(filtered)
         setLoading(false)
       })
       .catch((err) => {
@@ -32,18 +36,30 @@ export default function HomePage() {
       })
   }, [])
 
+  const counts = useMemo(() => {
+    const c: Record<Tab, number> = { Todos: 0, Portas: 0, Janelas: 0, Box: 0, Outros: 0 }
+    for (const t of tipologias) {
+      const cat = categoriaCanToTab(t.categoria) as Tab
+      c['Todos']++
+      c[cat]++
+    }
+    return c
+  }, [tipologias])
+
   const filtered = useMemo(() => {
     return tipologias.filter((t) => {
-      if (!(TIPOLOGIAS_V1 as readonly string[]).includes(t.chave)) return false
-      const categoria = t.categoria ?? categoriaFromChave(t.chave)
-      const matchesTab = activeTab === 'Todos' || categoria === activeTab
+      const cat = categoriaCanToTab(t.categoria) as Tab
+      const matchesTab = activeTab === 'Todos' || cat === activeTab
       const matchesSearch =
         !search ||
-        t.chave.toLowerCase().includes(search.toLowerCase()) ||
-        (t.nome ?? '').toLowerCase().includes(search.toLowerCase())
+        t.codigo.toLowerCase().includes(search.toLowerCase()) ||
+        t.nome_apresentacao.toLowerCase().includes(search.toLowerCase())
       return matchesTab && matchesSearch
     })
   }, [tipologias, activeTab, search])
+
+  const totalCount = tipologias.length
+  const rendererCount = tipologias.filter((t) => t.tem_renderer).length
 
   return (
     <div className="min-h-screen bg-[#F5F2EE]">
@@ -63,15 +79,17 @@ export default function HomePage() {
             >
               ↑ Importar JSON
             </Link>
-            <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
-              {TIPOLOGIAS_V1.length} tipologias
-            </div>
+            {!loading && (
+              <div className="text-blue-200 text-xs opacity-70 hidden sm:block">
+                {rendererCount} renderizáveis · {totalCount} total
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-        {/* Search + Tabs */}
+        {/* Search */}
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="search"
@@ -88,13 +106,20 @@ export default function HomePage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+              className={`shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
                 activeTab === tab
                   ? 'bg-[#1a5276] text-white shadow-sm'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-[#1a5276]/40'
               }`}
             >
               {tab}
+              {!loading && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  activeTab === tab ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {counts[tab]}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -111,10 +136,10 @@ export default function HomePage() {
           {loading
             ? Array.from({ length: 8 }).map((_, i) => <TipologiaCardSkeleton key={i} />)
             : filtered.map((t) => (
-                <TipologiaCard
-                  key={t.chave}
+                <CanonicalTipologiaCard
+                  key={t.codigo}
                   tipologia={t}
-                  onClick={() => router.push(`/configurar/${t.chave}`)}
+                  onClick={t.tem_renderer ? () => router.push(`/configurar/${t.codigo}`) : undefined}
                 />
               ))}
         </div>

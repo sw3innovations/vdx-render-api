@@ -23,6 +23,7 @@ class ETLStats:
     acabamentos: int = 0
     variaveis: int = 0
     tipologias: int = 0
+    tipologias_constitution: int = 0
     modelos: int = 0
     pecas_geometria: int = 0
     ferragens: int = 0
@@ -50,6 +51,7 @@ class CanonicalLoader:
         stats = ETLStats()
         self._seed_lookup_tables(stats)
         self._load_tipologias(stats)
+        self._load_tipologias_from_constitution(stats)
         self._load_modelos(stats)
         self._load_pecas_geometria(stats)
         self._load_ferragens_catalogo(stats)
@@ -128,6 +130,32 @@ class CanonicalLoader:
                 (codigo, ds_tmd or f"Tipologia {nu_tip}", categoria, nu_tip, "dump_vdx"),
             )
             stats.tipologias += 1
+
+    # ── tipologias da constitution (renderizáveis) ────────────────────────────
+
+    def _load_tipologias_from_constitution(self, stats: ETLStats) -> None:
+        """Imports constitution tipologias into tipologias_canonicas with natural codes."""
+        rows = self._conn.execute(
+            "SELECT chave, dados FROM constitution_entries WHERE tipo='tipologia' AND nicho='vidros'"
+        ).fetchall()
+        for chave, dados_json in rows:
+            dados = json.loads(dados_json) if dados_json else {}
+            nome = dados.get("nome_display") or chave.replace("_", " ").title()
+            if chave.startswith("porta") or chave.startswith("divisoria_porta"):
+                categoria = "PORTA"
+            elif chave.startswith("janela"):
+                categoria = "JANELA"
+            elif chave.startswith("box"):
+                categoria = "BOX"
+            else:
+                categoria = None
+            self._conn.execute(
+                """INSERT OR IGNORE INTO tipologias_canonicas
+                   (codigo, nome_apresentacao, categoria, fonte_origem)
+                   VALUES (?,?,?,?)""",
+                (chave, nome, categoria, "constitution"),
+            )
+            stats.tipologias_constitution += 1
 
     # ── modelos ───────────────────────────────────────────────────────────────
 
@@ -341,6 +369,7 @@ class CanonicalLoader:
             ("seed_lookups",   "CanonicalLoader", "acabamentos_canonicos",     stats.acabamentos, stats.acabamentos, 0),
             ("seed_lookups",   "CanonicalLoader", "variaveis_canonicas",       stats.variaveis,   stats.variaveis,   0),
             ("load_tipologias","CanonicalLoader", "tipologias_canonicas",      stats.tipologias,  stats.tipologias,  0),
+            ("load_tipologias_constitution", "CanonicalLoader", "tipologias_canonicas", stats.tipologias_constitution, stats.tipologias_constitution, 0),
             ("load_modelos",   "CanonicalLoader", "modelos_canonicos",         stats.modelos,     stats.modelos,     len(stats.erros)),
             ("load_pecas",     "CanonicalLoader", "pecas_geometria_canonicas", stats.pecas_geometria, stats.pecas_geometria, 0),
             ("load_ferragens",        "CanonicalLoader", "ferragens_canonicas", stats.ferragens,       stats.ferragens,       0),
