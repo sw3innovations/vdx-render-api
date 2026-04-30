@@ -16,14 +16,14 @@
 
 ## Sub-entrega 1 — Setup base + página /editor
 
-**Status:** ⏳ em andamento
+**Status:** ✅ concluída
 
-- Página /editor acessível: —
-- Botão header: —
-- pytest: —
-- CI: —
-- Screenshot/curl: —
-- Erro: —
+- Página /editor acessível: sim (HTTP 200)
+- Botão header: sim (todas as páginas têm link "Editor")
+- pytest: 584 passed, 7 skipped (baseline mantido)
+- CI: verde (Tests + Deploy)
+- curl https://render.sw3.tec.br/editor → 200, title "VDX Glass Engine", HTML 5352 bytes
+- Desvio: branch `main` em vez de `master` (sem `master` no repo; CI configurado em `main`)
 
 ---
 
