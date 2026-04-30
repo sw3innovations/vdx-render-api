@@ -94,12 +94,21 @@
 
 ## Sub-entrega 7 — Salvar versão + persistência
 
-**Status:** ⏳ em andamento
+**Status:** ✅ concluída
+
+- POST /api/v1/editor/salvar: sim (persiste em uploads/editor/{uuid}/manifest.json)
+- GET /api/v1/editor/{uuid}: sim
+- Frontend: botão Salvar funcional, URL copiada, toast "✓ Salvo!"
+- ?carregar=<uuid> carrega estado salvo ao abrir /editor
+- 3 novos testes: todos passando
+- pytest: 587 passed, 7 skipped (587 ≥ floor de 584)
+- CI: verde (Tests + Deploy Render API)
+- curl https://render.sw3.tec.br/editor → 200
 
 ---
 
 ## TOTAL
-- Sub-entregas concluídas: 6/7
-- Testes finais: —
-- CI final: —
-- Paradas para investigar de manhã: —
+- Sub-entregas concluídas: **7/7** ✅
+- Testes finais: **587 passed, 7 skipped** (acima do floor de 584)
+- CI final: **verde** (Tests + Deploy Render API)
+- Paradas para investigar de manhã: nenhuma — sprint concluída com sucesso
