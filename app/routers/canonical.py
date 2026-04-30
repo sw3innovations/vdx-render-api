@@ -161,33 +161,106 @@ def listar_modelos_canonicos(
 
 # ── ferragens ─────────────────────────────────────────────────────────────────
 
+# Shape subtypes that belong to the puxador meta-category
+_PUXADOR_TIPOS: tuple[str, ...] = (
+    "puxador", "barra", "bola", "h", "u", "concha", "capsula",
+)
+
+
+def _tipo_filter(tipo: str | None) -> tuple[str, list]:
+    """Return (sql_fragment, params) for a tipo filter on ferragens_canonicas fc."""
+    if not tipo:
+        return "", []
+    if tipo.lower() == "puxador":
+        ph = ",".join("?" * len(_PUXADOR_TIPOS))
+        return f"fc.tipo IN ({ph})", list(_PUXADOR_TIPOS)
+    return "fc.tipo=?", [tipo]
+
+
+@router.get("/ferragens/filtros")
+def filtros_ferragens(tipo: str | None = Query(None)):
+    conn = _get_conn()
+    cond, cparams = _tipo_filter(tipo)
+
+    # fabricantes — exclude test fixtures that start with TEST_ or FAB_
+    fab_cond = (cond + " AND " if cond else "") + "f.id NOT LIKE 'TEST_%' AND f.id NOT LIKE 'FAB_%'"
+    fab_rows = conn.execute(
+        f"""SELECT DISTINCT f.id, f.nome FROM ferragens_canonicas fc
+            JOIN fabricantes f ON f.id = fc.fabricante_codigo
+            WHERE {fab_cond} ORDER BY f.nome""",
+        cparams,
+    ).fetchall()
+
+    # shape subtipos (all _PUXADOR_TIPOS except the meta 'puxador')
+    shape_tipos = [t for t in _PUXADOR_TIPOS if t != "puxador"]
+    sh_ph = ",".join("?" * len(shape_tipos))
+    sub_cond = (cond + " AND " if cond else "") + f"fc.tipo IN ({sh_ph})"
+    sub_rows = conn.execute(
+        f"SELECT DISTINCT fc.tipo FROM ferragens_canonicas fc WHERE {sub_cond} ORDER BY fc.tipo",
+        cparams + shape_tipos,
+    ).fetchall()
+
+    # comprimento range
+    comp_cond = (cond + " AND " if cond else "") + "fc.comprimento_mm IS NOT NULL"
+    comp_row = conn.execute(
+        f"SELECT MIN(fc.comprimento_mm), MAX(fc.comprimento_mm) FROM ferragens_canonicas fc WHERE {comp_cond}",
+        cparams,
+    ).fetchone()
+
+    conn.close()
+    return JSONResponse({
+        "fabricantes": [{"id": r[0], "nome": r[1]} for r in fab_rows],
+        "subtipos": [r[0] for r in sub_rows],
+        "comprimento_min": comp_row[0] if comp_row else None,
+        "comprimento_max": comp_row[1] if comp_row else None,
+    })
+
+
 @router.get("/ferragens")
 def listar_ferragens_canonicas(
     tipo: str | None = Query(None),
+    subtipo: str | None = Query(None),
     fabricante: str | None = Query(None),
+    busca: str | None = Query(None),
     comp_min: float | None = Query(None),
     comp_max: float | None = Query(None),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
     conn = _get_conn()
-    filters, params = [], []
-    if tipo:
-        filters.append("tipo=?")
-        params.append(tipo)
+    cond, params = _tipo_filter(tipo)
+    filters = [cond] if cond else []
+
+    if subtipo:
+        filters.append("fc.tipo=?")
+        params.append(subtipo.lower())
     if fabricante:
-        filters.append("fabricante_codigo=?")
+        filters.append("fc.fabricante_codigo=?")
         params.append(fabricante.upper())
+    if busca:
+        filters.append("fc.nome_apresentacao LIKE ?")
+        params.append(f"%{busca}%")
     if comp_min is not None:
-        filters.append("comprimento_mm >= ?")
+        filters.append("fc.comprimento_mm >= ?")
         params.append(comp_min)
     if comp_max is not None:
-        filters.append("comprimento_mm <= ?")
+        filters.append("fc.comprimento_mm <= ?")
         params.append(comp_max)
+
     where = ("WHERE " + " AND ".join(filters)) if filters else ""
     params += [limit, offset]
     cur = conn.execute(
-        f"SELECT * FROM ferragens_canonicas {where} ORDER BY codigo_normalizado LIMIT ? OFFSET ?", params
+        f"""SELECT fc.*,
+                   f.nome AS fabricante_nome,
+                   m.nome_apresentacao AS material_nome,
+                   a.nome_apresentacao AS acabamento_nome
+            FROM ferragens_canonicas fc
+            LEFT JOIN fabricantes f ON f.id = fc.fabricante_codigo
+            LEFT JOIN materiais_canonicos m ON m.id = fc.material_id
+            LEFT JOIN acabamentos_canonicos a ON a.id = fc.acabamento_id
+            {where}
+            ORDER BY fc.codigo_normalizado LIMIT ? OFFSET ?""",
+        params,
     )
     rows = _rows_as_dicts(cur)
     conn.close()

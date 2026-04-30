@@ -147,3 +147,61 @@ def test_tem_renderer_false_para_sanfonado_sem_schema():
     assert r.status_code == 200, "TIP_0015_SANFONADO não encontrada nas tipologias canonicas"
     body = r.json()
     assert body.get("tem_renderer") is False
+
+
+# ── Sprint 11 Fase 2 — ferragens canônicas (filtros, busca) ───────────────────
+
+def test_canonical_ferragens_filtra_por_tipo_puxador():
+    body = client.get("/api/v1/canonical/ferragens?tipo=puxador&limit=200").json()
+    assert body["total"] >= 1
+    _PUXADOR_TIPOS = {"puxador", "barra", "bola", "h", "u", "concha", "capsula"}
+    for f in body["ferragens"]:
+        assert f["tipo"] in _PUXADOR_TIPOS, f"tipo inesperado: {f['tipo']}"
+
+
+def test_canonical_ferragens_inclui_fabricante_nome():
+    body = client.get("/api/v1/canonical/ferragens?tipo=puxador&limit=5").json()
+    assert body["total"] >= 1
+    first = body["ferragens"][0]
+    assert "fabricante_nome" in first
+
+
+def test_canonical_ferragens_filtra_por_fabricante():
+    body = client.get("/api/v1/canonical/ferragens?fabricante=SM").json()
+    for f in body["ferragens"]:
+        assert f["fabricante_codigo"] == "SM"
+
+
+def test_canonical_ferragens_filtra_por_subtipo_barra():
+    body = client.get("/api/v1/canonical/ferragens?subtipo=barra&limit=100").json()
+    assert body["total"] >= 1
+    for f in body["ferragens"]:
+        assert f["tipo"] == "barra"
+
+
+def test_canonical_ferragens_filtra_por_comprimento_range():
+    body = client.get("/api/v1/canonical/ferragens?comp_min=300&comp_max=400&limit=100").json()
+    for f in body["ferragens"]:
+        if f["comprimento_mm"] is not None:
+            assert 300 <= f["comprimento_mm"] <= 400
+
+
+def test_canonical_ferragens_busca_textual():
+    body = client.get("/api/v1/canonical/ferragens?busca=Puxador&limit=50").json()
+    assert body["total"] >= 1
+    for f in body["ferragens"]:
+        assert "Puxador" in f["nome_apresentacao"] or "puxador" in f["nome_apresentacao"].lower()
+
+
+def test_canonical_ferragens_filtros_endpoint():
+    r = client.get("/api/v1/canonical/ferragens/filtros?tipo=puxador")
+    assert r.status_code == 200
+    body = r.json()
+    assert "fabricantes" in body
+    assert "subtipos" in body
+    assert "comprimento_min" in body
+    assert "comprimento_max" in body
+    assert len(body["fabricantes"]) >= 1
+    for fab in body["fabricantes"]:
+        assert not fab["id"].startswith("TEST_"), f"Fabricante de teste no filtros: {fab['id']}"
+        assert not fab["id"].startswith("FAB_"), f"Fabricante de teste no filtros: {fab['id']}"
