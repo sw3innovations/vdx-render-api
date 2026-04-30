@@ -55,13 +55,27 @@
 
 ## Sub-entrega 4 — Resize de painel via handles
 
-**Status:** —
+**Status:** ✅ concluída
+
+- 4 handles nos cantos (nw/ne/sw/se): sim
+- DragMove em tempo real via resizePreview local state: sim
+- Limites [100, 6000]mm: sim
+- Snap aplicado: sim
+- pytest: 584 passed, 7 skipped
+- CI: verde (Tests)
 
 ---
 
 ## Sub-entrega 5 — Undo/redo com zundo
 
-**Status:** —
+**Status:** ✅ concluída (implementada em sub-entrega 1, validada aqui)
+
+- Middleware zundo no store com limit=50: sim
+- Botões Undo/Redo na toolbar com contador: sim
+- Atalhos Ctrl+Z / Ctrl+Shift+Z: sim
+- Funciona para drag, resize, edição manual de props: sim
+- pytest: 584 passed, 7 skipped
+- CI: verde
 
 ---
 

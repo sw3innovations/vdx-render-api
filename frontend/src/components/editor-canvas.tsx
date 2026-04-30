@@ -17,7 +17,7 @@ import { useEditorStore } from '@/stores/editor-store'
 import type { Painel, FerragemPosicao } from '@/stores/editor-store'
 
 const CANVAS_PADDING = 100
-const HANDLE_SIZE = 8
+const HANDLE_SIZE = 16
 type Corner = 'nw' | 'ne' | 'sw' | 'se'
 
 interface ResizingStart {
