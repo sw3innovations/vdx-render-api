@@ -24,23 +24,29 @@ export interface FiltrosFerragem {
   comprimento_max: number | null
 }
 
-export async function listarPuxadores(params?: {
+interface FerragensParams {
   subtipo?: string
   fabricante?: string
   busca?: string
   comp_min?: number
   comp_max?: number
   limit?: number
-}): Promise<FerragensResponse> {
-  const qs = new URLSearchParams({ tipo: 'puxador', limit: String(params?.limit ?? 100) })
+}
+
+export async function listarFerragens(tipo: string, params?: FerragensParams): Promise<FerragensResponse> {
+  const qs = new URLSearchParams({ tipo, limit: String(params?.limit ?? 100) })
   if (params?.subtipo) qs.set('subtipo', params.subtipo)
   if (params?.fabricante) qs.set('fabricante', params.fabricante)
   if (params?.busca) qs.set('busca', params.busca)
   if (params?.comp_min != null) qs.set('comp_min', String(params.comp_min))
   if (params?.comp_max != null) qs.set('comp_max', String(params.comp_max))
   const res = await fetch(`/api/v1/canonical/ferragens?${qs}`)
-  if (!res.ok) throw new Error(`listarPuxadores falhou (${res.status})`)
+  if (!res.ok) throw new Error(`listarFerragens falhou (${res.status})`)
   return res.json() as Promise<FerragensResponse>
+}
+
+export async function listarPuxadores(params?: FerragensParams): Promise<FerragensResponse> {
+  return listarFerragens('puxador', params)
 }
 
 export async function listarFiltrosFerragem(tipo = 'puxador'): Promise<FiltrosFerragem> {

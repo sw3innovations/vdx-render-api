@@ -161,9 +161,12 @@ def listar_modelos_canonicos(
 
 # ── ferragens ─────────────────────────────────────────────────────────────────
 
-# Shape subtypes that belong to the puxador meta-category
+# Tipo families — meta-tipo expands to all shape subtypes via IN clause
 _PUXADOR_TIPOS: tuple[str, ...] = (
     "puxador", "barra", "bola", "h", "u", "concha", "capsula",
+)
+_DOBRADICA_TIPOS: tuple[str, ...] = (
+    "dobradica", "dobradica_basculante", "dobradica_batente", "dobradica_box",
 )
 
 
@@ -171,9 +174,13 @@ def _tipo_filter(tipo: str | None) -> tuple[str, list]:
     """Return (sql_fragment, params) for a tipo filter on ferragens_canonicas fc."""
     if not tipo:
         return "", []
-    if tipo.lower() == "puxador":
+    t = tipo.lower()
+    if t == "puxador":
         ph = ",".join("?" * len(_PUXADOR_TIPOS))
         return f"fc.tipo IN ({ph})", list(_PUXADOR_TIPOS)
+    if t == "dobradica":
+        ph = ",".join("?" * len(_DOBRADICA_TIPOS))
+        return f"fc.tipo IN ({ph})", list(_DOBRADICA_TIPOS)
     return "fc.tipo=?", [tipo]
 
 
@@ -191,14 +198,13 @@ def filtros_ferragens(tipo: str | None = Query(None)):
         cparams,
     ).fetchall()
 
-    # shape subtipos (all _PUXADOR_TIPOS except the meta 'puxador')
-    shape_tipos = [t for t in _PUXADOR_TIPOS if t != "puxador"]
-    sh_ph = ",".join("?" * len(shape_tipos))
-    sub_cond = (cond + " AND " if cond else "") + f"fc.tipo IN ({sh_ph})"
+    # subtipos — distinct tipos in filtered set, excluding the meta tipo itself
+    sub_cond = (cond + " AND " if cond else "") + "fc.tipo IS NOT NULL"
     sub_rows = conn.execute(
         f"SELECT DISTINCT fc.tipo FROM ferragens_canonicas fc WHERE {sub_cond} ORDER BY fc.tipo",
-        cparams + shape_tipos,
+        cparams,
     ).fetchall()
+    meta_tipo = tipo.lower() if tipo else None
 
     # comprimento range
     comp_cond = (cond + " AND " if cond else "") + "fc.comprimento_mm IS NOT NULL"
@@ -210,7 +216,7 @@ def filtros_ferragens(tipo: str | None = Query(None)):
     conn.close()
     return JSONResponse({
         "fabricantes": [{"id": r[0], "nome": r[1]} for r in fab_rows],
-        "subtipos": [r[0] for r in sub_rows],
+        "subtipos": [r[0] for r in sub_rows if r[0] != meta_tipo],
         "comprimento_min": comp_row[0] if comp_row else None,
         "comprimento_max": comp_row[1] if comp_row else None,
     })

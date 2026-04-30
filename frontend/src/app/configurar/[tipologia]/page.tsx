@@ -4,8 +4,11 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { fetchRender, exportPng, exportPdf, downloadBlob } from '@/lib/api'
 import { tipologiaLabel, formatDim } from '@/lib/utils'
-import type { FerragemInfo, PuxadorSelecionado } from '@/lib/types'
+import type { FerragemInfo, PuxadorSelecionado, FerragemSelecionada } from '@/lib/types'
 import SeletorPuxador from '@/components/seletor-puxador'
+import SeletorDobradica from '@/components/seletor-dobradica'
+import SeletorFechadura from '@/components/seletor-fechadura'
+import SeletorSuporte from '@/components/seletor-suporte'
 
 const COR_VIDRO_OPTIONS = [
   { value: 'incolor', label: 'Incolor', color: '#E8F4FD' },
@@ -35,6 +38,9 @@ export default function ConfigurarPage() {
   const [corVidro, setCorVidro] = useState('incolor')
   const [acabamento, setAcabamento] = useState('cromado')
   const [puxadorSelecionado, setPuxadorSelecionado] = useState<PuxadorSelecionado | null>(null)
+  const [dobradicaSelecionada, setDobradicaSelecionada] = useState<FerragemSelecionada | null>(null)
+  const [fechaduraSelecionada, setFechaduraSelecionada] = useState<FerragemSelecionada | null>(null)
+  const [suporteSelecionado, setSuporteSelecionado] = useState<FerragemSelecionada | null>(null)
   const [ferragens, setFerragens] = useState<FerragemInfo[]>([])
   const [loadingFerragens, setLoadingFerragens] = useState(false)
   const [loadingExport, setLoadingExport] = useState<'png' | 'pdf' | null>(null)
@@ -300,6 +306,15 @@ export default function ConfigurarPage() {
 
           {/* Puxador */}
           <SeletorPuxador selected={puxadorSelecionado} onSelect={setPuxadorSelecionado} />
+
+          {/* Dobradiça */}
+          <SeletorDobradica selected={dobradicaSelecionada} onSelect={setDobradicaSelecionada} />
+
+          {/* Fechadura */}
+          <SeletorFechadura selected={fechaduraSelecionada} onSelect={setFechaduraSelecionada} />
+
+          {/* Suporte */}
+          <SeletorSuporte selected={suporteSelecionado} onSelect={setSuporteSelecionado} />
 
           {/* Ferragens */}
           {ferragens.length > 0 && (

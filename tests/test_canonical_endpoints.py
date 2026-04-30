@@ -205,3 +205,54 @@ def test_canonical_ferragens_filtros_endpoint():
     for fab in body["fabricantes"]:
         assert not fab["id"].startswith("TEST_"), f"Fabricante de teste no filtros: {fab['id']}"
         assert not fab["id"].startswith("FAB_"), f"Fabricante de teste no filtros: {fab['id']}"
+
+
+# ── Sprint 11 Fase 3 — dobradica / fechadura / suporte ────────────────────────
+
+def test_canonical_ferragens_filtra_por_tipo_dobradica():
+    body = client.get("/api/v1/canonical/ferragens?tipo=dobradica&limit=100").json()
+    assert body["total"] >= 1
+    _DOBRADICA_TIPOS = {"dobradica", "dobradica_basculante", "dobradica_batente", "dobradica_box"}
+    for f in body["ferragens"]:
+        assert f["tipo"] in _DOBRADICA_TIPOS, f"tipo inesperado: {f['tipo']}"
+
+
+def test_canonical_ferragens_filtros_dobradica():
+    r = client.get("/api/v1/canonical/ferragens/filtros?tipo=dobradica")
+    assert r.status_code == 200
+    body = r.json()
+    assert "fabricantes" in body and "subtipos" in body
+    assert len(body["fabricantes"]) >= 1
+    for fab in body["fabricantes"]:
+        assert not fab["id"].startswith("TEST_")
+        assert not fab["id"].startswith("FAB_")
+
+
+def test_canonical_ferragens_filtra_por_tipo_fechadura():
+    body = client.get("/api/v1/canonical/ferragens?tipo=fechadura&limit=100").json()
+    assert body["total"] >= 1
+    for f in body["ferragens"]:
+        assert f["tipo"] == "fechadura"
+
+
+def test_canonical_ferragens_filtros_fechadura():
+    r = client.get("/api/v1/canonical/ferragens/filtros?tipo=fechadura")
+    assert r.status_code == 200
+    body = r.json()
+    assert "fabricantes" in body
+    assert len(body["fabricantes"]) >= 1
+
+
+def test_canonical_ferragens_filtra_por_tipo_suporte():
+    body = client.get("/api/v1/canonical/ferragens?tipo=suporte&limit=100").json()
+    assert body["total"] >= 1
+    for f in body["ferragens"]:
+        assert f["tipo"] == "suporte"
+
+
+def test_canonical_ferragens_filtros_suporte():
+    r = client.get("/api/v1/canonical/ferragens/filtros?tipo=suporte")
+    assert r.status_code == 200
+    body = r.json()
+    assert "fabricantes" in body
+    assert len(body["fabricantes"]) >= 1

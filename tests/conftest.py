@@ -68,6 +68,9 @@ def db_ready():
         (9002, "PUXADOR 400", "Puxador Barra 400mm", "puxador", None, None, 400.0, None, "SM"),
         (9003, "PUXADOR 300", "Puxador Barra 300mm", "puxador", None, None, 300.0, None, "HE"),
         (9004, "BARRA-CI-001", "Puxador Barra Inox CI 300mm", "barra", "Inox", "escovado", 300.0, None, "AL"),
+        (9005, "DOBRADICA-CI-001", "Dobradiça Box CI", "dobradica", None, None, None, None, "SM"),
+        (9006, "FECHADURA-CI-001", "Fechadura CI Basic", "fechadura", None, None, None, None, "SM"),
+        (9007, "SUPORTE-CI-001", "Suporte Barra CI", "suporte", None, None, None, None, "SM"),
     ]:
         conn.execute(
             """INSERT OR IGNORE INTO catalogo_puxadores

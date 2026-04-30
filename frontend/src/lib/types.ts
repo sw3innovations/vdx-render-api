@@ -319,6 +319,12 @@ export interface PuxadorSelecionado {
   fabricante_id: string
 }
 
+export interface FerragemSelecionada {
+  codigo: string
+  nome: string
+  fabricante_id: string
+}
+
 // ─── Chat / Feedback ──────────────────────────────────────────────────────────
 
 export interface ChatMessage {
