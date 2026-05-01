@@ -1,12 +1,22 @@
 """Endpoints de consulta ao schema canônico — GET /api/v1/canonical/*."""
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from app.core.constitution import _get_conn
 
 router = APIRouter(prefix="/api/v1/canonical", tags=["canonical"])
+
+
+def _extract_canonical_id(code: str) -> str:
+    """Extrai canonical_id (número base) de qualquer formato de código.
+    Ex: 'SM-1101SG' → '1101', 'HE 1101A' → '1101', '1101' → '1101'.
+    """
+    m = re.search(r"\d{4}", code)
+    return m.group(0) if m else code
 
 
 def _rows_as_dicts(cursor) -> list[dict]:
@@ -227,9 +237,12 @@ def listar_ferragens_canonicas(
     tipo: str | None = Query(None),
     subtipo: str | None = Query(None),
     fabricante: str | None = Query(None),
+    variant: str | None = Query(None, description="Alias para fabricante (filtro por fabricante/sufixo)"),
     busca: str | None = Query(None),
     comp_min: float | None = Query(None),
     comp_max: float | None = Query(None),
+    canonical_id: str | None = Query(None, description="Filtra por canonical_id (código base, ex: '1101')"),
+    id: str | None = Query(None, description="Compat legada: 'SM-1101SG' → retorna a variante correspondente"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -240,9 +253,13 @@ def listar_ferragens_canonicas(
     if subtipo:
         filters.append("fc.tipo=?")
         params.append(subtipo.lower())
-    if fabricante:
+
+    # ?fabricante e ?variant são equivalentes
+    fab_filter = fabricante or variant
+    if fab_filter:
         filters.append("fc.fabricante_codigo=?")
-        params.append(fabricante.upper())
+        params.append(fab_filter.upper())
+
     if busca:
         filters.append("fc.nome_apresentacao LIKE ?")
         params.append(f"%{busca}%")
@@ -253,10 +270,22 @@ def listar_ferragens_canonicas(
         filters.append("fc.comprimento_mm <= ?")
         params.append(comp_max)
 
+    # ?canonical_id filtra por código base (ex: '1101')
+    if canonical_id:
+        filters.append("fc.codigo_normalizado=?")
+        params.append(canonical_id)
+
+    # Compatibilidade legada: ?id=SM-1101SG → extrai canonical_id e filtra
+    if id and not canonical_id:
+        extracted = _extract_canonical_id(id)
+        filters.append("fc.codigo_normalizado=?")
+        params.append(extracted)
+
     where = ("WHERE " + " AND ".join(filters)) if filters else ""
     params += [limit, offset]
     cur = conn.execute(
         f"""SELECT fc.*,
+                   fc.codigo_normalizado AS canonical_id,
                    f.nome AS fabricante_nome,
                    m.nome_apresentacao AS material_nome,
                    a.nome_apresentacao AS acabamento_nome
@@ -271,6 +300,49 @@ def listar_ferragens_canonicas(
     rows = _rows_as_dicts(cur)
     conn.close()
     return JSONResponse({"total": len(rows), "ferragens": rows})
+
+
+# ── ferragem canônica — detalhe com variantes ────────────────────────────────
+
+@router.get("/ferragens/{cid}/variantes")
+def variantes_ferragem_canonica(cid: str):
+    """
+    Retorna uma entrada canônica com todas as variantes (fabricantes) agrupadas.
+
+    Exemplo: GET /api/v1/canonical/ferragens/1101/variantes
+    → { canonical_id: "1101", variantes: [{...SM}, {...HE}, {...AL}] }
+    """
+    conn = _get_conn()
+    cur = conn.execute(
+        """SELECT fc.*,
+                  fc.codigo_normalizado AS canonical_id,
+                  f.nome AS fabricante_nome,
+                  m.nome_apresentacao AS material_nome,
+                  a.nome_apresentacao AS acabamento_nome
+           FROM ferragens_canonicas fc
+           LEFT JOIN fabricantes f ON f.id = fc.fabricante_codigo
+           LEFT JOIN materiais_canonicos m ON m.id = fc.material_id
+           LEFT JOIN acabamentos_canonicos a ON a.id = fc.acabamento_id
+           WHERE fc.codigo_normalizado=?
+           ORDER BY fc.fabricante_codigo""",
+        (cid,),
+    )
+    rows = _rows_as_dicts(cur)
+    conn.close()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"Ferragem canônica '{cid}' não encontrada")
+
+    # Monta resposta canônica agrupada
+    first = rows[0]
+    return JSONResponse({
+        "canonical_id": cid,
+        "tipo": first.get("tipo"),
+        "subtipo": first.get("subtipo"),
+        "nome_apresentacao": first.get("nome_apresentacao"),
+        "variantes": rows,
+        "total_variantes": len(rows),
+    })
 
 
 # ── auditoria ─────────────────────────────────────────────────────────────────

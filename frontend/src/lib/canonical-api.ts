@@ -1,5 +1,6 @@
 export interface CanonicalFerragem {
   id: number
+  canonical_id: string          // código base canônico (ex: "1101", "01.24.026")
   codigo_normalizado: string
   tipo: string | null
   subtipo: string | null
@@ -10,6 +11,15 @@ export interface CanonicalFerragem {
   diametro_mm: number | null
   material_nome: string | null
   acabamento_nome: string | null
+}
+
+export interface CanonicalFerragemAgrupada {
+  canonical_id: string
+  tipo: string | null
+  subtipo: string | null
+  nome_apresentacao: string
+  variantes: CanonicalFerragem[]
+  total_variantes: number
 }
 
 export interface FerragensResponse {
@@ -47,6 +57,12 @@ export async function listarFerragens(tipo: string, params?: FerragensParams): P
 
 export async function listarPuxadores(params?: FerragensParams): Promise<FerragensResponse> {
   return listarFerragens('puxador', params)
+}
+
+export async function buscarVariantesFerragem(canonicalId: string): Promise<CanonicalFerragemAgrupada> {
+  const res = await fetch(`/api/v1/canonical/ferragens/${encodeURIComponent(canonicalId)}/variantes`)
+  if (!res.ok) throw new Error(`buscarVariantesFerragem falhou (${res.status})`)
+  return res.json() as Promise<CanonicalFerragemAgrupada>
 }
 
 export async function listarFiltrosFerragem(tipo = 'puxador'): Promise<FiltrosFerragem> {
