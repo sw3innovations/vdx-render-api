@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FerragemSelecionada } from '@/lib/types'
-import type { CanonicalFerragem, FiltrosFerragem } from '@/lib/canonical-api'
-import { listarFerragens, listarFiltrosFerragem } from '@/lib/canonical-api'
+import type { CanonicalFerragem, CanonicalFerragemAgrupada, FiltrosFerragem } from '@/lib/canonical-api'
+import { buscarVariantesFerragem, listarFerragens, listarFiltrosFerragem } from '@/lib/canonical-api'
 
 function toSelecionada(f: CanonicalFerragem): FerragemSelecionada {
   return {
@@ -58,6 +58,9 @@ export default function SeletorFerragem({ tipo, label, selected, onSelect }: Sel
   const [filtrosData, setFiltrosData] = useState<FiltrosFerragem | null>(null)
   const [loading, setLoading] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Step 2: variant selection state
+  const [variantStep, setVariantStep] = useState<CanonicalFerragemAgrupada | null>(null)
+  const [loadingVariants, setLoadingVariants] = useState(false)
 
   useEffect(() => {
     if (!open || filtrosData) return
@@ -90,9 +93,39 @@ export default function SeletorFerragem({ tipo, label, selected, onSelect }: Sel
     }
   }, [open, filtros, fetchFerragens])
 
-  const handleSelect = (f: CanonicalFerragem) => {
-    onSelect(toSelecionada(f))
+  const handleClose = () => {
     setOpen(false)
+    setVariantStep(null)
+  }
+
+  const handleSelect = async (f: CanonicalFerragem) => {
+    const cid = f.canonical_id ?? f.codigo_normalizado
+    setLoadingVariants(true)
+    try {
+      const agrupada = await buscarVariantesFerragem(cid)
+      if (agrupada.total_variantes <= 1) {
+        // Única variante — seleciona automaticamente
+        const v = agrupada.variantes[0] ?? f
+        onSelect(toSelecionada(v))
+        setOpen(false)
+        setVariantStep(null)
+      } else {
+        // Múltiplas variantes — entra no step 2
+        setVariantStep(agrupada)
+      }
+    } catch {
+      // Fallback: seleciona diretamente se endpoint falhar
+      onSelect(toSelecionada(f))
+      setOpen(false)
+    } finally {
+      setLoadingVariants(false)
+    }
+  }
+
+  const handleVariantSelect = (v: CanonicalFerragem) => {
+    onSelect(toSelecionada(v))
+    setOpen(false)
+    setVariantStep(null)
   }
 
   const setFiltro = (key: keyof Filtros, value: string) =>
@@ -122,7 +155,7 @@ export default function SeletorFerragem({ tipo, label, selected, onSelect }: Sel
           <HardwareIcon size={40} />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-800 truncate">{selected.nome}</p>
-            <p className="text-xs text-gray-400 font-mono">{selected.codigo} · {selected.fabricante_id}</p>
+            <p className="text-xs text-gray-400 font-mono">{selected.codigo}{selected.fabricante_id ? ` · ${selected.fabricante_id}` : ''}</p>
           </div>
           <span className="text-xs text-[#1a5276] shrink-0">Trocar</span>
         </button>
@@ -138,22 +171,38 @@ export default function SeletorFerragem({ tipo, label, selected, onSelect }: Sel
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
-          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
+          onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
         >
           <div className="w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[90vh] sm:max-h-[80vh]">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
-              <span className="text-sm font-semibold text-gray-700">Escolher {labelLower}</span>
+              <div className="flex items-center gap-2">
+                {variantStep && (
+                  <button
+                    onClick={() => setVariantStep(null)}
+                    className="text-gray-400 hover:text-gray-600 text-sm"
+                    aria-label="Voltar"
+                  >
+                    ←
+                  </button>
+                )}
+                <span className="text-sm font-semibold text-gray-700">
+                  {variantStep
+                    ? `Escolher fabricante — ${variantStep.nome_apresentacao}`
+                    : `Escolher ${labelLower}`}
+                </span>
+              </div>
               <button
-                onClick={() => setOpen(false)}
+                onClick={handleClose}
                 className="text-gray-300 hover:text-gray-500 text-xl leading-none"
+                aria-label="Fechar"
               >
                 ×
               </button>
             </div>
 
-            {/* Search + filters */}
-            <div className="px-4 py-3 space-y-2 border-b border-gray-100 shrink-0">
+            {/* Search + filters (hidden during variant step) */}
+            <div className={`px-4 py-3 space-y-2 border-b border-gray-100 shrink-0${variantStep ? ' hidden' : ''}`}>
               <input
                 type="text"
                 placeholder="Buscar por nome…"
@@ -217,36 +266,65 @@ export default function SeletorFerragem({ tipo, label, selected, onSelect }: Sel
               </div>
             </div>
 
-            {/* List */}
+            {/* List — variant step or normal list */}
             <div className="overflow-y-auto flex-1">
-              {loading && (
-                <div className="flex items-center justify-center py-10 text-gray-300 text-sm">
-                  Carregando…
-                </div>
+              {/* Step 2: variant (fabricante) selector */}
+              {variantStep && (
+                <>
+                  <p className="px-4 py-2 text-xs text-gray-400 border-b border-gray-50">
+                    {variantStep.total_variantes} fabricante(s) disponível(is)
+                  </p>
+                  {variantStep.variantes.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => handleVariantSelect(v)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left border-b border-gray-50 last:border-0 transition-colors"
+                    >
+                      <HardwareIcon size={40} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 truncate">
+                          {v.fabricante_nome ?? v.fabricante_codigo ?? '—'}
+                        </p>
+                        <p className="text-xs text-gray-400 font-mono">{v.codigo_normalizado}</p>
+                      </div>
+                    </button>
+                  ))}
+                </>
               )}
-              {!loading && ferragens.length === 0 && (
-                <div className="flex items-center justify-center py-10 text-gray-400 text-sm">
-                  Nenhum item encontrado
-                </div>
+
+              {/* Step 1: canonical list */}
+              {!variantStep && (
+                <>
+                  {(loading || loadingVariants) && (
+                    <div className="flex items-center justify-center py-10 text-gray-300 text-sm">
+                      Carregando…
+                    </div>
+                  )}
+                  {!loading && !loadingVariants && ferragens.length === 0 && (
+                    <div className="flex items-center justify-center py-10 text-gray-400 text-sm">
+                      Nenhum item encontrado
+                    </div>
+                  )}
+                  {!loading && !loadingVariants && ferragens.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => handleSelect(f)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left border-b border-gray-50 last:border-0 transition-colors"
+                    >
+                      <HardwareIcon size={40} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 truncate">{f.nome_apresentacao}</p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {f.fabricante_nome ?? f.fabricante_codigo ?? '—'}
+                          {f.tipo && ` · ${f.tipo.replace(/_/g, ' ')}`}
+                          {' · '}
+                          <span className="font-mono">{f.canonical_id ?? f.codigo_normalizado}</span>
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </>
               )}
-              {!loading && ferragens.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => handleSelect(f)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left border-b border-gray-50 last:border-0 transition-colors"
-                >
-                  <HardwareIcon size={40} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800 truncate">{f.nome_apresentacao}</p>
-                    <p className="text-xs text-gray-400 truncate">
-                      {f.fabricante_nome ?? f.fabricante_codigo ?? '—'}
-                      {f.tipo && ` · ${f.tipo.replace(/_/g, ' ')}`}
-                      {' · '}
-                      <span className="font-mono">{f.codigo_normalizado}</span>
-                    </p>
-                  </div>
-                </button>
-              ))}
             </div>
           </div>
         </div>

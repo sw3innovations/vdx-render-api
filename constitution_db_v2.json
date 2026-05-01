@@ -1,0 +1,4184 @@
+{
+  "schema_version": "v2",
+  "gerado_por": "migrate_constitution_canonical.py",
+  "ferragens_canonicas": [
+    {
+      "canonical_id": "1001",
+      "linha": "santa_marina_1000",
+      "categoria": "botao_correcao",
+      "funcao_descricao": "Botão de Correção com Calota para Vidro",
+      "recorte_canonico": {
+        "tipo": "furo_passante",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 12.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1001-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1001",
+          "nome_comercial": "Botão de Correção com Calota para Vidro",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 11,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 7,
+            "altura": 18
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1002",
+      "linha": "santa_marina_1000",
+      "categoria": "botao_correcao",
+      "funcao_descricao": "Botão de Correção Simples (Parafuso)",
+      "recorte_canonico": {
+        "tipo": "furo_passante",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 12.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1002-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1002",
+          "nome_comercial": "Botão de Correção Simples (Parafuso)",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 8,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null,
+            "altura": 22
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1002-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1002A",
+          "nome_comercial": "Botão de Correção (Lâmina)",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 16,
+            "largura": 12,
+            "profundidade": null,
+            "diametro": null,
+            "altura": 23
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1002-AL-B",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1002B",
+          "nome_comercial": "Botão de Correção (Lâmina com Calota)",
+          "sufixo": "AL-B",
+          "dimensoes": {
+            "comprimento": 18,
+            "largura": 10,
+            "profundidade": null,
+            "diametro": null,
+            "altura": 18
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1002-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1002A",
+          "nome_comercial": "Botão de Correção (Lâmina)",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1003",
+      "linha": "santa_marina_1000",
+      "categoria": "corrente",
+      "funcao_descricao": "Argolas para Corrente",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1003-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1003A",
+          "nome_comercial": "Argolas para Corrente",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 27
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1003-AL-F",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1003F",
+          "nome_comercial": "Corrente para Trinco Basculante por Metro",
+          "sufixo": "AL-F",
+          "dimensoes": {
+            "comprimento": 1000,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1003-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1003",
+          "nome_comercial": "Corrente com argola para trinco basculante",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1003-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1003A",
+          "nome_comercial": "Corrente com argola para trinco basculante",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1005",
+      "linha": "santa_marina_1000",
+      "categoria": "calota",
+      "funcao_descricao": "Calota para Corrente",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1005-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1005",
+          "nome_comercial": "Calota para Corrente",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 11,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null,
+            "altura": 19
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1005-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1005A",
+          "nome_comercial": "Calota para Nylon com Regulagem",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1005-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1005",
+          "nome_comercial": "Calota para corrente",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1013",
+      "linha": "santa_marina_1000",
+      "categoria": "pivot",
+      "funcao_descricao": "Pivô para Dobradiça Inferior com Regulagem",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1013-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1013",
+          "nome_comercial": "Pivô para Dobradiça Inferior com Regulagem",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 16,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null,
+            "altura": 60,
+            "largura_base": 31
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1013-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1013A",
+          "nome_comercial": "Pivô para Dobradiça com Pino Fixo",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 62,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 9,
+            "altura": 25
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1013-AL-F",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1013F",
+          "nome_comercial": "Pino para Dobradiça Inferior AL 1103A",
+          "sufixo": "AL-F",
+          "dimensoes": {
+            "comprimento": 67,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 22
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1013-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1013",
+          "nome_comercial": "Pivô para dobradiça inferior HE 1103",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1013-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1013A",
+          "nome_comercial": "Pivô para dobradiça com pino fixo",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1013-HE-F",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1013F",
+          "nome_comercial": "Pino de latão para dobradiça inferior HE 1103A",
+          "sufixo": "HE-F",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1013-SM-SG",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "1013SG",
+          "nome_comercial": "Pivô Inferior",
+          "sufixo": "SM-SG",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1038",
+      "linha": "santa_marina_1000",
+      "categoria": "capuchinho",
+      "funcao_descricao": "Capuchinho para Trinco com Furo de 10mm",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1038-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1038",
+          "nome_comercial": "Capuchinho para Trinco com Furo de 10mm",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 19,
+            "largura": 10,
+            "profundidade": null,
+            "diametro": null,
+            "altura": 23,
+            "diametro_furo": 13
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1038-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1038A",
+          "nome_comercial": "Capuchinho para Trinco (Capelinha)",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 25,
+            "largura": 25,
+            "profundidade": null,
+            "diametro": null,
+            "altura": 20
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1038-AL-C",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1038C",
+          "nome_comercial": "Capuchinho para Trinco (Ferradura)",
+          "sufixo": "AL-C",
+          "dimensoes": {
+            "comprimento": 49,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null,
+            "altura": 21
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1038-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1038",
+          "nome_comercial": "Capuchinho para trinco com furo 10mm",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 10
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1038-HE-C",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1038C",
+          "nome_comercial": "Capuchinho para trinco (ferradura)",
+          "sufixo": "HE-C",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1101",
+      "linha": "santa_marina_1000",
+      "categoria": "dobradica_superior",
+      "funcao_descricao": "Dobradiça Superior com Pino de Inox",
+      "recorte_canonico": {
+        "tipo": "onda",
+        "comprimento_mm": 110.0,
+        "largura_mm": 25.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "SM"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1101-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1101",
+          "nome_comercial": "Dobradiça Superior com Pino de Inox",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 129,
+            "largura": 51,
+            "profundidade": 7,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1101-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1101A",
+          "nome_comercial": "Dobradiça Superior sem Pino de Inox",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 129,
+            "largura": 51,
+            "profundidade": 7.2,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1101-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1101",
+          "nome_comercial": "Dobradiça superior com pino de inox",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1101-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1101A",
+          "nome_comercial": "Dobradiça superior sem pino de inox",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1101-SM-SG",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "1101SG",
+          "nome_comercial": "Dobradiça Superior 1101",
+          "sufixo": "SM-SG",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1101-SM",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "SM1101",
+          "nome_comercial": "Dobradiça SM 1101",
+          "sufixo": "SM",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs SM: comprimento=110.0 vs 110.0",
+        "HE vs SM: comprimento=110.0 vs 110.0"
+      ]
+    },
+    {
+      "canonical_id": "1103",
+      "linha": "santa_marina_1000",
+      "categoria": "dobradica_inferior",
+      "funcao_descricao": "Dobradiça Inferior para Mola",
+      "recorte_canonico": {
+        "tipo": "onda",
+        "comprimento_mm": 125.0,
+        "largura_mm": 25.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "SM"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1103-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1103",
+          "nome_comercial": "Dobradiça Inferior para Mola",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 147,
+            "largura": 55,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1103-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1103A",
+          "nome_comercial": "Dobradiça Inferior com Regulagem para Pivô Invertido",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 147,
+            "largura": 55,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1103-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1103",
+          "nome_comercial": "Dobradiça inferior para mola",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1103-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1103A",
+          "nome_comercial": "Dobradiça inferior com regulagem para pivô invertido",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1103-SM-SG",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "1103SG",
+          "nome_comercial": "Dobradiça Inferior 1103",
+          "sufixo": "SM-SG",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs SM: comprimento=125.0 vs 125.0",
+        "HE vs SM: comprimento=125.0 vs 125.0"
+      ]
+    },
+    {
+      "canonical_id": "1114",
+      "linha": "santa_marina_1000",
+      "categoria": "dobradica_box",
+      "funcao_descricao": "Dobradiça Automática para Box",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 50.0,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 16.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1114-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1114",
+          "nome_comercial": "Dobradiça Automática para Box",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 98,
+            "largura": 48,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "furo_diametro_mm": 20.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1114-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1114",
+          "nome_comercial": "Dobradiça automática para box",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=50.0 vs 50.0"
+      ]
+    },
+    {
+      "canonical_id": "1115",
+      "linha": "santa_marina_1000",
+      "categoria": "dobradica_box",
+      "funcao_descricao": "Dobradiça sem Caimento para Box",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 50.0,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 16.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1115-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1115",
+          "nome_comercial": "Dobradiça sem Caimento para Box",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 98,
+            "largura": 48,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "furo_diametro_mm": 20.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1115-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1115",
+          "nome_comercial": "Dobradiça sem caimento para box",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=50.0 vs 50.0"
+      ]
+    },
+    {
+      "canonical_id": "1116",
+      "linha": "santa_marina_1000",
+      "categoria": "dobradica_batente",
+      "funcao_descricao": "Dobradiça Lateral Horizontal Simples",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 76.0,
+        "largura_mm": 35.0,
+        "furo_diametro_mm": 16.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1116-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1116",
+          "nome_comercial": "Dobradiça Lateral Horizontal Simples",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 108,
+            "largura": 58,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 62.0,
+            "furo_diametro_mm": 20.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1116-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1116",
+          "nome_comercial": "Dobradiça lateral horizontal simples",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=62.0 vs 76.0"
+      ]
+    },
+    {
+      "canonical_id": "1123",
+      "linha": "santa_marina_1000",
+      "categoria": "dobradica_basculante",
+      "funcao_descricao": "Dobradiça para Vidro Basculante com Pino de Inox",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 37.0,
+        "largura_mm": null,
+        "furo_diametro_mm": 30.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1123-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1123",
+          "nome_comercial": "Dobradiça para Vidro Basculante com Pino de Inox",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 58,
+            "largura": 54,
+            "profundidade": 7,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1123-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1123",
+          "nome_comercial": "Dobradiça para vidro basculante com pino de inox",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1125",
+      "linha": "santa_marina_1000",
+      "categoria": "roldana",
+      "funcao_descricao": "Roldana Excêntrica (NYL) com Rolamento",
+      "recorte_canonico": {
+        "tipo": "furo_passante",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 16.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1125-AL-CR",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1125CR",
+          "nome_comercial": "Roldana Excêntrica (NYL) com Rolamento",
+          "sufixo": "AL-CR",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 30
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1125-AL-SR",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1125SR",
+          "nome_comercial": "Roldana Excêntrica sem Rolamento",
+          "sufixo": "AL-SR",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 30
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1130",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte para Basculante e Pivotante com Pino de Inox",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 110.0,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1130-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1130",
+          "nome_comercial": "Suporte para Basculante e Pivotante com Pino de Inox",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 97,
+            "largura": 48,
+            "profundidade": 7,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 50.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1130-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1130",
+          "nome_comercial": "Suporte para basculante e pivotante com pino de inox",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=50.0 vs 110.0"
+      ]
+    },
+    {
+      "canonical_id": "1131",
+      "linha": "santa_marina_1000",
+      "categoria": "dobradica_basculante",
+      "funcao_descricao": "Dobradiça Maxin-ar V/V",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": null,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1131-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1131",
+          "nome_comercial": "Dobradiça Maxin-ar V/V",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 76,
+            "largura": 46,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 28.0,
+            "furo_diametro_mm": 16.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1131-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1131",
+          "nome_comercial": "Dobradiça Maxin-ar V/V",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=40.0 vs None"
+      ]
+    },
+    {
+      "canonical_id": "1132",
+      "linha": "santa_marina_1000",
+      "categoria": "dobradica_basculante",
+      "funcao_descricao": "Dobradiça Maxin-ar V/A",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 105.0,
+        "largura_mm": 25.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1132-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1132",
+          "nome_comercial": "Dobradiça Maxin-ar V/A",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 76,
+            "largura": 46,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 76.0,
+            "largura_mm": 40.0,
+            "furo_diametro_mm": 16.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1132-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1132",
+          "nome_comercial": "Dobradiça Maxin-ar V/A",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=76.0 vs 105.0"
+      ]
+    },
+    {
+      "canonical_id": "1201",
+      "linha": "santa_marina_1000",
+      "categoria": "pivot",
+      "funcao_descricao": "Bucha para Pivô de Dobradiça",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1201-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1201",
+          "nome_comercial": "Bucha para Pivô de Dobradiça",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 62,
+            "largura": null,
+            "profundidade": 7.2,
+            "diametro": null,
+            "altura": 19
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1201-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1201A",
+          "nome_comercial": "Bucha com Pino de Inox para Pivô de Dobradiça",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 62,
+            "largura": null,
+            "profundidade": 3,
+            "diametro": null,
+            "pino_mm": 7,
+            "altura_total": 18,
+            "altura_pino": 19
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1201-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1201A",
+          "nome_comercial": "Bucha com pino para pivô de dobradiça",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1201-HE-F",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1201F",
+          "nome_comercial": "Bucha com pino para pivô de dobradiça de báscula",
+          "sufixo": "HE-F",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1201-SM-SG",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "1201SG",
+          "nome_comercial": "Pivô Superior",
+          "sufixo": "SM-SG",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1201-SM",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "SM1201",
+          "nome_comercial": "Pivô SM 1201",
+          "sufixo": "SM",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1203",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte para Bandeira com Ponto de Giro para Dobradiça Superior",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1203-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1203",
+          "nome_comercial": "Suporte para Bandeira com Ponto de Giro para Dobradiça Superior",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 131,
+            "largura": 98,
+            "profundidade": 7.2,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1203-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1203",
+          "nome_comercial": "Suporte para bandeira com ponto de giro para dobradiça superior",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1209",
+      "linha": "santa_marina_1000",
+      "categoria": "facao",
+      "funcao_descricao": "Facão Simples para Lateral e Bandeira",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1209-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1209",
+          "nome_comercial": "Facão Simples para Lateral e Bandeira",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 180,
+            "largura": 100,
+            "profundidade": 7.2,
+            "diametro": null,
+            "altura": 50
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1209-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1209",
+          "nome_comercial": "Facão simples para lateral e bandeira",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1230",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte para Basculante e Pivotante",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 37.0,
+        "largura_mm": null,
+        "furo_diametro_mm": 30.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1230-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1230",
+          "nome_comercial": "Suporte para Basculante e Pivotante",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 58,
+            "largura": 54,
+            "profundidade": 7.2,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1230-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1230A",
+          "nome_comercial": "Suporte para Basculante e Pivotante com Trinco",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 58,
+            "largura": 54,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1230-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1230",
+          "nome_comercial": "Suporte para basculante e pivotante",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1231",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte com Ponto de Giro para Basculante e Pivotante",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 110.0,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1231-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1231",
+          "nome_comercial": "Suporte com Ponto de Giro para Basculante e Pivotante",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 97,
+            "largura": 48,
+            "profundidade": 7.2,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 50.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1231-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1231",
+          "nome_comercial": "Suporte com ponto de giro para basculante e pivotante",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=50.0 vs 110.0"
+      ]
+    },
+    {
+      "canonical_id": "1302",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte de Canto",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 50.0,
+        "largura_mm": null,
+        "furo_diametro_mm": null,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1302-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1302",
+          "nome_comercial": "Suporte de Canto",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 48,
+            "largura": 48,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 38.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1302-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1302",
+          "nome_comercial": "Suporte de canto",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=38.0 vs 50.0"
+      ]
+    },
+    {
+      "canonical_id": "1304",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte sem Miolo para União de Dois Vidros",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 110.0,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1304-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1304",
+          "nome_comercial": "Suporte sem Miolo para União de Dois Vidros",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 97,
+            "largura": 48,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 50.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1304-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1304",
+          "nome_comercial": "Suporte sem miolo para união de 02 vidros",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=50.0 vs 110.0"
+      ]
+    },
+    {
+      "canonical_id": "1306",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte com Miolo para União de Dois Vidros",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 110.0,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1306-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1306",
+          "nome_comercial": "Suporte com Miolo para União de Dois Vidros",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 97,
+            "largura": 48,
+            "profundidade": 7.2,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 50.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1306-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1306",
+          "nome_comercial": "Suporte com miolo para união de 02 vidros",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=50.0 vs 110.0"
+      ]
+    },
+    {
+      "canonical_id": "1310",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte para União de Dois ou Três Vidros em L",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 27.0,
+        "largura_mm": 50.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1310-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1310",
+          "nome_comercial": "Suporte para União de Dois ou Três Vidros em L",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 98,
+            "largura": 98,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 50.0,
+            "largura_mm": 27.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1310-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1310",
+          "nome_comercial": "Suporte para união de 02 ou 03 vidros em L",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=50.0 vs 27.0"
+      ]
+    },
+    {
+      "canonical_id": "1315",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte para União de Dois ou Três Vidros em L com Batedeira",
+      "recorte_canonico": {
+        "tipo": "onda",
+        "comprimento_mm": 50.0,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1315-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1315",
+          "nome_comercial": "Suporte para União de Dois ou Três Vidros em L com Batedeira",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 98,
+            "largura": 98,
+            "profundidade": 3,
+            "diametro": null,
+            "batedor_altura": 48,
+            "batedor_largura": 8
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1316",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte para União de Quatro Vidros sem Miolo",
+      "recorte_canonico": {
+        "tipo": "onda",
+        "comprimento_mm": 50.0,
+        "largura_mm": 27.0,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1316-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1316",
+          "nome_comercial": "Suporte para União de Quatro Vidros sem Miolo",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 98,
+            "largura": 98,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1316-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1316",
+          "nome_comercial": "Suporte para união 4 vidros sem miolo",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1329",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Suporte de Centro",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 37.0,
+        "largura_mm": null,
+        "furo_diametro_mm": 30.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1329-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1329",
+          "nome_comercial": "Suporte de Centro",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 54,
+            "largura": 58,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1329-AL-P",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1329P",
+          "nome_comercial": "Suporte de Pressão para Guarda-Corpo",
+          "sufixo": "AL-P",
+          "dimensoes": {
+            "comprimento": 45,
+            "largura": 45,
+            "profundidade": null,
+            "diametro": null,
+            "espessura": 25
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1329-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1329",
+          "nome_comercial": "Suporte de centro",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1335",
+      "linha": "santa_marina_1000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Trinco sem Miolo",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 25.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1335-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1335",
+          "nome_comercial": "Trinco sem Miolo",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 54,
+            "largura": 58,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1335-AL-C",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1335C",
+          "nome_comercial": "Contratrinco para AL 1335",
+          "sufixo": "AL-C",
+          "dimensoes": {
+            "comprimento": 54,
+            "largura": 58,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "furo_diametro_mm": 16.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1335-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1335",
+          "nome_comercial": "Trinco sem miolo",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1335-HE-C",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1335C",
+          "nome_comercial": "Contra trinco para HE 1335",
+          "sufixo": "HE-C",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "furo_diametro_mm": 16.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1402",
+      "linha": "santa_marina_1000",
+      "categoria": "batedor",
+      "funcao_descricao": "Suporte com Batedor",
+      "recorte_canonico": {
+        "tipo": "onda",
+        "comprimento_mm": 37.0,
+        "largura_mm": 25.0,
+        "furo_diametro_mm": 30.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1402-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1402",
+          "nome_comercial": "Suporte com Batedor",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 54,
+            "largura": 55,
+            "profundidade": null,
+            "diametro": null,
+            "batedor_altura": 62
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1504",
+      "linha": "santa_marina_1000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contrafechadura com Recorte para AL 1520",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 75.0,
+        "largura_mm": 43.0,
+        "furo_diametro_mm": null,
+        "raio_mm": 9.0,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1504-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1504",
+          "nome_comercial": "Contrafechadura com Recorte para AL 1520",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 98,
+            "largura": 50,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1504-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1504A",
+          "nome_comercial": "Contrafechadura Alvenaria para AL 1520",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 111,
+            "largura": 37,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1504-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1504",
+          "nome_comercial": "Contra fechadura para HE 1520",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1504-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1504A",
+          "nome_comercial": "Contra fechadura alvenaria para HE 1520",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1504-SM-AG",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "1504AG",
+          "nome_comercial": "Contra Fechadura 1504A",
+          "sufixo": "SM-AG",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1510",
+      "linha": "santa_marina_1000",
+      "categoria": "fechadura",
+      "funcao_descricao": "Fechadura Bico-de-Papagaio com Recorte para Porta de Correr",
+      "recorte_canonico": {
+        "tipo": "retangular",
+        "comprimento_mm": 120.0,
+        "largura_mm": 45.0,
+        "furo_diametro_mm": null,
+        "raio_mm": 5.0,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "SM"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1510-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1510",
+          "nome_comercial": "Fechadura Bico-de-Papagaio com Recorte para Porta de Correr",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 154,
+            "largura": 60,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-AL-JD",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1510JD",
+          "nome_comercial": "Fechadura Bico-de-Papagaio com Recorte Direita para Janela",
+          "sufixo": "AL-JD",
+          "dimensoes": {
+            "comprimento": 154,
+            "largura": 60,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-AL-JE",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1510JE",
+          "nome_comercial": "Fechadura Bico-de-Papagaio com Recorte Esquerda para Janela",
+          "sufixo": "AL-JE",
+          "dimensoes": {
+            "comprimento": 154,
+            "largura": 60,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-AL-/11DIR",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "CAPA 1510/11 DIR",
+          "nome_comercial": "Conjunto de Fechadura Maçaneta V/V - Direita",
+          "sufixo": "AL-/11DIR",
+          "dimensoes": {
+            "comprimento": 150,
+            "largura": 55,
+            "profundidade": 55,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-AL-/11ESQ",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "CAPA 1510/11 ESQ",
+          "nome_comercial": "Conjunto de Fechadura Maçaneta V/V - Esquerda",
+          "sufixo": "AL-/11ESQ",
+          "dimensoes": {
+            "comprimento": 150,
+            "largura": 55,
+            "profundidade": 55,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-AL-/11ADIR",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "CAPA 1510/11A DIR",
+          "nome_comercial": "Conjunto de Fechadura Maçaneta V/A - Direita",
+          "sufixo": "AL-/11ADIR",
+          "dimensoes": {
+            "comprimento": 150,
+            "largura": 152,
+            "profundidade": 42,
+            "diametro": null,
+            "aba": 55
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-AL-/11AESQ",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "CAPA 1510/11A ESQ",
+          "nome_comercial": "Conjunto de Fechadura Maçaneta V/A - Esquerda",
+          "sufixo": "AL-/11AESQ",
+          "dimensoes": {
+            "comprimento": 150,
+            "largura": 152,
+            "profundidade": 55,
+            "diametro": null,
+            "aba": 42
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1510",
+          "nome_comercial": "Fechadura Bico de Papagaio com recorte para porta de correr",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-HE-JD",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1510JD",
+          "nome_comercial": "Fechadura Bico de Papagaio com recorte direito para janela",
+          "sufixo": "HE-JD",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-HE-JE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1510JE",
+          "nome_comercial": "Fechadura Bico de Papagaio com recorte esquerdo para janela",
+          "sufixo": "HE-JE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 40.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1510-SM-G",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "1510G",
+          "nome_comercial": "Bico-Papagaio 1510",
+          "sufixo": "SM-G",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs SM: comprimento=120.0 vs 120.0",
+        "HE vs SM: comprimento=120.0 vs 120.0"
+      ]
+    },
+    {
+      "canonical_id": "1511",
+      "linha": "santa_marina_1000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contrafechadura com Recorte para AL 1510",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 120.0,
+        "largura_mm": 40.0,
+        "furo_diametro_mm": null,
+        "raio_mm": 9.0,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1511-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1511",
+          "nome_comercial": "Contrafechadura com Recorte para AL 1510",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 154,
+            "largura": 72,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1511-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1511A",
+          "nome_comercial": "Contrafechadura Alvenaria para AL 1510, AL 1510JD e AL 1510JE",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 156,
+            "largura": 42,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1511-AL-JD",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1511JD",
+          "nome_comercial": "Contrafechadura com Recorte para Janela com Fechadura AL 1510JD",
+          "sufixo": "AL-JD",
+          "dimensoes": {
+            "comprimento": 154,
+            "largura": 72,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1511-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1511",
+          "nome_comercial": "Contra fechadura com recorte para HE 1510",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1511-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1511A",
+          "nome_comercial": "Contra fechadura alvenaria para HE 1510, HE 1510JD e HE 1510JE",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1511-HE-J",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1511J",
+          "nome_comercial": "Contra fechadura com recorte para janela com fechadura HE 1510JD e HE 1510JE",
+          "sufixo": "HE-J",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1519",
+      "linha": "santa_marina_1000",
+      "categoria": "trinco",
+      "funcao_descricao": "Trinco Inferior com Miolo",
+      "recorte_canonico": {
+        "tipo": "retangular_arredondado",
+        "comprimento_mm": 75.0,
+        "largura_mm": 43.0,
+        "furo_diametro_mm": null,
+        "raio_mm": 9.0,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1519-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1519",
+          "nome_comercial": "Trinco Inferior com Miolo",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 97,
+            "largura": 48,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1520",
+      "linha": "santa_marina_1000",
+      "categoria": "fechadura",
+      "funcao_descricao": "Fechadura para Porta de Abrir",
+      "recorte_canonico": {
+        "tipo": "retangular",
+        "comprimento_mm": 73.0,
+        "largura_mm": 45.0,
+        "furo_diametro_mm": null,
+        "raio_mm": 8.0,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "SM"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1520-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1520",
+          "nome_comercial": "Fechadura para Porta de Abrir",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 100,
+            "largura": 50,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 75.0,
+            "largura_mm": 43.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1520-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1520",
+          "nome_comercial": "Fechadura para porta de bater",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 75.0,
+            "largura_mm": 43.0,
+            "raio_mm": 9.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1520-HE-WC",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1520WC",
+          "nome_comercial": "Fechadura para porta de bater de banheiro",
+          "sufixo": "HE-WC",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "1520-SM-G",
+          "fabricante": "Glasspeças / Santa Marina",
+          "fabricante_id": "SM",
+          "codigo_original": "1520G",
+          "nome_comercial": "Fechadura Central 1520",
+          "sufixo": "SM-G",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs SM: comprimento=75.0 vs 73.0",
+        "HE vs SM: comprimento=75.0 vs 73.0"
+      ]
+    },
+    {
+      "canonical_id": "1523",
+      "linha": "santa_marina_1000",
+      "categoria": "trinco",
+      "funcao_descricao": "Trinco Central para Basculante",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 37.0,
+        "largura_mm": null,
+        "furo_diametro_mm": 30.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1523-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1523",
+          "nome_comercial": "Trinco Central para Basculante",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 59,
+            "largura": 54,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1523-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1523",
+          "nome_comercial": "Trinco central para basculante",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1524",
+      "linha": "santa_marina_1000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contratrinco Central para Basculante",
+      "recorte_canonico": {
+        "tipo": "onda",
+        "comprimento_mm": 37.0,
+        "largura_mm": 25.0,
+        "furo_diametro_mm": 30.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1524-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1524",
+          "nome_comercial": "Contratrinco Central para Basculante",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 58,
+            "largura": 54,
+            "profundidade": 3,
+            "diametro": null,
+            "batedor_largura": 8
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1531",
+      "linha": "santa_marina_1000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contrafechadura com Aparador para AL 1520",
+      "recorte_canonico": {
+        "tipo": "retangular_arredondado",
+        "comprimento_mm": 75.0,
+        "largura_mm": 43.0,
+        "furo_diametro_mm": null,
+        "raio_mm": 9.0,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "AL"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1531-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1531",
+          "nome_comercial": "Contrafechadura com Aparador para AL 1520",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 100,
+            "largura": 62,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1531-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1531",
+          "nome_comercial": "Contra fechadura com aparador para HE 1520",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1570",
+      "linha": "santa_marina_1000",
+      "categoria": "fechadura",
+      "funcao_descricao": "Fecho Bate-Fecha V/V",
+      "recorte_canonico": {
+        "tipo": "furo_passante",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 16.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1570-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1570",
+          "nome_comercial": "Fecho Bate-Fecha V/V",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 100,
+            "largura": 110,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1570-AL-B",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1570B",
+          "nome_comercial": "Fecho Bate-Fecha Blindex V/V",
+          "sufixo": "AL-B",
+          "dimensoes": {
+            "comprimento": 120,
+            "largura": 140,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1570-AL-P",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1570P",
+          "nome_comercial": "Mini Fecho Bate-Fecha V/V",
+          "sufixo": "AL-P",
+          "dimensoes": {
+            "comprimento": 80,
+            "largura": 105,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1570-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1570",
+          "nome_comercial": "Fecho para janela Vidro/Vidro",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1571",
+      "linha": "santa_marina_1000",
+      "categoria": "fechadura",
+      "funcao_descricao": "Fecho Bate-Fecha V/A",
+      "recorte_canonico": {
+        "tipo": "furo_passante",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 16.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1571-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1571",
+          "nome_comercial": "Fecho Bate-Fecha V/A",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 100,
+            "largura": 52,
+            "profundidade": null,
+            "diametro": null,
+            "aba": 22,
+            "angulo": 15
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1571-AL-B",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1571B",
+          "nome_comercial": "Fecho Bate-Fecha Blindex V/V",
+          "sufixo": "AL-B",
+          "dimensoes": {
+            "comprimento": 120,
+            "largura": 70,
+            "profundidade": null,
+            "diametro": null,
+            "aba": 14
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1571-AL-P",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1571P",
+          "nome_comercial": "Mini Fecho Bate-Fecha V/A",
+          "sufixo": "AL-P",
+          "dimensoes": {
+            "comprimento": 80,
+            "largura": 60,
+            "profundidade": null,
+            "diametro": null,
+            "aba": 12
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1571-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1571",
+          "nome_comercial": "Fecho para janela Vidro/Alvenaria",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1587",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Haste (componente do Kit Haste)",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1587-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1587",
+          "nome_comercial": "Haste (componente do Kit Haste)",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1629",
+      "linha": "santa_marina_1000",
+      "categoria": "puxador",
+      "funcao_descricao": "Puxador com 18mm de Diâmetro",
+      "recorte_canonico": {
+        "tipo": "furo_passante",
+        "comprimento_mm": null,
+        "largura_mm": null,
+        "furo_diametro_mm": 8.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1629-AL-A",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1629A",
+          "nome_comercial": "Puxador com 18mm de Diâmetro",
+          "sufixo": "AL-A",
+          "dimensoes": {
+            "comprimento": 25,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 18
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1629-AL-B",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1629B",
+          "nome_comercial": "Puxador com 25mm de Diâmetro",
+          "sufixo": "AL-B",
+          "dimensoes": {
+            "comprimento": 29,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 25
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1629-AL-JA",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1629JA",
+          "nome_comercial": "Puxador com 18mm de Diâmetro (Janela)",
+          "sufixo": "AL-JA",
+          "dimensoes": {
+            "comprimento": 29,
+            "largura": null,
+            "profundidade": 7,
+            "diametro": 18
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1629-AL-JB",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1629JB",
+          "nome_comercial": "Puxador com 25mm de Diâmetro (Janela)",
+          "sufixo": "AL-JB",
+          "dimensoes": {
+            "comprimento": 29,
+            "largura": null,
+            "profundidade": 8,
+            "diametro": 25,
+            "altura": 22
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1629-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1629A",
+          "nome_comercial": "Puxador com 18mm de diâmetro para box",
+          "sufixo": "HE-A",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 18
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1629-HE-JA",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1629JA",
+          "nome_comercial": "Puxador com 18mm de diâmetro",
+          "sufixo": "HE-JA",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": 18
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1629-HE-A",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "AL1629A",
+          "nome_comercial": "Puxador HE 1629A",
+          "sufixo": "HE-A",
+          "dimensoes": {},
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "1801",
+      "linha": "santa_marina_1000",
+      "categoria": "suporte",
+      "funcao_descricao": "Chapinha para Trinco Basculante",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "1801-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 1801",
+          "nome_comercial": "Chapinha para Trinco Basculante",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 51,
+            "largura": 58,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "1801-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 1801",
+          "nome_comercial": "Chapinha para trinco basculante",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "3206",
+      "linha": "blindex_3000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contrafechadura de Alvenaria para AL 3532M",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3206-AL-M",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3206M",
+          "nome_comercial": "Contrafechadura de Alvenaria para AL 3532M",
+          "sufixo": "AL-M",
+          "dimensoes": {
+            "comprimento": 88,
+            "largura": 38,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "3206-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3206",
+          "nome_comercial": "Contrafechadura Alvenaria para AL 3210, AL 3530 e AL 3532",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 115,
+            "largura": 48,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        },
+        {
+          "variant_id": "3206-HE-M",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3206M",
+          "nome_comercial": "Contra fechadura alvenaria para HE 3532M",
+          "sufixo": "HE-M",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "3210",
+      "linha": "blindex_3000",
+      "categoria": "fechadura",
+      "funcao_descricao": "Fechadura para Porta de Abrir com Furo",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 84.0,
+        "largura_mm": 30.0,
+        "furo_diametro_mm": 20.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3210-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3210",
+          "nome_comercial": "Fechadura para Porta de Abrir com Furo",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 112,
+            "largura": 62,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 85.0,
+            "largura_mm": 37.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3210-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3210",
+          "nome_comercial": "Fechadura de centro",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=85.0 vs 84.0"
+      ]
+    },
+    {
+      "canonical_id": "3211",
+      "linha": "blindex_3000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contrafechadura com Aparador para AL 3210",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 84.0,
+        "largura_mm": 30.0,
+        "furo_diametro_mm": 20.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3211-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3211",
+          "nome_comercial": "Contrafechadura com Aparador para AL 3210",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 112,
+            "largura": 76,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 85.0,
+            "largura_mm": 37.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3211-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3211",
+          "nome_comercial": "Contra fechadura com aparador para HE 3210",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=85.0 vs 84.0"
+      ]
+    },
+    {
+      "canonical_id": "3212",
+      "linha": "blindex_3000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contrafechadura sem Aparador para AL 3210",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 84.0,
+        "largura_mm": 30.0,
+        "furo_diametro_mm": 20.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3212-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3212",
+          "nome_comercial": "Contrafechadura sem Aparador para AL 3210",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 112,
+            "largura": 62,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 85.0,
+            "largura_mm": 37.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3212-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3212",
+          "nome_comercial": "Contra fechadura sem aparador para HE 3210",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=85.0 vs 84.0"
+      ]
+    },
+    {
+      "canonical_id": "3230",
+      "linha": "blindex_3000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contra fechadura alvenaria para HE 3210 / HE 3530 / HE 3532",
+      "recorte_canonico": null,
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3230-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3230",
+          "nome_comercial": "Contra fechadura alvenaria para HE 3210 / HE 3530 / HE 3532",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": false
+        }
+      ],
+      "_conflitos": []
+    },
+    {
+      "canonical_id": "3530",
+      "linha": "blindex_3000",
+      "categoria": "fechadura",
+      "funcao_descricao": "Fechadura para Porta de Correr com Furo",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 84.0,
+        "largura_mm": 30.0,
+        "furo_diametro_mm": 20.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3530-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3530",
+          "nome_comercial": "Fechadura para Porta de Correr com Furo",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 112,
+            "largura": 62,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 85.0,
+            "largura_mm": 37.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3530-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3530",
+          "nome_comercial": "Fechadura para porta de correr",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=85.0 vs 84.0"
+      ]
+    },
+    {
+      "canonical_id": "3532",
+      "linha": "blindex_3000",
+      "categoria": "fechadura",
+      "funcao_descricao": "Mini Fechadura para Janela de Correr com Furo",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 84.0,
+        "largura_mm": 30.0,
+        "furo_diametro_mm": 20.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3532-AL-M",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3532M",
+          "nome_comercial": "Mini Fechadura para Janela de Correr com Furo",
+          "sufixo": "AL-M",
+          "dimensoes": {
+            "comprimento": 81,
+            "largura": 51,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 20.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3532-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3532",
+          "nome_comercial": "Fechadura para Janela de Correr com Furo",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 112,
+            "largura": 62,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 85.0,
+            "largura_mm": 37.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3532-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3532",
+          "nome_comercial": "Fechadura para janela de correr",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3532-HE-M",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3532M",
+          "nome_comercial": "Fechadura para janela de correr M",
+          "sufixo": "HE-M",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "furo_diametro_mm": 16.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=None vs 84.0"
+      ]
+    },
+    {
+      "canonical_id": "3534",
+      "linha": "blindex_3000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contrafechadura com Furo para AL 3530",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 84.0,
+        "largura_mm": 30.0,
+        "furo_diametro_mm": 20.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3534-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3534",
+          "nome_comercial": "Contrafechadura com Furo para AL 3530",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 112,
+            "largura": 76,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 85.0,
+            "largura_mm": 37.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3534-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3534",
+          "nome_comercial": "Contra fechadura para HE 3530",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=85.0 vs 84.0"
+      ]
+    },
+    {
+      "canonical_id": "3536",
+      "linha": "blindex_3000",
+      "categoria": "contra_fechadura",
+      "funcao_descricao": "Contrafechadura com Furo para AL 3532M",
+      "recorte_canonico": {
+        "tipo": "especial",
+        "comprimento_mm": 84.0,
+        "largura_mm": 30.0,
+        "furo_diametro_mm": 20.0,
+        "raio_mm": null,
+        "furos": null,
+        "raios_canto": null,
+        "fonte_fabricante": "HE"
+      },
+      "carga_max_kg_nbr16835": null,
+      "ciclos_min_nbr16835": null,
+      "variantes": [
+        {
+          "variant_id": "3536-AL-M",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3536M",
+          "nome_comercial": "Contrafechadura com Furo para AL 3532M",
+          "sufixo": "AL-M",
+          "dimensoes": {
+            "comprimento": 82,
+            "largura": 59,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "largura_mm": 20.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3536-AL",
+          "fabricante": "AL Indústria",
+          "fabricante_id": "AL",
+          "codigo_original": "AL 3536",
+          "nome_comercial": "Contrafechadura com Furo para AL 3532",
+          "sufixo": "AL",
+          "dimensoes": {
+            "comprimento": 112,
+            "largura": 76,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "comprimento_mm": 85.0,
+            "largura_mm": 37.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3536-HE",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3536",
+          "nome_comercial": "Contra fechadura para HE 3532",
+          "sufixo": "HE",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {},
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        },
+        {
+          "variant_id": "3536-HE-M",
+          "fabricante": "Fechaduras Hela de Friburgo Ferragens Ltda",
+          "fabricante_id": "HE",
+          "codigo_original": "HE 3536M",
+          "nome_comercial": "Contra fechadura com furo para HE 3532M",
+          "sufixo": "HE-M",
+          "dimensoes": {
+            "comprimento": null,
+            "largura": null,
+            "profundidade": null,
+            "diametro": null
+          },
+          "dimensoes_variantes": {
+            "furo_diametro_mm": 16.0
+          },
+          "fonte_pdf": null,
+          "pagina_pdf": null,
+          "conflito_detectado": true
+        }
+      ],
+      "_conflitos": [
+        "AL vs HE: comprimento=None vs 84.0"
+      ]
+    }
+  ],
+  "_orfas": [
+    {
+      "codigo": "FUSE001",
+      "codigo_normalizado": "FUSE001",
+      "fabricante_id": "SM",
+      "nome": "Ferragem para Fusão CI",
+      "tipo": "puxador",
+      "dimensoes_json": null,
+      "dimensoes": {}
+    },
+    {
+      "codigo": "NEWCI001",
+      "codigo_normalizado": "NEWCI001",
+      "fabricante_id": "SM",
+      "nome": "Ferragem Nova CI",
+      "tipo": "dobradica",
+      "dimensoes_json": null,
+      "dimensoes": {}
+    },
+    {
+      "codigo": "PUXADOR 115",
+      "codigo_normalizado": "PUXADOR 115",
+      "fabricante_id": "HE",
+      "nome": "Puxador Bola 115mm diâmetro",
+      "tipo": "puxador",
+      "dimensoes_json": "{\"comprimento\": null, \"largura\": null, \"profundidade\": null, \"diametro\": 115}",
+      "dimensoes": {
+        "comprimento": null,
+        "largura": null,
+        "profundidade": null,
+        "diametro": 115
+      }
+    },
+    {
+      "codigo": "PUXADOR 200",
+      "codigo_normalizado": "PUXADOR 200",
+      "fabricante_id": "HE",
+      "nome": "Puxador 200mm comprimento",
+      "tipo": "puxador",
+      "dimensoes_json": "{\"comprimento\": 200, \"largura\": null, \"profundidade\": null, \"diametro\": null}",
+      "dimensoes": {
+        "comprimento": 200,
+        "largura": null,
+        "profundidade": null,
+        "diametro": null
+      }
+    },
+    {
+      "codigo": "PUXADOR 300",
+      "codigo_normalizado": "PUXADOR 300",
+      "fabricante_id": "HE",
+      "nome": "Puxador 300mm comprimento / entre centro 200mm",
+      "tipo": "puxador",
+      "dimensoes_json": "{\"comprimento\": 300, \"largura\": null, \"profundidade\": null, \"diametro\": null}",
+      "dimensoes": {
+        "comprimento": 300,
+        "largura": null,
+        "profundidade": null,
+        "diametro": null
+      }
+    },
+    {
+      "codigo": "PUXADOR 400",
+      "codigo_normalizado": "PUXADOR 400",
+      "fabricante_id": "HE",
+      "nome": "Puxador 400mm comprimento / entre centro 300mm",
+      "tipo": "puxador",
+      "dimensoes_json": "{\"comprimento\": 400, \"largura\": null, \"profundidade\": null, \"diametro\": null}",
+      "dimensoes": {
+        "comprimento": 400,
+        "largura": null,
+        "profundidade": null,
+        "diametro": null
+      }
+    },
+    {
+      "codigo": "PUXADOR 400",
+      "codigo_normalizado": "PUXADOR 400",
+      "fabricante_id": "SM",
+      "nome": "Puxador Barra 400mm",
+      "tipo": "puxador",
+      "dimensoes_json": "{\"comprimento\": 400}",
+      "dimensoes": {
+        "comprimento": 400
+      }
+    }
+  ],
+  "_conflitos": [
+    {
+      "canonical_id": "1101",
+      "detalhe": "AL vs SM: comprimento=110.0 vs 110.0"
+    },
+    {
+      "canonical_id": "1101",
+      "detalhe": "HE vs SM: comprimento=110.0 vs 110.0"
+    },
+    {
+      "canonical_id": "1103",
+      "detalhe": "AL vs SM: comprimento=125.0 vs 125.0"
+    },
+    {
+      "canonical_id": "1103",
+      "detalhe": "HE vs SM: comprimento=125.0 vs 125.0"
+    },
+    {
+      "canonical_id": "1114",
+      "detalhe": "AL vs HE: comprimento=50.0 vs 50.0"
+    },
+    {
+      "canonical_id": "1115",
+      "detalhe": "AL vs HE: comprimento=50.0 vs 50.0"
+    },
+    {
+      "canonical_id": "1116",
+      "detalhe": "AL vs HE: comprimento=62.0 vs 76.0"
+    },
+    {
+      "canonical_id": "1130",
+      "detalhe": "AL vs HE: comprimento=50.0 vs 110.0"
+    },
+    {
+      "canonical_id": "1131",
+      "detalhe": "AL vs HE: comprimento=40.0 vs None"
+    },
+    {
+      "canonical_id": "1132",
+      "detalhe": "AL vs HE: comprimento=76.0 vs 105.0"
+    },
+    {
+      "canonical_id": "1231",
+      "detalhe": "AL vs HE: comprimento=50.0 vs 110.0"
+    },
+    {
+      "canonical_id": "1302",
+      "detalhe": "AL vs HE: comprimento=38.0 vs 50.0"
+    },
+    {
+      "canonical_id": "1304",
+      "detalhe": "AL vs HE: comprimento=50.0 vs 110.0"
+    },
+    {
+      "canonical_id": "1306",
+      "detalhe": "AL vs HE: comprimento=50.0 vs 110.0"
+    },
+    {
+      "canonical_id": "1310",
+      "detalhe": "AL vs HE: comprimento=50.0 vs 27.0"
+    },
+    {
+      "canonical_id": "1510",
+      "detalhe": "AL vs SM: comprimento=120.0 vs 120.0"
+    },
+    {
+      "canonical_id": "1510",
+      "detalhe": "HE vs SM: comprimento=120.0 vs 120.0"
+    },
+    {
+      "canonical_id": "1520",
+      "detalhe": "AL vs SM: comprimento=75.0 vs 73.0"
+    },
+    {
+      "canonical_id": "1520",
+      "detalhe": "HE vs SM: comprimento=75.0 vs 73.0"
+    },
+    {
+      "canonical_id": "3210",
+      "detalhe": "AL vs HE: comprimento=85.0 vs 84.0"
+    },
+    {
+      "canonical_id": "3211",
+      "detalhe": "AL vs HE: comprimento=85.0 vs 84.0"
+    },
+    {
+      "canonical_id": "3212",
+      "detalhe": "AL vs HE: comprimento=85.0 vs 84.0"
+    },
+    {
+      "canonical_id": "3530",
+      "detalhe": "AL vs HE: comprimento=85.0 vs 84.0"
+    },
+    {
+      "canonical_id": "3532",
+      "detalhe": "AL vs HE: comprimento=None vs 84.0"
+    },
+    {
+      "canonical_id": "3534",
+      "detalhe": "AL vs HE: comprimento=85.0 vs 84.0"
+    },
+    {
+      "canonical_id": "3536",
+      "detalhe": "AL vs HE: comprimento=None vs 84.0"
+    }
+  ],
+  "stats": {
+    "total_ferragens_legadas": 164,
+    "total_canonicos": 52,
+    "total_orfas": 7,
+    "total_conflitos": 26,
+    "total_variantes": 157
+  }
+}
