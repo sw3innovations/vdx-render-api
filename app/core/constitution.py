@@ -385,6 +385,130 @@ def _m008_catalogo_tabelas(conn) -> None:
     """)
 
 
+def _m010_schema_v2(conn) -> None:
+    """Phase 1 — schema v2: funcoes, canonicas, aliases, variantes, kits, regras, pendentes."""
+    conn.executescript("""
+        -- ── funções canônicas (agrupador semântico) ───────────────────────────
+        CREATE TABLE IF NOT EXISTS funcoes_canonicas (
+            funcao_id        TEXT PRIMARY KEY,
+            nome_descritivo  TEXT NOT NULL,
+            categoria_uso    TEXT NOT NULL,
+            obs_decisao      TEXT,
+            created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- ── canônicas (produto-base, 1 row por canonical_id) ─────────────────
+        CREATE TABLE IF NOT EXISTS canonicas (
+            canonical_id             TEXT PRIMARY KEY,
+            funcao_id                TEXT REFERENCES funcoes_canonicas(funcao_id),
+            linha                    TEXT NOT NULL,
+            categoria                TEXT NOT NULL,
+            subcategoria             TEXT,
+            nome_apresentacao        TEXT NOT NULL,
+            recorte_largura_mm       REAL,
+            recorte_altura_mm        REAL,
+            carga_max_kg             REAL,
+            dimensao_max_largura_mm  REAL,
+            dimensao_max_altura_mm   REAL,
+            condicao_uso             TEXT,
+            fixacao                  TEXT,
+            confidence               TEXT NOT NULL DEFAULT 'medio',
+            fontes_pdf               TEXT,
+            obs                      TEXT,
+            created_at               TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at               TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_canonicas_funcao    ON canonicas(funcao_id);
+        CREATE INDEX IF NOT EXISTS idx_canonicas_linha     ON canonicas(linha);
+        CREATE INDEX IF NOT EXISTS idx_canonicas_categoria ON canonicas(categoria);
+
+        -- ── aliases canônicos (truncamentos, apelidos, variants) ──────────────
+        CREATE TABLE IF NOT EXISTS aliases_canonicos (
+            alias_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            canonical_id TEXT NOT NULL REFERENCES canonicas(canonical_id),
+            alias        TEXT NOT NULL,
+            tipo         TEXT NOT NULL,
+            fonte        TEXT,
+            confidence   TEXT NOT NULL DEFAULT 'medio',
+            created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(alias, canonical_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_alias_busca ON aliases_canonicos(alias);
+
+        -- ── variantes canônicas (1 row por fabricante×canonical) ─────────────
+        CREATE TABLE IF NOT EXISTS variantes_canonicas (
+            variant_id              TEXT PRIMARY KEY,
+            canonical_id            TEXT NOT NULL REFERENCES canonicas(canonical_id),
+            fabricante_codigo       TEXT NOT NULL,
+            codigo_original         TEXT,
+            nome_comercial          TEXT,
+            dimensoes_variantes_json TEXT,
+            acabamentos_json        TEXT,
+            preco_referencia        REAL,
+            fonte_pdf               TEXT,
+            pagina_pdf              INTEGER,
+            extraction_quality      TEXT NOT NULL DEFAULT 'partial',
+            created_at              TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_variante_canonical   ON variantes_canonicas(canonical_id);
+        CREATE INDEX IF NOT EXISTS idx_variante_fabricante  ON variantes_canonicas(fabricante_codigo);
+
+        -- ── alternativas funcionais (quais canonicas atendem uma funcao) ──────
+        CREATE TABLE IF NOT EXISTS alternativas_funcionais (
+            alt_id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            funcao_id     TEXT NOT NULL REFERENCES funcoes_canonicas(funcao_id),
+            canonical_id  TEXT NOT NULL REFERENCES canonicas(canonical_id),
+            ordem_default INTEGER NOT NULL DEFAULT 99,
+            indicacao_uso TEXT,
+            UNIQUE(funcao_id, canonical_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_alt_func_funcao    ON alternativas_funcionais(funcao_id);
+        CREATE INDEX IF NOT EXISTS idx_alt_func_canonical ON alternativas_funcionais(canonical_id);
+
+        -- ── kits canônicos ────────────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS kits_canonicos (
+            kit_id           TEXT PRIMARY KEY,
+            nome             TEXT NOT NULL,
+            tipologia        TEXT NOT NULL,
+            fabricante_origem TEXT,
+            fonte_pdf        TEXT,
+            obs              TEXT,
+            created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_kit_tipologia ON kits_canonicos(tipologia);
+
+        CREATE TABLE IF NOT EXISTS kits_componentes (
+            kit_id       TEXT NOT NULL REFERENCES kits_canonicos(kit_id),
+            canonical_id TEXT NOT NULL REFERENCES canonicas(canonical_id),
+            quantidade   INTEGER NOT NULL DEFAULT 1,
+            obrigatorio  INTEGER NOT NULL DEFAULT 1,
+            PRIMARY KEY (kit_id, canonical_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_kit_comp_canonical ON kits_componentes(canonical_id);
+
+        -- ── regras globais (folgas NBR, constantes setoriais) ─────────────────
+        CREATE TABLE IF NOT EXISTS regras_globais (
+            regra_id       TEXT PRIMARY KEY,
+            categoria      TEXT NOT NULL,
+            descricao      TEXT NOT NULL,
+            valor_numerico REAL,
+            unidade        TEXT,
+            fonte          TEXT,
+            created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_regras_categoria ON regras_globais(categoria);
+
+        -- ── pendentes de validação humana ─────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS pendentes_validacao_humana (
+            pendente_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+            descricao    TEXT NOT NULL,
+            contexto     TEXT,
+            fonte        TEXT,
+            created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+    """)
+
+
 def _m009_canonical_schema(conn) -> None:
     """Sprint 10 — schema canônico 3NF unificando Render + Dump VDX + Catálogo PDF."""
     conn.executescript("""
@@ -547,7 +671,8 @@ _MIGRATIONS = [
     (6, "cleanup_artefatos_teste",            _m006_cleanup_artefatos),
     (7, "dump_tabelas",                       _m007_dump_tabelas),
     (8, "catalogo_tabelas",                   _m008_catalogo_tabelas),
-    (9, "canonical_schema",                   _m009_canonical_schema),
+    (9,  "canonical_schema",                   _m009_canonical_schema),
+    (10, "schema_v2",                          _m010_schema_v2),
 ]
 
 
