@@ -79,6 +79,8 @@ export interface CanonicalV2 {
   categoria: string | null
   subcategoria: string | null
   nome_apresentacao: string
+  recorte_largura_mm: number | null
+  recorte_altura_mm: number | null
   confidence: string | null
   fontes_pdf: string | null
   obs: string | null

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useReducer, useEffect } from 'react'
 import {
   DndContext,
   PointerSensor,
@@ -19,6 +19,35 @@ import type { Painel, FerragemPosicao } from '@/stores/editor-store'
 const CANVAS_PADDING = 100
 const HANDLE_SIZE = 16
 type Corner = 'nw' | 'ne' | 'sw' | 'se'
+
+// ── Recorte cache (module-level — persiste entre re-renders) ──────────────────
+
+interface CanonicalRecorte {
+  categoria: string | null
+  recorte_largura_mm: number | null
+  recorte_altura_mm: number | null
+}
+
+const _recorteCache: Record<string, CanonicalRecorte | null> = {}
+const _fetchingSet = new Set<string>()
+
+// ── Cores por categoria ───────────────────────────────────────────────────────
+
+const CATEGORIA_COR: Record<string, { fill: string; stroke: string; fillDrag: string }> = {
+  dobradica:        { fill: '#3b82f6', stroke: '#1e40af', fillDrag: '#60a5fa' },
+  fechadura:        { fill: '#ef4444', stroke: '#991b1b', fillDrag: '#f87171' },
+  bico_papagaio:    { fill: '#ef4444', stroke: '#991b1b', fillDrag: '#f87171' },
+  suporte:          { fill: '#22c55e', stroke: '#166534', fillDrag: '#4ade80' },
+  trinco:           { fill: '#f97316', stroke: '#9a3412', fillDrag: '#fb923c' },
+  puxador:          { fill: '#a855f7', stroke: '#6b21a8', fillDrag: '#c084fc' },
+  contra_fechadura: { fill: '#f97316', stroke: '#9a3412', fillDrag: '#fb923c' },
+  batedor:          { fill: '#22c55e', stroke: '#166534', fillDrag: '#4ade80' },
+}
+const COR_DEFAULT = { fill: '#f59e0b', stroke: '#92400e', fillDrag: '#fbbf24' }
+
+function getCategoriaCor(categoria: string | null | undefined) {
+  return (categoria && CATEGORIA_COR[categoria]) || COR_DEFAULT
+}
 
 interface ResizingStart {
   painelNome: string
@@ -50,6 +79,25 @@ export default function EditorCanvas() {
   const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null)
   const resizingStartRef = useRef<ResizingStart | null>(null)
   const [catalogDropTarget, setCatalogDropTarget] = useState<string | null>(null)
+  const [, forceUpdate] = useReducer((v: number) => v + 1, 0)
+
+  useEffect(() => {
+    const codes = new Set(tipologia.paineis.flatMap((p) => p.ferragens.map((f) => f.codigo)))
+    codes.forEach((codigo) => {
+      if (codigo in _recorteCache || _fetchingSet.has(codigo)) return
+      _fetchingSet.add(codigo)
+      fetch(`/api/v2/ferragens/${encodeURIComponent(codigo)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          _recorteCache[codigo] = data
+            ? { categoria: data.categoria ?? null, recorte_largura_mm: data.recorte_largura_mm ?? null, recorte_altura_mm: data.recorte_altura_mm ?? null }
+            : null
+          forceUpdate()
+        })
+        .catch(() => { _recorteCache[codigo] = null })
+        .finally(() => _fetchingSet.delete(codigo))
+    })
+  }, [tipologia.paineis])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -344,6 +392,7 @@ export default function EditorCanvas() {
                     isResizing={draggingId?.startsWith(`resize-${painel.nome}`) ?? false}
                     isFerragemDragParent={draggingFerragemPainelNome === painel.nome}
                     isCatalogDropTarget={catalogDropTarget === painel.nome}
+                    recorteCache={_recorteCache}
                     offsetX={CANVAS_PADDING}
                     offsetY={CANVAS_PADDING}
                     svgScale={svgPixelWidth / canvasWidth}
@@ -366,13 +415,14 @@ interface DraggablePainelProps {
   isResizing: boolean
   isFerragemDragParent: boolean
   isCatalogDropTarget: boolean
+  recorteCache: Record<string, CanonicalRecorte | null>
   offsetX: number
   offsetY: number
   svgScale: number
   onSelect: () => void
 }
 
-function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFerragemDragParent, isCatalogDropTarget, offsetX, offsetY, svgScale, onSelect }: DraggablePainelProps) {
+function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFerragemDragParent, isCatalogDropTarget, recorteCache, offsetX, offsetY, svgScale, onSelect }: DraggablePainelProps) {
   const { setNodeRef, listeners, attributes, transform } = useDraggable({
     id: `painel-${painel.nome}`,
     disabled: isResizing,
@@ -430,7 +480,16 @@ function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFer
         </text>
 
         {painel.ferragens.map((f, i) => (
-          <DraggableFerragem key={i} ferragem={f} idx={i} painelNome={painel.nome} painelX={x} painelY={y} svgScale={svgScale} />
+          <DraggableFerragem
+            key={i}
+            ferragem={f}
+            idx={i}
+            painelNome={painel.nome}
+            painelX={x}
+            painelY={y}
+            svgScale={svgScale}
+            recorte={recorteCache[f.codigo] ?? null}
+          />
         ))}
 
         {selected && !isPainelDragging && (
@@ -486,9 +545,10 @@ interface DraggableFerragemProps {
   painelX: number
   painelY: number
   svgScale: number
+  recorte: CanonicalRecorte | null
 }
 
-function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgScale }: DraggableFerragemProps) {
+function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgScale, recorte }: DraggableFerragemProps) {
   const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
     id: `ferragem-${painelNome}-${idx}`,
   })
@@ -498,17 +558,58 @@ function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgSca
   const cx = painelX + ferragem.x_mm + dragOffsetX
   const cy = painelY + ferragem.y_mm + dragOffsetY
 
+  const cor = getCategoriaCor(recorte?.categoria)
+  const fill = isDragging ? cor.fillDrag : cor.fill
+  const labelY = cy  // computed per branch below
+
+  const sharedG = {
+    ref: (el: SVGGElement | null) => setNodeRef(el as unknown as HTMLElement),
+    ...listeners,
+    ...attributes,
+    onClick: (e: React.MouseEvent) => e.stopPropagation(),
+    style: { cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' as const },
+  }
+
+  const hasRecorte = recorte && recorte.recorte_largura_mm != null && recorte.recorte_altura_mm != null
+
+  if (hasRecorte) {
+    const w = recorte.recorte_largura_mm!
+    const h = recorte.recorte_altura_mm!
+    const rx = cx - w / 2
+    const ry = cy - h / 2
+    return (
+      <g {...sharedG}>
+        <rect x={rx} y={ry} width={w} height={h}
+          fill={fill} stroke={cor.stroke} strokeWidth={isDragging ? 2 : 1} rx="1"
+          opacity={isDragging ? 0.85 : 1}
+          style={{ pointerEvents: 'all' }}
+        />
+        <text x={cx} y={ry - 2} textAnchor="middle" fontSize="5" fill={cor.stroke}
+          style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          {ferragem.codigo}
+        </text>
+        {isDragging && (
+          <text x={cx} y={ry + h + 8} textAnchor="middle" fontSize="6" fill={cor.stroke}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}>
+            {Math.round(ferragem.x_mm + dragOffsetX)},{Math.round(ferragem.y_mm + dragOffsetY)}
+          </text>
+        )}
+      </g>
+    )
+  }
+
+  // Fallback: círculo com label (recorte null ou ainda não carregado)
   return (
-    <g
-      ref={(el) => setNodeRef(el as unknown as HTMLElement)}
-      {...listeners}
-      {...attributes}
-      onClick={(e) => e.stopPropagation()}
-      style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
-    >
-      <circle cx={cx} cy={cy} r={6} fill={isDragging ? '#fbbf24' : '#f59e0b'} stroke={isDragging ? '#78350f' : '#92400e'} strokeWidth="1.5" />
+    <g {...sharedG}>
+      <circle cx={cx} cy={cy} r={6} fill={fill} stroke={cor.stroke} strokeWidth="1.5"
+        style={{ pointerEvents: 'all' }} />
+      <text x={cx} y={cy - 9} textAnchor="middle" fontSize="5" fill={cor.stroke}
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>
+        {ferragem.codigo}
+      </text>
       {isDragging && (
-        <text x={cx} y={cy - 10} textAnchor="middle" fontSize="7" fill="#78350f" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="6" fill={cor.stroke}
+          style={{ pointerEvents: 'none', userSelect: 'none' }}>
           {Math.round(ferragem.x_mm + dragOffsetX)},{Math.round(ferragem.y_mm + dragOffsetY)}
         </text>
       )}

@@ -25,14 +25,16 @@ def _make_db() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     _m010_schema_v2(conn)
 
-    # Canônicos
+    # Canônicos (1101 tem recorte real; 1114 e 1101R não têm)
     conn.executemany(
-        "INSERT INTO canonicas (canonical_id, linha, categoria, nome_apresentacao, confidence)"
-        " VALUES (?, ?, ?, ?, 'medio')",
+        "INSERT INTO canonicas"
+        " (canonical_id, linha, categoria, nome_apresentacao, confidence,"
+        "  recorte_largura_mm, recorte_altura_mm)"
+        " VALUES (?, ?, ?, ?, 'medio', ?, ?)",
         [
-            ("1101", "santa_marina_1000", "dobradica",  "Dobradiça Superior 1101"),
-            ("1114", "santa_marina_1000", "dobradica",  "Dobradiça 1114"),
-            ("1101R", "santa_marina_1000", "dobradica", "Dobradiça Superior Reforçada", ),
+            ("1101",  "santa_marina_1000", "dobradica", "Dobradiça Superior 1101", 27.0, 110.0),
+            ("1114",  "santa_marina_1000", "dobradica", "Dobradiça 1114",          None, None),
+            ("1101R", "santa_marina_1000", "dobradica", "Dobradiça Superior Reforçada", None, None),
         ],
     )
 
@@ -301,3 +303,23 @@ def test_v1_ferragens_ainda_funciona():
 def test_v1_materiais_ainda_funciona():
     r = client.get("/api/v1/canonical/materiais")
     assert r.status_code == 200
+
+
+# ─── 9. recorte_canonico ─────────────────────────────────────────────────────
+
+def test_detalhe_retorna_recorte_quando_preenchido():
+    body = client.get("/api/v2/ferragens/1101").json()
+    assert body["recorte_largura_mm"] == 27.0
+    assert body["recorte_altura_mm"] == 110.0
+
+
+def test_detalhe_retorna_recorte_null_quando_ausente():
+    body = client.get("/api/v2/ferragens/1101R").json()
+    assert body["recorte_largura_mm"] is None
+    assert body["recorte_altura_mm"] is None
+
+
+def test_buscar_retorna_recorte_quando_preenchido():
+    body = client.get("/api/v2/ferragens/buscar?q=1101").json()
+    assert body["recorte_largura_mm"] == 27.0
+    assert body["recorte_altura_mm"] == 110.0

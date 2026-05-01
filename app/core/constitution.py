@@ -661,6 +661,40 @@ def _m009_canonical_schema(conn) -> None:
     """)
 
 
+def _m011_seed_recortes_v2_from_v1(conn) -> None:
+    """Seed recorte_largura_mm / recorte_altura_mm in canonicas from recortes v1 table.
+
+    Maps AL {canonical_id} rows → canonicas.recorte_* where both comprimento and
+    largura are available. Only runs on rows where recorte_largura_mm IS NULL
+    (idempotent).
+    """
+    conn.execute("""
+        UPDATE canonicas SET
+            recorte_largura_mm = (
+                SELECT r.largura_mm FROM recortes r
+                WHERE r.ferragem_codigo = 'AL ' || canonicas.canonical_id
+                  AND r.comprimento_mm IS NOT NULL
+                  AND r.largura_mm IS NOT NULL
+                ORDER BY r.id LIMIT 1
+            ),
+            recorte_altura_mm = (
+                SELECT r.comprimento_mm FROM recortes r
+                WHERE r.ferragem_codigo = 'AL ' || canonicas.canonical_id
+                  AND r.comprimento_mm IS NOT NULL
+                  AND r.largura_mm IS NOT NULL
+                ORDER BY r.id LIMIT 1
+            )
+        WHERE recorte_largura_mm IS NULL
+          AND EXISTS (
+              SELECT 1 FROM recortes r
+              WHERE r.ferragem_codigo = 'AL ' || canonicas.canonical_id
+                AND r.comprimento_mm IS NOT NULL
+                AND r.largura_mm IS NOT NULL
+          )
+    """)
+    conn.commit()
+
+
 # Registro central — adicionar novas migrações AQUI (nunca alterar as anteriores)
 _MIGRATIONS = [
     (1, "create_fabricantes_ferragens_kits",  _m001_fabricantes_ferragens_kits),
@@ -673,6 +707,7 @@ _MIGRATIONS = [
     (8, "catalogo_tabelas",                   _m008_catalogo_tabelas),
     (9,  "canonical_schema",                   _m009_canonical_schema),
     (10, "schema_v2",                          _m010_schema_v2),
+    (11, "seed_recortes_v2_from_v1",           _m011_seed_recortes_v2_from_v1),
 ]
 
 
