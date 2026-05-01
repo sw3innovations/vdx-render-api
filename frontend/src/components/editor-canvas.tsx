@@ -44,10 +44,12 @@ export default function EditorCanvas() {
   const setPainelSelecionado = useEditorStore((s) => s.setPainelSelecionado)
   const atualizarPainel = useEditorStore((s) => s.atualizarPainel)
   const atualizarFerragem = useEditorStore((s) => s.atualizarFerragem)
+  const adicionarFerragemAoPainel = useEditorStore((s) => s.adicionarFerragemAoPainel)
   const svgRef = useRef<SVGSVGElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null)
   const resizingStartRef = useRef<ResizingStart | null>(null)
+  const [catalogDropTarget, setCatalogDropTarget] = useState<string | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -77,6 +79,77 @@ export default function EditorCanvas() {
   }, [svgPixelWidth, canvasWidth])
 
   const snapVal = useCallback((v: number) => Math.round(v / gridSize) * gridSize, [gridSize])
+
+  const clientToMm = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!svgRef.current) return null
+      const rect = svgRef.current.getBoundingClientRect()
+      const scaleX = canvasWidth / rect.width
+      const scaleY = canvasHeight / rect.height
+      return {
+        mmX: (clientX - rect.left) * scaleX - CANVAS_PADDING,
+        mmY: (clientY - rect.top) * scaleY - CANVAS_PADDING,
+      }
+    },
+    [canvasWidth, canvasHeight]
+  )
+
+  const findPainelAt = useCallback(
+    (mmX: number, mmY: number) =>
+      tipologia.paineis.find((p) => {
+        const px = p.posicao_x_mm ?? 0
+        const py = p.posicao_y_mm ?? 0
+        return mmX >= px && mmX <= px + p.largura_mm && mmY >= py && mmY <= py + p.altura_mm
+      }) ?? null,
+    [tipologia.paineis]
+  )
+
+  const handleCatalogDragOver = useCallback(
+    (e: React.DragEvent<SVGSVGElement>) => {
+      if (!e.dataTransfer.types.includes('application/vnd.vdx.canonical')) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+      const pos = clientToMm(e.clientX, e.clientY)
+      if (!pos) return
+      const painel = findPainelAt(pos.mmX, pos.mmY)
+      setCatalogDropTarget(painel?.nome ?? null)
+    },
+    [clientToMm, findPainelAt]
+  )
+
+  const handleCatalogDragLeave = useCallback((e: React.DragEvent<SVGSVGElement>) => {
+    if ((e.currentTarget as Element).contains(e.relatedTarget as Node)) return
+    setCatalogDropTarget(null)
+  }, [])
+
+  const handleCatalogDrop = useCallback(
+    (e: React.DragEvent<SVGSVGElement>) => {
+      e.preventDefault()
+      setCatalogDropTarget(null)
+      const raw = e.dataTransfer.getData('application/vnd.vdx.canonical')
+      if (!raw) return
+      let canonical: { canonical_id: string; categoria: string | null; nome_apresentacao: string }
+      try { canonical = JSON.parse(raw) } catch { return }
+      if (!canonical.canonical_id) return
+
+      const pos = clientToMm(e.clientX, e.clientY)
+      if (!pos) return
+      const painel = findPainelAt(pos.mmX, pos.mmY)
+      if (!painel) return
+
+      const localX = pos.mmX - (painel.posicao_x_mm ?? 0)
+      const localY = pos.mmY - (painel.posicao_y_mm ?? 0)
+      adicionarFerragemAoPainel(painel.nome, {
+        codigo: canonical.canonical_id,
+        fabricante_id: null,
+        tipo: canonical.categoria ?? canonical.nome_apresentacao,
+        x_mm: Math.max(0, Math.min(painel.largura_mm, snapVal(localX))),
+        y_mm: Math.max(0, Math.min(painel.altura_mm, snapVal(localY))),
+      })
+      setPainelSelecionado(painel.nome)
+    },
+    [clientToMm, findPainelAt, snapVal, adicionarFerragemAoPainel, setPainelSelecionado]
+  )
 
   const handleDragStart = useCallback(
     (e: DragStartEvent) => {
@@ -236,6 +309,9 @@ export default function EditorCanvas() {
               onClick={(e) => {
                 if ((e.target as Element).tagName === 'svg') setPainelSelecionado(null)
               }}
+              onDragOver={handleCatalogDragOver}
+              onDragLeave={handleCatalogDragLeave}
+              onDrop={handleCatalogDrop}
             >
               <defs>
                 <pattern id="editor-grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse" x={CANVAS_PADDING} y={CANVAS_PADDING}>
@@ -267,6 +343,7 @@ export default function EditorCanvas() {
                     isPainelDragging={draggingId === `painel-${painel.nome}`}
                     isResizing={draggingId?.startsWith(`resize-${painel.nome}`) ?? false}
                     isFerragemDragParent={draggingFerragemPainelNome === painel.nome}
+                    isCatalogDropTarget={catalogDropTarget === painel.nome}
                     offsetX={CANVAS_PADDING}
                     offsetY={CANVAS_PADDING}
                     svgScale={svgPixelWidth / canvasWidth}
@@ -288,13 +365,14 @@ interface DraggablePainelProps {
   isPainelDragging: boolean
   isResizing: boolean
   isFerragemDragParent: boolean
+  isCatalogDropTarget: boolean
   offsetX: number
   offsetY: number
   svgScale: number
   onSelect: () => void
 }
 
-function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFerragemDragParent, offsetX, offsetY, svgScale, onSelect }: DraggablePainelProps) {
+function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFerragemDragParent, isCatalogDropTarget, offsetX, offsetY, svgScale, onSelect }: DraggablePainelProps) {
   const { setNodeRef, listeners, attributes, transform } = useDraggable({
     id: `painel-${painel.nome}`,
     disabled: isResizing,
@@ -324,9 +402,19 @@ function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFer
         <rect
           x={x} y={y}
           width={painel.largura_mm} height={painel.altura_mm}
-          fill={selected || isResizing ? '#dbeafe' : isPainelDragging || isFerragemDragParent ? '#eff6ff' : '#e8f4fd'}
-          stroke={selected || isResizing ? '#3b82f6' : isPainelDragging ? '#60a5fa' : isFerragemDragParent ? '#93c5fd' : '#1a5276'}
-          strokeWidth={selected || isPainelDragging || isResizing || isFerragemDragParent ? 2 : 1}
+          fill={
+            isCatalogDropTarget ? '#dcfce7' :
+            selected || isResizing ? '#dbeafe' :
+            isPainelDragging || isFerragemDragParent ? '#eff6ff' : '#e8f4fd'
+          }
+          stroke={
+            isCatalogDropTarget ? '#16a34a' :
+            selected || isResizing ? '#3b82f6' :
+            isPainelDragging ? '#60a5fa' :
+            isFerragemDragParent ? '#93c5fd' : '#1a5276'
+          }
+          strokeWidth={isCatalogDropTarget || selected || isPainelDragging || isResizing || isFerragemDragParent ? 2 : 1}
+          strokeDasharray={isCatalogDropTarget ? '6 3' : undefined}
           style={{ pointerEvents: 'all' }}
         />
 

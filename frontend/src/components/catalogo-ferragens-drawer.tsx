@@ -28,9 +28,23 @@ interface ItemFerragemCardProps {
 }
 
 export function ItemFerragemCard({ canonical, onSelect }: ItemFerragemCardProps) {
+  function handleDragStart(e: React.DragEvent<HTMLButtonElement>) {
+    e.dataTransfer.effectAllowed = 'copy'
+    e.dataTransfer.setData(
+      'application/vnd.vdx.canonical',
+      JSON.stringify({
+        canonical_id: canonical.canonical_id,
+        categoria: canonical.categoria,
+        nome_apresentacao: canonical.nome_apresentacao,
+      })
+    )
+  }
+
   return (
     <button
-      className="w-full text-left rounded-lg border border-gray-200 hover:border-[#1a5276] hover:bg-blue-50 p-3 transition-colors group"
+      draggable
+      onDragStart={handleDragStart}
+      className="w-full text-left rounded-lg border border-gray-200 hover:border-[#1a5276] hover:bg-blue-50 p-3 transition-colors group cursor-grab active:cursor-grabbing"
       onClick={() => onSelect?.(canonical)}
       data-canonical-id={canonical.canonical_id}
     >

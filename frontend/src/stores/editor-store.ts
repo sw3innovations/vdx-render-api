@@ -87,6 +87,7 @@ interface EditorActions {
   atualizarFerragem: (painelNome: string, idx: number, updates: Partial<FerragemPosicao>) => void
   adicionarPainel: (painel: Painel) => void
   removerPainel: (nome: string) => void
+  adicionarFerragemAoPainel: (painelNome: string, ferragem: FerragemPosicao) => void
 }
 
 const initialState: EditorState = {
@@ -159,6 +160,18 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           },
           painelSelecionadoNome:
             s.painelSelecionadoNome === nome ? null : s.painelSelecionadoNome,
+        })),
+
+      adicionarFerragemAoPainel: (painelNome, ferragem) =>
+        set((s) => ({
+          tipologia: {
+            ...s.tipologia,
+            paineis: s.tipologia.paineis.map((p) =>
+              p.nome === painelNome
+                ? { ...p, ferragens: [...p.ferragens, ferragem] }
+                : p
+            ),
+          },
         })),
     }),
     { limit: 50 }
