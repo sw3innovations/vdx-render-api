@@ -71,6 +71,52 @@ export async function listarFiltrosFerragem(tipo = 'puxador'): Promise<FiltrosFe
   return res.json() as Promise<FiltrosFerragem>
 }
 
+// ─── v2 Ferragens ────────────────────────────────────────────────────────────
+
+export interface CanonicalV2 {
+  canonical_id: string
+  linha: string | null
+  categoria: string | null
+  subcategoria: string | null
+  nome_apresentacao: string
+  confidence: string | null
+  fontes_pdf: string | null
+  obs: string | null
+}
+
+export interface FiltrosV2 {
+  total_canonicals: number
+  linhas: string[]
+  categorias: string[]
+}
+
+export interface CanonicalsV2Response {
+  total: number
+  canonicals: CanonicalV2[]
+}
+
+export async function listarCanonicalsV2(params?: {
+  linha?: string
+  categoria?: string
+  busca?: string
+}): Promise<CanonicalsV2Response> {
+  const qs = new URLSearchParams({ limit: '500' })
+  if (params?.linha) qs.set('linha', params.linha)
+  if (params?.categoria) qs.set('categoria', params.categoria)
+  if (params?.busca) qs.set('busca', params.busca)
+  const res = await fetch(`/api/v2/ferragens/?${qs}`)
+  if (!res.ok) throw new Error(`listarCanonicalsV2 falhou (${res.status})`)
+  return res.json() as Promise<CanonicalsV2Response>
+}
+
+export async function listarFiltrosV2(): Promise<FiltrosV2> {
+  const res = await fetch('/api/v2/ferragens/filtros')
+  if (!res.ok) throw new Error(`listarFiltrosV2 falhou (${res.status})`)
+  return res.json() as Promise<FiltrosV2>
+}
+
+// ─── Tipologias ───────────────────────────────────────────────────────────────
+
 export interface TipologiaCanonica {
   id: number
   codigo: string

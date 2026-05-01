@@ -8,6 +8,7 @@ import { useStore } from 'zustand'
 import { useEditorStore, DEFAULT_TIPOLOGIA } from '@/stores/editor-store'
 import type { TipologiaEditor, Painel } from '@/stores/editor-store'
 import ModalAdicionarPainel from '@/components/modal-adicionar-painel'
+import CatalogoFerragensDrawer from '@/components/catalogo-ferragens-drawer'
 
 const EditorCanvas = dynamic(() => import('@/components/editor-canvas'), { ssr: false })
 
@@ -31,6 +32,7 @@ function EditorPageInner() {
   const [saving, setSaving] = useState(false)
   const [savedUrl, setSavedUrl] = useState<string | null>(null)
   const [showModalPainel, setShowModalPainel] = useState(false)
+  const [showCatalogo, setShowCatalogo] = useState(false)
 
   const painelSelecionado = tipologia.paineis.find(
     (p) => p.nome === painelSelecionadoNome
@@ -116,6 +118,12 @@ function EditorPageInner() {
         />
       )}
 
+      {showCatalogo && (
+        <CatalogoFerragensDrawer
+          onClose={() => setShowCatalogo(false)}
+        />
+      )}
+
       {/* Header */}
       <header className="bg-[#1a5276] text-white shadow-lg shrink-0">
         <div className="max-w-full mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
@@ -168,6 +176,14 @@ function EditorPageInner() {
             >
               + Painel
             </button>
+
+            <button
+              onClick={() => setShowCatalogo(true)}
+              className="px-2.5 py-1 text-xs bg-white/15 hover:bg-white/25 text-white rounded transition-colors font-medium"
+              title="Catálogo de ferragens"
+            >
+              Ferragens
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -208,6 +224,7 @@ function EditorPageInner() {
           <button onClick={() => undo()} disabled={pastStates.length === 0} className="px-2 py-0.5 text-xs bg-white/10 rounded disabled:opacity-40">↩</button>
           <button onClick={() => redo()} disabled={futureStates.length === 0} className="px-2 py-0.5 text-xs bg-white/10 rounded disabled:opacity-40">↪</button>
           <button onClick={() => setShowModalPainel(true)} className="px-2 py-0.5 text-xs bg-white/15 text-white rounded font-medium">+ Painel</button>
+          <button onClick={() => setShowCatalogo(true)} className="px-2 py-0.5 text-xs bg-white/15 text-white rounded font-medium">Ferragens</button>
         </div>
       </header>
 
