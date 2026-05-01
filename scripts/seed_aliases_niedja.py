@@ -5,7 +5,7 @@ seed_aliases_niedja.py — popula aliases da vendedora Niedja no schema v2.
 Fonte: confronto_vendedora_catalogos.md (22 fotos analisadas em 2026-05-01).
 
 Popula:
-  - `aliases_canonicos`         → 11 truncamentos + 1 variant_id (126D) + 1 apelido (gv)
+  - `aliases_canonicos`         → 11 truncamentos + 3 variant_ids (126D, 128A, 128B) + 1 apelido (gv)
   - `canonicas`                 → 1 novo: 1101R (dobradiça reforçada, confidence=baixo)
   - `pendentes_validacao_humana`→ 2 pendentes: jumbo (não id.), 1101R (confirmar)
 
@@ -43,10 +43,14 @@ _ALIASES: list[tuple[str, str, str, str | None]] = [
     ("335",  "1335", "truncamento", None),
     ("510",  "1510", "truncamento", None),
     ("520",  "1520", "truncamento", None),
-    # 1 variant_id alias
+    # variant_id aliases
     ("126D", "1126", "variant_id",
      "126D é variante 1126D dentro do canonical 1126 (não um truncamento simples). "
      "Glasspeças 2017 lista explicitamente: '1126, 126D, 126C, 126DC e 1126QC' na mesma família."),
+    ("128A", "1128", "variant_id",
+     "Glasspeças 2017 lista 1128A e 128B como sub-variantes do 1128. "
+     "Foto vendedora: '128A 128B.jpeg'."),
+    ("128B", "1128", "variant_id", None),
     # 1 apelido comercial (gv → 1101R)
     ("gv",   "1101R", "apelido_comercial",
      "Foto gv.jpeg: dobradiça zamac/zamac reforçada, ~100-120mm, 3 castelinhos no topo, "
@@ -179,6 +183,12 @@ def run_seed(conn: sqlite3.Connection, dry_run: bool = True) -> AliasResult:
     else:
         for p in _PENDENTES:
             try:
+                exists = conn.execute(
+                    "SELECT 1 FROM pendentes_validacao_humana WHERE descricao=?",
+                    (p["descricao"],),
+                ).fetchone()
+                if exists:
+                    continue
                 conn.execute(
                     """INSERT INTO pendentes_validacao_humana
                        (descricao, contexto, fonte)

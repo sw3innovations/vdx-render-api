@@ -52,7 +52,7 @@ def test_dry_run_writes_nothing():
     assert conn.execute("SELECT COUNT(*) FROM canonicas").fetchone()[0] == 0
     assert conn.execute("SELECT COUNT(*) FROM aliases_canonicos").fetchone()[0] == 0
     assert result.canonical_inserted == 1   # 1101R
-    assert result.aliases_inserted == 13    # 11 truncamentos + 126D + gv
+    assert result.aliases_inserted == 15    # 11 truncamentos + 126D + 128A + 128B + gv
     assert result.pendentes_inserted == 2
 
 
@@ -73,7 +73,7 @@ def test_truncamentos_inseridos():
         assert rows[alias] == expected_cid
 
 
-# ─── 3. 126D como variant_id → 1126 ─────────────────────────────────────────
+# ─── 3. variant_id aliases (126D, 128A, 128B) ───────────────────────────────
 
 def test_126d_variant_alias():
     conn = _make_db(pre_canonicals=["1126"])
@@ -84,6 +84,18 @@ def test_126d_variant_alias():
     assert row is not None
     assert row["canonical_id"] == "1126"
     assert row["tipo"] == "variant_id"
+
+
+def test_128a_128b_variant_aliases():
+    conn = _make_db(pre_canonicals=["1128"])
+    run_seed(conn, dry_run=False)
+    for alias in ("128A", "128B"):
+        row = conn.execute(
+            "SELECT canonical_id, tipo FROM aliases_canonicos WHERE alias=?", (alias,)
+        ).fetchone()
+        assert row is not None, f"Alias '{alias}' não inserido"
+        assert row["canonical_id"] == "1128"
+        assert row["tipo"] == "variant_id"
 
 
 # ─── 4. gv → 1101R como apelido_comercial ───────────────────────────────────
@@ -146,20 +158,20 @@ def test_pendentes_jumbo_e_1101r():
 # ─── 8. idempotência ─────────────────────────────────────────────────────────
 
 def test_idempotent():
-    targets = [cid for _, cid in _TRUNCAMENTO_PAIRS] + ["1126"]
+    targets = [cid for _, cid in _TRUNCAMENTO_PAIRS] + ["1126", "1128"]
     conn = _make_db(pre_canonicals=targets)
     r1 = run_seed(conn, dry_run=False)
     r2 = run_seed(conn, dry_run=False)
     assert r2.canonical_inserted == 0
     assert r2.canonical_skipped == 1
     assert r2.aliases_inserted == 0
-    assert r2.aliases_skipped == 13
+    assert r2.aliases_skipped == 15
 
 
 # ─── 9. todos os aliases têm fonte='vendedora_niedja' ────────────────────────
 
 def test_aliases_fonte_niedja():
-    targets = [cid for _, cid in _TRUNCAMENTO_PAIRS] + ["1126"]
+    targets = [cid for _, cid in _TRUNCAMENTO_PAIRS] + ["1126", "1128"]
     conn = _make_db(pre_canonicals=targets)
     run_seed(conn, dry_run=False)
     n_other = conn.execute(
