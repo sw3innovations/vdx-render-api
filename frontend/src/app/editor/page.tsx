@@ -6,7 +6,8 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useStore } from 'zustand'
 import { useEditorStore, DEFAULT_TIPOLOGIA } from '@/stores/editor-store'
-import type { TipologiaEditor } from '@/stores/editor-store'
+import type { TipologiaEditor, Painel } from '@/stores/editor-store'
+import ModalAdicionarPainel from '@/components/modal-adicionar-painel'
 
 const EditorCanvas = dynamic(() => import('@/components/editor-canvas'), { ssr: false })
 
@@ -22,16 +23,29 @@ function EditorPageInner() {
   const setGridSize = useEditorStore((s) => s.setGridSize)
   const setPainelSelecionado = useEditorStore((s) => s.setPainelSelecionado)
   const atualizarPainel = useEditorStore((s) => s.atualizarPainel)
+  const adicionarPainel = useEditorStore((s) => s.adicionarPainel)
 
   const { undo, redo, pastStates, futureStates } = useStore(useEditorStore.temporal)
   const nomeRef = useRef<HTMLInputElement>(null)
   const [showProps, setShowProps] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedUrl, setSavedUrl] = useState<string | null>(null)
+  const [showModalPainel, setShowModalPainel] = useState(false)
 
   const painelSelecionado = tipologia.paineis.find(
     (p) => p.nome === painelSelecionadoNome
   ) ?? null
+
+  const proximaPosicaoX = tipologia.paineis.reduce(
+    (acc, p) => Math.max(acc, (p.posicao_x_mm ?? 0) + p.largura_mm + 20),
+    0
+  )
+
+  function handleAdicionarPainel(painel: Painel) {
+    adicionarPainel(painel)
+    setShowModalPainel(false)
+    setPainelSelecionado(painel.nome)
+  }
 
   useEffect(() => {
     const carregarChave = searchParams.get('carregar')
@@ -93,6 +107,15 @@ function EditorPageInner() {
 
   return (
     <div className="min-h-screen bg-[#F5F2EE] flex flex-col">
+      {showModalPainel && (
+        <ModalAdicionarPainel
+          nomesExistentes={tipologia.paineis.map((p) => p.nome)}
+          proximaPosicaoX={proximaPosicaoX}
+          onConfirmar={handleAdicionarPainel}
+          onCancelar={() => setShowModalPainel(false)}
+        />
+      )}
+
       {/* Header */}
       <header className="bg-[#1a5276] text-white shadow-lg shrink-0">
         <div className="max-w-full mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
@@ -137,6 +160,14 @@ function EditorPageInner() {
             >
               {futureStates.length > 0 ? `(${futureStates.length}) ` : ''}↪
             </button>
+
+            <button
+              onClick={() => setShowModalPainel(true)}
+              className="px-2.5 py-1 text-xs bg-white/15 hover:bg-white/25 text-white rounded transition-colors font-medium"
+              title="Adicionar painel"
+            >
+              + Painel
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -176,6 +207,7 @@ function EditorPageInner() {
           </div>
           <button onClick={() => undo()} disabled={pastStates.length === 0} className="px-2 py-0.5 text-xs bg-white/10 rounded disabled:opacity-40">↩</button>
           <button onClick={() => redo()} disabled={futureStates.length === 0} className="px-2 py-0.5 text-xs bg-white/10 rounded disabled:opacity-40">↪</button>
+          <button onClick={() => setShowModalPainel(true)} className="px-2 py-0.5 text-xs bg-white/15 text-white rounded font-medium">+ Painel</button>
         </div>
       </header>
 
