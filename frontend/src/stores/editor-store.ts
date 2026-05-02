@@ -6,9 +6,11 @@ import { temporal } from 'zundo'
 export interface FerragemPosicao {
   codigo: string
   fabricante_id?: string | null
+  variant_id?: string | null
   tipo: string
   x_mm: number
   y_mm: number
+  rotacao?: 0 | 90 | 180 | 270
 }
 
 export interface Abertura {
@@ -87,6 +89,9 @@ interface EditorActions {
   atualizarFerragem: (painelNome: string, idx: number, updates: Partial<FerragemPosicao>) => void
   adicionarPainel: (painel: Painel) => void
   removerPainel: (nome: string) => void
+  adicionarFerragemAoPainel: (painelNome: string, ferragem: FerragemPosicao) => void
+  removerFerragemDoPainel: (painelNome: string, idx: number) => void
+  duplicarPainel: (nome: string) => void
 }
 
 const initialState: EditorState = {
@@ -160,6 +165,53 @@ export const useEditorStore = create<EditorState & EditorActions>()(
           painelSelecionadoNome:
             s.painelSelecionadoNome === nome ? null : s.painelSelecionadoNome,
         })),
+
+      adicionarFerragemAoPainel: (painelNome, ferragem) =>
+        set((s) => ({
+          tipologia: {
+            ...s.tipologia,
+            paineis: s.tipologia.paineis.map((p) =>
+              p.nome === painelNome
+                ? { ...p, ferragens: [...p.ferragens, ferragem] }
+                : p
+            ),
+          },
+        })),
+
+      removerFerragemDoPainel: (painelNome, idx) =>
+        set((s) => ({
+          ferragemSelecionada: null,
+          tipologia: {
+            ...s.tipologia,
+            paineis: s.tipologia.paineis.map((p) =>
+              p.nome === painelNome
+                ? { ...p, ferragens: p.ferragens.filter((_, i) => i !== idx) }
+                : p
+            ),
+          },
+        })),
+
+      duplicarPainel: (nome) =>
+        set((s) => {
+          const original = s.tipologia.paineis.find((p) => p.nome === nome)
+          if (!original) return s
+          const base = nome.replace(/ \(\d+\)$/, '')
+          const existentes = s.tipologia.paineis.map((p) => p.nome)
+          let n = 1
+          let novoNome = `${base} (${n})`
+          while (existentes.includes(novoNome)) { n++; novoNome = `${base} (${n})` }
+          const copia: Painel = {
+            ...original,
+            nome: novoNome,
+            posicao_x_mm: (original.posicao_x_mm ?? 0) + original.largura_mm + 20,
+            posicao_y_mm: original.posicao_y_mm ?? 0,
+            ferragens: original.ferragens.map((f) => ({ ...f })),
+          }
+          return {
+            tipologia: { ...s.tipologia, paineis: [...s.tipologia.paineis, copia] },
+            painelSelecionadoNome: novoNome,
+          }
+        }),
     }),
     { limit: 50 }
   )

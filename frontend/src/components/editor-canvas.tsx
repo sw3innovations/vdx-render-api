@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useReducer, useEffect } from 'react'
 import {
   DndContext,
   PointerSensor,
@@ -19,6 +19,46 @@ import type { Painel, FerragemPosicao } from '@/stores/editor-store'
 const CANVAS_PADDING = 100
 const HANDLE_SIZE = 16
 type Corner = 'nw' | 'ne' | 'sw' | 'se'
+
+// ── Caches de canonical (module-level — persistem entre re-renders) ───────────
+
+interface CanonicalRecorte {
+  categoria: string | null
+  recorte_largura_mm: number | null
+  recorte_altura_mm: number | null
+}
+
+interface VarianteCanonica {
+  variant_id: string
+  canonical_id: string
+  fabricante_codigo: string
+  codigo_original: string | null
+  nome_comercial: string | null
+}
+
+const _recorteCache: Record<string, CanonicalRecorte | null> = {}
+const _fetchingSet = new Set<string>()
+
+const _variantCache: Record<string, VarianteCanonica[] | null> = {}
+const _variantFetchingSet = new Set<string>()
+
+// ── Cores por categoria ───────────────────────────────────────────────────────
+
+const CATEGORIA_COR: Record<string, { fill: string; stroke: string; fillDrag: string }> = {
+  dobradica:        { fill: '#3b82f6', stroke: '#1e40af', fillDrag: '#60a5fa' },
+  fechadura:        { fill: '#ef4444', stroke: '#991b1b', fillDrag: '#f87171' },
+  bico_papagaio:    { fill: '#ef4444', stroke: '#991b1b', fillDrag: '#f87171' },
+  suporte:          { fill: '#22c55e', stroke: '#166534', fillDrag: '#4ade80' },
+  trinco:           { fill: '#f97316', stroke: '#9a3412', fillDrag: '#fb923c' },
+  puxador:          { fill: '#a855f7', stroke: '#6b21a8', fillDrag: '#c084fc' },
+  contra_fechadura: { fill: '#f97316', stroke: '#9a3412', fillDrag: '#fb923c' },
+  batedor:          { fill: '#22c55e', stroke: '#166534', fillDrag: '#4ade80' },
+}
+const COR_DEFAULT = { fill: '#f59e0b', stroke: '#92400e', fillDrag: '#fbbf24' }
+
+function getCategoriaCor(categoria: string | null | undefined) {
+  return (categoria && CATEGORIA_COR[categoria]) || COR_DEFAULT
+}
 
 interface ResizingStart {
   painelNome: string
@@ -42,12 +82,38 @@ export default function EditorCanvas() {
   const painelSelecionadoNome = useEditorStore((s) => s.painelSelecionadoNome)
   const gridSize = useEditorStore((s) => s.gridSize)
   const setPainelSelecionado = useEditorStore((s) => s.setPainelSelecionado)
+  const ferragemSelecionada = useEditorStore((s) => s.ferragemSelecionada)
+  const setFerragemSelecionada = useEditorStore((s) => s.setFerragemSelecionada)
   const atualizarPainel = useEditorStore((s) => s.atualizarPainel)
   const atualizarFerragem = useEditorStore((s) => s.atualizarFerragem)
+  const adicionarFerragemAoPainel = useEditorStore((s) => s.adicionarFerragemAoPainel)
+  const removerPainel = useEditorStore((s) => s.removerPainel)
+  const removerFerragemDoPainel = useEditorStore((s) => s.removerFerragemDoPainel)
+  const duplicarPainel = useEditorStore((s) => s.duplicarPainel)
   const svgRef = useRef<SVGSVGElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null)
   const resizingStartRef = useRef<ResizingStart | null>(null)
+  const [catalogDropTarget, setCatalogDropTarget] = useState<string | null>(null)
+  const [, forceUpdate] = useReducer((v: number) => v + 1, 0)
+
+  useEffect(() => {
+    const codes = new Set(tipologia.paineis.flatMap((p) => p.ferragens.map((f) => f.codigo)))
+    codes.forEach((codigo) => {
+      if (codigo in _recorteCache || _fetchingSet.has(codigo)) return
+      _fetchingSet.add(codigo)
+      fetch(`/api/v2/ferragens/${encodeURIComponent(codigo)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          _recorteCache[codigo] = data
+            ? { categoria: data.categoria ?? null, recorte_largura_mm: data.recorte_largura_mm ?? null, recorte_altura_mm: data.recorte_altura_mm ?? null }
+            : null
+          forceUpdate()
+        })
+        .catch(() => { _recorteCache[codigo] = null })
+        .finally(() => _fetchingSet.delete(codigo))
+    })
+  }, [tipologia.paineis])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -77,6 +143,77 @@ export default function EditorCanvas() {
   }, [svgPixelWidth, canvasWidth])
 
   const snapVal = useCallback((v: number) => Math.round(v / gridSize) * gridSize, [gridSize])
+
+  const clientToMm = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!svgRef.current) return null
+      const rect = svgRef.current.getBoundingClientRect()
+      const scaleX = canvasWidth / rect.width
+      const scaleY = canvasHeight / rect.height
+      return {
+        mmX: (clientX - rect.left) * scaleX - CANVAS_PADDING,
+        mmY: (clientY - rect.top) * scaleY - CANVAS_PADDING,
+      }
+    },
+    [canvasWidth, canvasHeight]
+  )
+
+  const findPainelAt = useCallback(
+    (mmX: number, mmY: number) =>
+      tipologia.paineis.find((p) => {
+        const px = p.posicao_x_mm ?? 0
+        const py = p.posicao_y_mm ?? 0
+        return mmX >= px && mmX <= px + p.largura_mm && mmY >= py && mmY <= py + p.altura_mm
+      }) ?? null,
+    [tipologia.paineis]
+  )
+
+  const handleCatalogDragOver = useCallback(
+    (e: React.DragEvent<SVGSVGElement>) => {
+      if (!e.dataTransfer.types.includes('application/vnd.vdx.canonical')) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+      const pos = clientToMm(e.clientX, e.clientY)
+      if (!pos) return
+      const painel = findPainelAt(pos.mmX, pos.mmY)
+      setCatalogDropTarget(painel?.nome ?? null)
+    },
+    [clientToMm, findPainelAt]
+  )
+
+  const handleCatalogDragLeave = useCallback((e: React.DragEvent<SVGSVGElement>) => {
+    if ((e.currentTarget as Element).contains(e.relatedTarget as Node)) return
+    setCatalogDropTarget(null)
+  }, [])
+
+  const handleCatalogDrop = useCallback(
+    (e: React.DragEvent<SVGSVGElement>) => {
+      e.preventDefault()
+      setCatalogDropTarget(null)
+      const raw = e.dataTransfer.getData('application/vnd.vdx.canonical')
+      if (!raw) return
+      let canonical: { canonical_id: string; categoria: string | null; nome_apresentacao: string }
+      try { canonical = JSON.parse(raw) } catch { return }
+      if (!canonical.canonical_id) return
+
+      const pos = clientToMm(e.clientX, e.clientY)
+      if (!pos) return
+      const painel = findPainelAt(pos.mmX, pos.mmY)
+      if (!painel) return
+
+      const localX = pos.mmX - (painel.posicao_x_mm ?? 0)
+      const localY = pos.mmY - (painel.posicao_y_mm ?? 0)
+      adicionarFerragemAoPainel(painel.nome, {
+        codigo: canonical.canonical_id,
+        fabricante_id: null,
+        tipo: canonical.categoria ?? canonical.nome_apresentacao,
+        x_mm: Math.max(0, Math.min(painel.largura_mm, snapVal(localX))),
+        y_mm: Math.max(0, Math.min(painel.altura_mm, snapVal(localY))),
+      })
+      setPainelSelecionado(painel.nome)
+    },
+    [clientToMm, findPainelAt, snapVal, adicionarFerragemAoPainel, setPainelSelecionado]
+  )
 
   const handleDragStart = useCallback(
     (e: DragStartEvent) => {
@@ -213,6 +350,56 @@ export default function EditorCanvas() {
     ? draggingId.slice('ferragem-'.length).split('-').slice(0, -1).join('-')
     : null
 
+  const svgScale = svgPixelWidth / canvasWidth
+
+  const painelToolbar = (() => {
+    if (!painelSelecionadoNome || draggingId === `painel-${painelSelecionadoNome}`) return null
+    const painel = tipologia.paineis.find((p) => p.nome === painelSelecionadoNome)
+    if (!painel) return null
+    const px = CANVAS_PADDING + (painel.posicao_x_mm ?? 0)
+    const py = CANVAS_PADDING + (painel.posicao_y_mm ?? 0)
+    return (
+      <PainelContextToolbar
+        painel={painel}
+        svgX={px}
+        svgY={py}
+        canvasWidth={canvasWidth}
+        svgScale={svgScale}
+        onSetClassificacao={(c) => atualizarPainel(painel.nome, { classificacao: c })}
+        onDuplicar={() => duplicarPainel(painel.nome)}
+        onRemover={() => removerPainel(painel.nome)}
+        canRemover={tipologia.paineis.length > 1}
+        onSetDimensoes={(w, h) => atualizarPainel(painel.nome, { largura_mm: w, altura_mm: h })}
+      />
+    )
+  })()
+
+  const ferragemToolbar = (() => {
+    if (!ferragemSelecionada) return null
+    const painel = tipologia.paineis.find((p) => p.nome === ferragemSelecionada.painelNome)
+    if (!painel) return null
+    const ferragem = painel.ferragens[ferragemSelecionada.idx]
+    if (!ferragem) return null
+    if (draggingId === `ferragem-${ferragemSelecionada.painelNome}-${ferragemSelecionada.idx}`) return null
+    const px = CANVAS_PADDING + (painel.posicao_x_mm ?? 0)
+    const py = CANVAS_PADDING + (painel.posicao_y_mm ?? 0)
+    return (
+      <FerragemContextToolbar
+        ferragem={ferragem}
+        cx={px + ferragem.x_mm}
+        cy={py + ferragem.y_mm}
+        canvasWidth={canvasWidth}
+        svgScale={svgScale}
+        onRemover={() => removerFerragemDoPainel(ferragemSelecionada.painelNome, ferragemSelecionada.idx)}
+        onSetVariant={(v) => atualizarFerragem(ferragemSelecionada.painelNome, ferragemSelecionada.idx, {
+          variant_id: v?.variant_id ?? null,
+          fabricante_id: v?.fabricante_codigo ?? null,
+        })}
+        onSetRotacao={(r) => atualizarFerragem(ferragemSelecionada.painelNome, ferragemSelecionada.idx, { rotacao: r })}
+      />
+    )
+  })()
+
   return (
     <div className="flex-1 flex flex-col bg-gray-100 rounded-lg border border-gray-300 min-h-0 overflow-hidden">
       {hasOverlap && (
@@ -236,6 +423,9 @@ export default function EditorCanvas() {
               onClick={(e) => {
                 if ((e.target as Element).tagName === 'svg') setPainelSelecionado(null)
               }}
+              onDragOver={handleCatalogDragOver}
+              onDragLeave={handleCatalogDragLeave}
+              onDrop={handleCatalogDrop}
             >
               <defs>
                 <pattern id="editor-grid" width={gridSize} height={gridSize} patternUnits="userSpaceOnUse" x={CANVAS_PADDING} y={CANVAS_PADDING}>
@@ -267,6 +457,14 @@ export default function EditorCanvas() {
                     isPainelDragging={draggingId === `painel-${painel.nome}`}
                     isResizing={draggingId?.startsWith(`resize-${painel.nome}`) ?? false}
                     isFerragemDragParent={draggingFerragemPainelNome === painel.nome}
+                    isCatalogDropTarget={catalogDropTarget === painel.nome}
+                    recorteCache={_recorteCache}
+                    ferragemSelecionadaIdx={
+                      ferragemSelecionada?.painelNome === painel.nome
+                        ? ferragemSelecionada.idx
+                        : null
+                    }
+                    onSelectFerragem={(idx) => setFerragemSelecionada({ painelNome: painel.nome, idx })}
                     offsetX={CANVAS_PADDING}
                     offsetY={CANVAS_PADDING}
                     svgScale={svgPixelWidth / canvasWidth}
@@ -274,6 +472,9 @@ export default function EditorCanvas() {
                   />
                 )
               })}
+
+              {painelToolbar}
+              {ferragemToolbar}
             </svg>
           </DndContext>
         </div>
@@ -288,13 +489,17 @@ interface DraggablePainelProps {
   isPainelDragging: boolean
   isResizing: boolean
   isFerragemDragParent: boolean
+  isCatalogDropTarget: boolean
+  recorteCache: Record<string, CanonicalRecorte | null>
+  ferragemSelecionadaIdx: number | null
+  onSelectFerragem: (idx: number) => void
   offsetX: number
   offsetY: number
   svgScale: number
   onSelect: () => void
 }
 
-function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFerragemDragParent, offsetX, offsetY, svgScale, onSelect }: DraggablePainelProps) {
+function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFerragemDragParent, isCatalogDropTarget, recorteCache, ferragemSelecionadaIdx, onSelectFerragem, offsetX, offsetY, svgScale, onSelect }: DraggablePainelProps) {
   const { setNodeRef, listeners, attributes, transform } = useDraggable({
     id: `painel-${painel.nome}`,
     disabled: isResizing,
@@ -324,9 +529,19 @@ function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFer
         <rect
           x={x} y={y}
           width={painel.largura_mm} height={painel.altura_mm}
-          fill={selected || isResizing ? '#dbeafe' : isPainelDragging || isFerragemDragParent ? '#eff6ff' : '#e8f4fd'}
-          stroke={selected || isResizing ? '#3b82f6' : isPainelDragging ? '#60a5fa' : isFerragemDragParent ? '#93c5fd' : '#1a5276'}
-          strokeWidth={selected || isPainelDragging || isResizing || isFerragemDragParent ? 2 : 1}
+          fill={
+            isCatalogDropTarget ? '#dcfce7' :
+            selected || isResizing ? '#dbeafe' :
+            isPainelDragging || isFerragemDragParent ? '#eff6ff' : '#e8f4fd'
+          }
+          stroke={
+            isCatalogDropTarget ? '#16a34a' :
+            selected || isResizing ? '#3b82f6' :
+            isPainelDragging ? '#60a5fa' :
+            isFerragemDragParent ? '#93c5fd' : '#1a5276'
+          }
+          strokeWidth={isCatalogDropTarget || selected || isPainelDragging || isResizing || isFerragemDragParent ? 2 : 1}
+          strokeDasharray={isCatalogDropTarget ? '6 3' : undefined}
           style={{ pointerEvents: 'all' }}
         />
 
@@ -342,7 +557,18 @@ function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFer
         </text>
 
         {painel.ferragens.map((f, i) => (
-          <DraggableFerragem key={i} ferragem={f} idx={i} painelNome={painel.nome} painelX={x} painelY={y} svgScale={svgScale} />
+          <DraggableFerragem
+            key={i}
+            ferragem={f}
+            idx={i}
+            painelNome={painel.nome}
+            painelX={x}
+            painelY={y}
+            svgScale={svgScale}
+            recorte={recorteCache[f.codigo] ?? null}
+            isSelected={ferragemSelecionadaIdx === i}
+            onSelect={() => onSelectFerragem(i)}
+          />
         ))}
 
         {selected && !isPainelDragging && (
@@ -398,9 +624,362 @@ interface DraggableFerragemProps {
   painelX: number
   painelY: number
   svgScale: number
+  recorte: CanonicalRecorte | null
+  isSelected: boolean
+  onSelect: () => void
 }
 
-function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgScale }: DraggableFerragemProps) {
+// ── PainelContextToolbar ──────────────────────────────────────────────────────
+
+interface PainelContextToolbarProps {
+  painel: Painel
+  svgX: number
+  svgY: number
+  canvasWidth: number
+  svgScale: number
+  onSetClassificacao: (c: Painel['classificacao']) => void
+  onDuplicar: () => void
+  onRemover: () => void
+  canRemover: boolean
+  onSetDimensoes: (w: number, h: number) => void
+}
+
+const CLASSIFICACAO_LABELS: Array<{ value: Painel['classificacao']; label: string }> = [
+  { value: 'movel',    label: 'Móvel'  },
+  { value: 'fixo',     label: 'Fixo'   },
+  { value: 'correr',   label: 'Correr' },
+  { value: 'bandeira', label: 'Band.'  },
+]
+
+// Row-1 layout constants (mm, match SVG coordinate system)
+const TB_ROW1_H = 22
+const TB_PILL_W = 38
+const TB_PILL_H = 14
+const TB_PILL_Y = (TB_ROW1_H - TB_PILL_H) / 2
+const TB_PILLS_X = [6, 47, 88, 129]
+const TB_DUP_X = 173
+const TB_DUP_W = 48
+const TB_CLOSE_X = 224
+const TB_CLOSE_W = 14
+const TB_W = 244
+
+// Input pixel dimensions (CSS px, scale-compensated via foreignObject)
+const IN_W_PX = 54
+const IN_H_PX = 22
+
+function PainelContextToolbar({
+  painel, svgX, svgY, canvasWidth, svgScale,
+  onSetClassificacao, onDuplicar, onRemover, canRemover, onSetDimensoes,
+}: PainelContextToolbarProps) {
+  const gridSize = useEditorStore((s) => s.gridSize)
+  const [wVal, setWVal] = useState(String(painel.largura_mm))
+  const [hVal, setHVal] = useState(String(painel.altura_mm))
+  const wTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => { setWVal(String(painel.largura_mm)) }, [painel.largura_mm])
+  useEffect(() => { setHVal(String(painel.altura_mm)) }, [painel.altura_mm])
+
+  const wNum = parseFloat(wVal)
+  const hNum = parseFloat(hVal)
+  const wInvalid = isNaN(wNum) || wNum < 100 || wNum > 5000
+  const hInvalid = isNaN(hNum) || hNum < 100 || hNum > 5000
+
+  function fireW(v: string) {
+    const n = parseFloat(v)
+    if (!isNaN(n) && n >= 100 && n <= 5000) onSetDimensoes(n, painel.altura_mm)
+  }
+  function fireH(v: string) {
+    const n = parseFloat(v)
+    if (!isNaN(n) && n >= 100 && n <= 5000) onSetDimensoes(painel.largura_mm, n)
+  }
+
+  function snapW() {
+    if (wTimer.current) { clearTimeout(wTimer.current); wTimer.current = null }
+    const n = parseFloat(wVal)
+    const clamped = isNaN(n) ? painel.largura_mm : Math.max(100, Math.min(5000, n))
+    const snapped = Math.round(clamped / gridSize) * gridSize
+    onSetDimensoes(snapped, painel.altura_mm)
+    setWVal(String(snapped))
+  }
+  function snapH() {
+    if (hTimer.current) { clearTimeout(hTimer.current); hTimer.current = null }
+    const n = parseFloat(hVal)
+    const clamped = isNaN(n) ? painel.altura_mm : Math.max(100, Math.min(5000, n))
+    const snapped = Math.round(clamped / gridSize) * gridSize
+    onSetDimensoes(painel.largura_mm, snapped)
+    setHVal(String(snapped))
+  }
+
+  // SVG unit dimensions for the foreignObject (converts px → mm via svgScale)
+  const inSvgW = IN_W_PX / svgScale
+  const inSvgH = IN_H_PX / svgScale
+  const row2H = inSvgH + 6
+  const tbTotalH = TB_ROW1_H + 2 + row2H + 2
+
+  const tbX = Math.max(4, Math.min(canvasWidth - TB_W - 4, svgX + painel.largura_mm / 2 - TB_W / 2))
+  const tbY = svgY - tbTotalH - 12
+
+  // Row 2 vertical positions
+  const r2Top = TB_ROW1_H + 2
+  const inFoY = tbY + r2Top + (row2H - inSvgH) / 2
+  const labelCY = inFoY + inSvgH / 2
+
+  // Row 2 horizontal positions (6mm left pad)
+  const wLabelX = tbX + 6
+  const wFoX = tbX + 6 + 12
+  const mmW1X = wFoX + inSvgW + 1
+  const hLabelX = mmW1X + 11
+  const hFoX = hLabelX + 12
+  const mmW2X = hFoX + inSvgW + 1
+
+  return (
+    <g style={{ pointerEvents: 'all' }}>
+      {/* Background — spans both rows */}
+      <rect x={tbX} y={tbY} width={TB_W} height={tbTotalH}
+        fill="white" stroke="#d1d5db" strokeWidth="0.6" rx="4"
+        style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.18))' }}
+      />
+      {/* Row 1: classification pills + Duplicar + × */}
+      {CLASSIFICACAO_LABELS.map(({ value, label }, i) => {
+        const isActive = painel.classificacao === value
+        const px = TB_PILLS_X[i]
+        return (
+          <g key={value} onClick={(e) => { e.stopPropagation(); onSetClassificacao(value) }} style={{ cursor: 'pointer' }}>
+            <rect x={tbX + px} y={tbY + TB_PILL_Y} width={TB_PILL_W} height={TB_PILL_H}
+              fill={isActive ? '#1a5276' : '#e5e7eb'} rx="3"
+            />
+            <text x={tbX + px + TB_PILL_W / 2} y={tbY + TB_PILL_Y + 9.5}
+              textAnchor="middle" fontSize="6.5" fill={isActive ? 'white' : '#374151'}
+              style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {label}
+            </text>
+          </g>
+        )
+      })}
+      <g onClick={(e) => { e.stopPropagation(); onDuplicar() }} style={{ cursor: 'pointer' }}>
+        <rect x={tbX + TB_DUP_X} y={tbY + TB_PILL_Y} width={TB_DUP_W} height={TB_PILL_H}
+          fill="#f3f4f6" stroke="#d1d5db" strokeWidth="0.5" rx="3"
+        />
+        <text x={tbX + TB_DUP_X + TB_DUP_W / 2} y={tbY + TB_PILL_Y + 9.5}
+          textAnchor="middle" fontSize="6.5" fill="#374151"
+          style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          Duplicar
+        </text>
+      </g>
+      {canRemover && (
+        <g onClick={(e) => { e.stopPropagation(); onRemover() }} style={{ cursor: 'pointer' }}>
+          <rect x={tbX + TB_CLOSE_X} y={tbY + TB_PILL_Y} width={TB_CLOSE_W} height={TB_PILL_H}
+            fill="#fee2e2" stroke="#fca5a5" strokeWidth="0.5" rx="3"
+          />
+          <text x={tbX + TB_CLOSE_X + TB_CLOSE_W / 2} y={tbY + TB_PILL_Y + 9.5}
+            textAnchor="middle" fontSize="9" fill="#ef4444"
+            style={{ pointerEvents: 'none', userSelect: 'none' }}>
+            ×
+          </text>
+        </g>
+      )}
+      {/* Row 1 / Row 2 separator */}
+      <line x1={tbX + 4} y1={tbY + TB_ROW1_H + 1} x2={tbX + TB_W - 4} y2={tbY + TB_ROW1_H + 1}
+        stroke="#e5e7eb" strokeWidth="0.5" />
+      {/* Row 2: W × H inline inputs */}
+      <text x={wLabelX} y={labelCY + 2.5} fontSize="6.5" fill="#6b7280"
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>W:</text>
+      <foreignObject x={wFoX} y={inFoY} width={inSvgW} height={inSvgH}>
+        <input
+          type="number"
+          value={wVal}
+          onChange={(e) => {
+            setWVal(e.target.value)
+            if (wTimer.current) clearTimeout(wTimer.current)
+            wTimer.current = setTimeout(() => fireW(e.target.value), 300)
+          }}
+          onBlur={snapW}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: IN_W_PX, height: IN_H_PX, fontSize: 11,
+            padding: '0 3px', boxSizing: 'border-box' as const,
+            border: `1px solid ${wInvalid ? '#ef4444' : '#d1d5db'}`, borderRadius: 3,
+            outline: 'none', background: wInvalid ? '#fef2f2' : 'white',
+          }}
+        />
+      </foreignObject>
+      <text x={mmW1X} y={labelCY + 2.5} fontSize="6" fill="#9ca3af"
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>mm</text>
+
+      <text x={hLabelX} y={labelCY + 2.5} fontSize="6.5" fill="#6b7280"
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>H:</text>
+      <foreignObject x={hFoX} y={inFoY} width={inSvgW} height={inSvgH}>
+        <input
+          type="number"
+          value={hVal}
+          onChange={(e) => {
+            setHVal(e.target.value)
+            if (hTimer.current) clearTimeout(hTimer.current)
+            hTimer.current = setTimeout(() => fireH(e.target.value), 300)
+          }}
+          onBlur={snapH}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: IN_W_PX, height: IN_H_PX, fontSize: 11,
+            padding: '0 3px', boxSizing: 'border-box' as const,
+            border: `1px solid ${hInvalid ? '#ef4444' : '#d1d5db'}`, borderRadius: 3,
+            outline: 'none', background: hInvalid ? '#fef2f2' : 'white',
+          }}
+        />
+      </foreignObject>
+      <text x={mmW2X} y={labelCY + 2.5} fontSize="6" fill="#9ca3af"
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>mm</text>
+    </g>
+  )
+}
+
+// ── FerragemContextToolbar ────────────────────────────────────────────────────
+
+interface FerragemContextToolbarProps {
+  ferragem: FerragemPosicao
+  cx: number
+  cy: number
+  canvasWidth: number
+  svgScale: number
+  onRemover: () => void
+  onSetVariant: (v: { variant_id: string; fabricante_codigo: string } | null) => void
+  onSetRotacao: (r: 0 | 90 | 180 | 270) => void
+}
+
+const ROT_LABELS: Array<{ r: 0 | 90 | 180 | 270; label: string }> = [
+  { r: 0,   label: '0°'   },
+  { r: 90,  label: '90°'  },
+  { r: 180, label: '180°' },
+  { r: 270, label: '270°' },
+]
+const FTB_W = 192
+
+function FerragemContextToolbar({ ferragem, cx, cy, canvasWidth, svgScale, onRemover, onSetVariant, onSetRotacao }: FerragemContextToolbarProps) {
+  const [, forceUpdate] = useReducer((v: number) => v + 1, 0)
+
+  useEffect(() => {
+    const cid = ferragem.codigo
+    if (cid in _variantCache || _variantFetchingSet.has(cid)) return
+    _variantFetchingSet.add(cid)
+    fetch(`/api/v2/ferragens/${encodeURIComponent(cid)}/variantes`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        _variantCache[cid] = data?.variantes ?? null
+        forceUpdate()
+      })
+      .catch(() => { _variantCache[cid] = null })
+      .finally(() => _variantFetchingSet.delete(cid))
+  }, [ferragem.codigo])
+
+  const variants = _variantCache[ferragem.codigo]
+  const isLoadingVariants = _variantFetchingSet.has(ferragem.codigo)
+  const variantError = !isLoadingVariants && ferragem.codigo in _variantCache && variants === null
+
+  const selW_px = 148
+  const selH_px = IN_H_PX
+  const selSvgW = selW_px / svgScale
+  const selSvgH = selH_px / svgScale
+  const row2H = selSvgH + 6
+  const row3H = 16
+  const tbTotalH = 16 + 2 + row2H + 2 + row3H + 2
+
+  const tbX = Math.max(4, Math.min(canvasWidth - FTB_W - 4, cx - FTB_W / 2))
+  const tbY = cy - tbTotalH - 20
+
+  const r2Top = 18
+  const selFoY = tbY + r2Top + (row2H - selSvgH) / 2
+  const selLabelCY = selFoY + selSvgH / 2
+  const r3Top = r2Top + row2H + 2
+  const rotBtnW = (FTB_W - 12 - 3 * 3) / 4   // 4 buttons with 3mm gaps, 6mm each side
+
+  const currentRot = ferragem.rotacao ?? 0
+
+  return (
+    <g style={{ pointerEvents: 'all' }}>
+      {/* Background */}
+      <rect x={tbX} y={tbY} width={FTB_W} height={tbTotalH}
+        fill="white" stroke="#93c5fd" strokeWidth="0.8" rx="3"
+        style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.15))' }}
+      />
+      {/* Row 1: codigo·tipo + × */}
+      <text x={tbX + 6} y={tbY + 11} fontSize="6.5" fill="#374151"
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>
+        {ferragem.codigo}{ferragem.tipo ? ` · ${ferragem.tipo}` : ''}
+      </text>
+      <g onClick={(e) => { e.stopPropagation(); onRemover() }} style={{ cursor: 'pointer' }}>
+        <rect x={tbX + FTB_W - 18} y={tbY + 1} width={16} height={14}
+          fill="#fee2e2" stroke="#fca5a5" strokeWidth="0.5" rx="2"
+        />
+        <text x={tbX + FTB_W - 10} y={tbY + 11}
+          textAnchor="middle" fontSize="9" fill="#ef4444"
+          style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          ×
+        </text>
+      </g>
+      {/* Row 1 / Row 2 separator */}
+      <line x1={tbX + 4} y1={tbY + 17} x2={tbX + FTB_W - 4} y2={tbY + 17}
+        stroke="#e5e7eb" strokeWidth="0.5" />
+      {/* Row 2: Fabricante select */}
+      <text x={tbX + 6} y={selLabelCY + 2.5} fontSize="6" fill="#6b7280"
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>Fab.:</text>
+      <foreignObject x={tbX + 26} y={selFoY} width={selSvgW} height={selSvgH}>
+        <select
+          value={ferragem.variant_id ?? ''}
+          onChange={(e) => {
+            const vid = e.target.value
+            const found = variants?.find((v) => v.variant_id === vid)
+            onSetVariant(found ? { variant_id: found.variant_id, fabricante_codigo: found.fabricante_codigo } : null)
+          }}
+          onClick={(e) => e.stopPropagation()}
+          disabled={isLoadingVariants || variantError || !variants || variants.length <= 1}
+          style={{
+            width: selW_px, height: selH_px, fontSize: 10,
+            padding: '0 3px', boxSizing: 'border-box' as const,
+            border: `1px solid ${variantError ? '#fca5a5' : '#d1d5db'}`, borderRadius: 3,
+            outline: 'none', background: 'white',
+          }}
+        >
+          {isLoadingVariants && <option value="">Carregando...</option>}
+          {variantError && <option value="">⚠ Erro ao carregar</option>}
+          {!isLoadingVariants && !variantError && variants && variants.length === 0 && (
+            <option value="">Sem variantes</option>
+          )}
+          {!isLoadingVariants && !variantError && variants && variants.length > 0 && (
+            <option value="">— variante —</option>
+          )}
+          {variants?.map((v) => (
+            <option key={v.variant_id} value={v.variant_id}>
+              {v.fabricante_codigo}{v.codigo_original ? ` — ${v.codigo_original}` : ''}
+            </option>
+          ))}
+        </select>
+      </foreignObject>
+      {/* Row 2 / Row 3 separator */}
+      <line x1={tbX + 4} y1={tbY + r3Top - 1} x2={tbX + FTB_W - 4} y2={tbY + r3Top - 1}
+        stroke="#e5e7eb" strokeWidth="0.5" />
+      {/* Row 3: rotation buttons */}
+      {ROT_LABELS.map(({ r, label }, i) => {
+        const bx = tbX + 6 + i * (rotBtnW + 3)
+        const isActive = currentRot === r
+        return (
+          <g key={r} onClick={(e) => { e.stopPropagation(); onSetRotacao(r) }} style={{ cursor: 'pointer' }}>
+            <rect x={bx} y={tbY + r3Top} width={rotBtnW} height={12}
+              fill={isActive ? '#1a5276' : '#e5e7eb'} rx="2"
+            />
+            <text x={bx + rotBtnW / 2} y={tbY + r3Top + 8.5}
+              textAnchor="middle" fontSize="6" fill={isActive ? 'white' : '#374151'}
+              style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {label}
+            </text>
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
+function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgScale, recorte, isSelected, onSelect }: DraggableFerragemProps) {
   const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
     id: `ferragem-${painelNome}-${idx}`,
   })
@@ -410,17 +989,81 @@ function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgSca
   const cx = painelX + ferragem.x_mm + dragOffsetX
   const cy = painelY + ferragem.y_mm + dragOffsetY
 
+  const cor = getCategoriaCor(recorte?.categoria)
+  const fill = isDragging ? cor.fillDrag : cor.fill
+  const labelY = cy  // computed per branch below
+
+  const sharedG = {
+    ref: (el: SVGGElement | null) => setNodeRef(el as unknown as HTMLElement),
+    ...listeners,
+    ...attributes,
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); onSelect() },
+    style: { cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' as const },
+  }
+
+  const hasRecorte = recorte && recorte.recorte_largura_mm != null && recorte.recorte_altura_mm != null
+
+  if (hasRecorte) {
+    const w = recorte.recorte_largura_mm!
+    const h = recorte.recorte_altura_mm!
+    const rx = cx - w / 2
+    const ry = cy - h / 2
+    const rot = ferragem.rotacao ?? 0
+    const rotateTr = rot !== 0 ? `rotate(${rot} ${cx} ${cy})` : undefined
+    return (
+      <g {...sharedG}>
+        {isSelected && (
+          <rect x={rx - 3} y={ry - 3} width={w + 6} height={h + 6}
+            fill="none" stroke="white" strokeWidth="2.5" rx="2"
+            transform={rotateTr} style={{ pointerEvents: 'none' }} />
+        )}
+        {isSelected && (
+          <rect x={rx - 3} y={ry - 3} width={w + 6} height={h + 6}
+            fill="none" stroke={cor.stroke} strokeWidth="1.5" strokeDasharray="4 2" rx="2"
+            transform={rotateTr} style={{ pointerEvents: 'none' }} />
+        )}
+        <rect x={rx} y={ry} width={w} height={h}
+          fill={fill} stroke={cor.stroke} strokeWidth={isDragging ? 2 : 1} rx="1"
+          transform={rotateTr}
+          opacity={isDragging ? 0.85 : 1}
+          style={{ pointerEvents: 'all' }}
+        />
+        <text x={cx} y={ry - 2} textAnchor="middle" fontSize="5" fill={cor.stroke}
+          style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          {ferragem.codigo}
+        </text>
+        {isDragging && (
+          <text x={cx} y={ry + h + 8} textAnchor="middle" fontSize="6" fill={cor.stroke}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}>
+            {Math.round(ferragem.x_mm + dragOffsetX)},{Math.round(ferragem.y_mm + dragOffsetY)}
+          </text>
+        )}
+      </g>
+    )
+  }
+
+  // Fallback: círculo com label (recorte null ou ainda não carregado)
   return (
-    <g
-      ref={(el) => setNodeRef(el as unknown as HTMLElement)}
-      {...listeners}
-      {...attributes}
-      onClick={(e) => e.stopPropagation()}
-      style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
-    >
-      <circle cx={cx} cy={cy} r={6} fill={isDragging ? '#fbbf24' : '#f59e0b'} stroke={isDragging ? '#78350f' : '#92400e'} strokeWidth="1.5" />
+    <g {...sharedG}>
+      {isSelected && (
+        <circle cx={cx} cy={cy} r={11}
+          fill="none" stroke="white" strokeWidth="2.5"
+          style={{ pointerEvents: 'none' }} />
+      )}
+      {isSelected && (
+        <circle cx={cx} cy={cy} r={11}
+          fill="none" stroke={cor.stroke} strokeWidth="1.5" strokeDasharray="4 2"
+          style={{ pointerEvents: 'none' }} />
+      )}
+      <circle cx={cx} cy={cy} r={6} fill={fill} stroke={cor.stroke} strokeWidth="1.5"
+        style={{ pointerEvents: 'all' }} />
+      <text x={cx} y={cy - 9} textAnchor="middle" fontSize="5" fill={cor.stroke}
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>
+        {ferragem.codigo}
+      </text>
       {isDragging && (
-        <text x={cx} y={cy - 10} textAnchor="middle" fontSize="7" fill="#78350f" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="6" fill={cor.stroke}
+          style={{ pointerEvents: 'none', userSelect: 'none' }}>
           {Math.round(ferragem.x_mm + dragOffsetX)},{Math.round(ferragem.y_mm + dragOffsetY)}
         </text>
       )}
