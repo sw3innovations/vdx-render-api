@@ -25,6 +25,10 @@ function EditorPageInner() {
   const setPainelSelecionado = useEditorStore((s) => s.setPainelSelecionado)
   const atualizarPainel = useEditorStore((s) => s.atualizarPainel)
   const adicionarPainel = useEditorStore((s) => s.adicionarPainel)
+  const removerPainel = useEditorStore((s) => s.removerPainel)
+  const ferragemSelecionada = useEditorStore((s) => s.ferragemSelecionada)
+  const setFerragemSelecionada = useEditorStore((s) => s.setFerragemSelecionada)
+  const removerFerragemDoPainel = useEditorStore((s) => s.removerFerragemDoPainel)
 
   const { undo, redo, pastStates, futureStates } = useStore(useEditorStore.temporal)
   const nomeRef = useRef<HTMLInputElement>(null)
@@ -37,6 +41,12 @@ function EditorPageInner() {
   const painelSelecionado = tipologia.paineis.find(
     (p) => p.nome === painelSelecionadoNome
   ) ?? null
+
+  const ferragemSelecionadaDados = ferragemSelecionada
+    ? (tipologia.paineis
+        .find((p) => p.nome === ferragemSelecionada.painelNome)
+        ?.ferragens[ferragemSelecionada.idx] ?? null)
+    : null
 
   const proximaPosicaoX = tipologia.paineis.reduce(
     (acc, p) => Math.max(acc, (p.posicao_x_mm ?? 0) + p.largura_mm + 20),
@@ -94,14 +104,29 @@ function EditorPageInner() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      const inInput = tag === 'INPUT' || tag === 'TEXTAREA'
+
       const mod = e.ctrlKey || e.metaKey
-      if (!mod) return
-      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
-      if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redo() }
+      if (mod) {
+        if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
+        if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redo() }
+        return
+      }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !inInput) {
+        e.preventDefault()
+        if (ferragemSelecionada) {
+          removerFerragemDoPainel(ferragemSelecionada.painelNome, ferragemSelecionada.idx)
+        } else if (painelSelecionadoNome && tipologia.paineis.length > 1) {
+          removerPainel(painelSelecionadoNome)
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [undo, redo])
+  }, [undo, redo, ferragemSelecionada, painelSelecionadoNome, tipologia.paineis.length,
+      removerFerragemDoPainel, removerPainel])
 
   useEffect(() => {
     if (painelSelecionado) setShowProps(true)
@@ -257,6 +282,35 @@ function EditorPageInner() {
 
           {painelSelecionado ? (
             <div className="p-4 flex flex-col gap-4">
+              {/* Ferragem selecionada — destaque no topo */}
+              {ferragemSelecionadaDados && ferragemSelecionada?.painelNome === painelSelecionado.nome && (
+                <div className="rounded-lg border-2 border-blue-400 bg-blue-50 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs text-blue-600 uppercase tracking-wide mb-0.5">Ferragem selecionada</p>
+                      <p className="font-semibold text-gray-800 text-sm">{ferragemSelecionadaDados.codigo}</p>
+                      <p className="text-xs text-gray-500">{ferragemSelecionadaDados.tipo}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        x: {ferragemSelecionadaDados.x_mm}mm · y: {ferragemSelecionadaDados.y_mm}mm
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => removerFerragemDoPainel(ferragemSelecionada.painelNome, ferragemSelecionada.idx)}
+                      className="shrink-0 px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors font-medium"
+                      title="Remover ferragem (Delete)"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setFerragemSelecionada(null)}
+                    className="mt-2 text-xs text-blue-500 hover:text-blue-700 underline"
+                  >
+                    Desselecionar
+                  </button>
+                </div>
+              )}
+
               <div>
                 <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Painel</p>
                 <p className="font-semibold text-gray-800">{painelSelecionado.nome}</p>
@@ -276,21 +330,53 @@ function EditorPageInner() {
 
               {painelSelecionado.ferragens.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Ferragens ({painelSelecionado.ferragens.length})</p>
+                  <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">
+                    Ferragens ({painelSelecionado.ferragens.length})
+                  </p>
                   <div className="flex flex-col gap-1">
-                    {painelSelecionado.ferragens.map((f, i) => (
-                      <div key={i} className="text-xs bg-gray-50 rounded p-2">
-                        <span className="font-medium">{f.tipo}</span>
-                        <span className="text-gray-500 ml-2">x:{f.x_mm}mm y:{f.y_mm}mm</span>
-                      </div>
-                    ))}
+                    {painelSelecionado.ferragens.map((f, i) => {
+                      const isSel = ferragemSelecionada?.painelNome === painelSelecionado.nome
+                        && ferragemSelecionada.idx === i
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => setFerragemSelecionada({ painelNome: painelSelecionado.nome, idx: i })}
+                          className={`flex items-center justify-between text-xs rounded p-2 cursor-pointer transition-colors ${
+                            isSel ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div>
+                            <span className="font-medium">{f.codigo}</span>
+                            <span className="text-gray-500 ml-2">{f.x_mm}×{f.y_mm}mm</span>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); removerFerragemDoPainel(painelSelecionado.nome, i) }}
+                            className="ml-2 text-gray-400 hover:text-red-500 transition-colors leading-none"
+                            title="Remover"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
 
-              <button onClick={() => setPainelSelecionado(null)} className="text-xs text-gray-500 hover:text-gray-700 underline self-start">
-                Desselecionar
-              </button>
+              <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                <button onClick={() => setPainelSelecionado(null)} className="text-xs text-gray-500 hover:text-gray-700 underline">
+                  Desselecionar
+                </button>
+                {tipologia.paineis.length > 1 && (
+                  <button
+                    onClick={() => removerPainel(painelSelecionado.nome)}
+                    className="text-xs text-red-500 hover:text-red-700 underline"
+                    title="Remover painel (Delete)"
+                  >
+                    Remover painel
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="p-4 text-sm text-gray-500">

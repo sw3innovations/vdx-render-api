@@ -71,6 +71,8 @@ export default function EditorCanvas() {
   const painelSelecionadoNome = useEditorStore((s) => s.painelSelecionadoNome)
   const gridSize = useEditorStore((s) => s.gridSize)
   const setPainelSelecionado = useEditorStore((s) => s.setPainelSelecionado)
+  const ferragemSelecionada = useEditorStore((s) => s.ferragemSelecionada)
+  const setFerragemSelecionada = useEditorStore((s) => s.setFerragemSelecionada)
   const atualizarPainel = useEditorStore((s) => s.atualizarPainel)
   const atualizarFerragem = useEditorStore((s) => s.atualizarFerragem)
   const adicionarFerragemAoPainel = useEditorStore((s) => s.adicionarFerragemAoPainel)
@@ -393,6 +395,12 @@ export default function EditorCanvas() {
                     isFerragemDragParent={draggingFerragemPainelNome === painel.nome}
                     isCatalogDropTarget={catalogDropTarget === painel.nome}
                     recorteCache={_recorteCache}
+                    ferragemSelecionadaIdx={
+                      ferragemSelecionada?.painelNome === painel.nome
+                        ? ferragemSelecionada.idx
+                        : null
+                    }
+                    onSelectFerragem={(idx) => setFerragemSelecionada({ painelNome: painel.nome, idx })}
                     offsetX={CANVAS_PADDING}
                     offsetY={CANVAS_PADDING}
                     svgScale={svgPixelWidth / canvasWidth}
@@ -416,13 +424,15 @@ interface DraggablePainelProps {
   isFerragemDragParent: boolean
   isCatalogDropTarget: boolean
   recorteCache: Record<string, CanonicalRecorte | null>
+  ferragemSelecionadaIdx: number | null
+  onSelectFerragem: (idx: number) => void
   offsetX: number
   offsetY: number
   svgScale: number
   onSelect: () => void
 }
 
-function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFerragemDragParent, isCatalogDropTarget, recorteCache, offsetX, offsetY, svgScale, onSelect }: DraggablePainelProps) {
+function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFerragemDragParent, isCatalogDropTarget, recorteCache, ferragemSelecionadaIdx, onSelectFerragem, offsetX, offsetY, svgScale, onSelect }: DraggablePainelProps) {
   const { setNodeRef, listeners, attributes, transform } = useDraggable({
     id: `painel-${painel.nome}`,
     disabled: isResizing,
@@ -489,6 +499,8 @@ function DraggablePainel({ painel, selected, isPainelDragging, isResizing, isFer
             painelY={y}
             svgScale={svgScale}
             recorte={recorteCache[f.codigo] ?? null}
+            isSelected={ferragemSelecionadaIdx === i}
+            onSelect={() => onSelectFerragem(i)}
           />
         ))}
 
@@ -546,9 +558,11 @@ interface DraggableFerragemProps {
   painelY: number
   svgScale: number
   recorte: CanonicalRecorte | null
+  isSelected: boolean
+  onSelect: () => void
 }
 
-function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgScale, recorte }: DraggableFerragemProps) {
+function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgScale, recorte, isSelected, onSelect }: DraggableFerragemProps) {
   const { setNodeRef, listeners, attributes, transform, isDragging } = useDraggable({
     id: `ferragem-${painelNome}-${idx}`,
   })
@@ -566,7 +580,7 @@ function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgSca
     ref: (el: SVGGElement | null) => setNodeRef(el as unknown as HTMLElement),
     ...listeners,
     ...attributes,
-    onClick: (e: React.MouseEvent) => e.stopPropagation(),
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); onSelect() },
     style: { cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' as const },
   }
 
@@ -579,6 +593,16 @@ function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgSca
     const ry = cy - h / 2
     return (
       <g {...sharedG}>
+        {isSelected && (
+          <rect x={rx - 3} y={ry - 3} width={w + 6} height={h + 6}
+            fill="none" stroke="white" strokeWidth="2.5" rx="2"
+            style={{ pointerEvents: 'none' }} />
+        )}
+        {isSelected && (
+          <rect x={rx - 3} y={ry - 3} width={w + 6} height={h + 6}
+            fill="none" stroke={cor.stroke} strokeWidth="1.5" strokeDasharray="4 2" rx="2"
+            style={{ pointerEvents: 'none' }} />
+        )}
         <rect x={rx} y={ry} width={w} height={h}
           fill={fill} stroke={cor.stroke} strokeWidth={isDragging ? 2 : 1} rx="1"
           opacity={isDragging ? 0.85 : 1}
@@ -601,6 +625,16 @@ function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgSca
   // Fallback: círculo com label (recorte null ou ainda não carregado)
   return (
     <g {...sharedG}>
+      {isSelected && (
+        <circle cx={cx} cy={cy} r={11}
+          fill="none" stroke="white" strokeWidth="2.5"
+          style={{ pointerEvents: 'none' }} />
+      )}
+      {isSelected && (
+        <circle cx={cx} cy={cy} r={11}
+          fill="none" stroke={cor.stroke} strokeWidth="1.5" strokeDasharray="4 2"
+          style={{ pointerEvents: 'none' }} />
+      )}
       <circle cx={cx} cy={cy} r={6} fill={fill} stroke={cor.stroke} strokeWidth="1.5"
         style={{ pointerEvents: 'all' }} />
       <text x={cx} y={cy - 9} textAnchor="middle" fontSize="5" fill={cor.stroke}
