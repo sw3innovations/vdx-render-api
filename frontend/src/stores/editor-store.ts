@@ -6,9 +6,11 @@ import { temporal } from 'zundo'
 export interface FerragemPosicao {
   codigo: string
   fabricante_id?: string | null
+  variant_id?: string | null
   tipo: string
   x_mm: number
   y_mm: number
+  rotacao?: 0 | 90 | 180 | 270
 }
 
 export interface Abertura {
