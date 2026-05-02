@@ -76,6 +76,9 @@ export default function EditorCanvas() {
   const atualizarPainel = useEditorStore((s) => s.atualizarPainel)
   const atualizarFerragem = useEditorStore((s) => s.atualizarFerragem)
   const adicionarFerragemAoPainel = useEditorStore((s) => s.adicionarFerragemAoPainel)
+  const removerPainel = useEditorStore((s) => s.removerPainel)
+  const removerFerragemDoPainel = useEditorStore((s) => s.removerFerragemDoPainel)
+  const duplicarPainel = useEditorStore((s) => s.duplicarPainel)
   const svgRef = useRef<SVGSVGElement>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [resizePreview, setResizePreview] = useState<ResizePreview | null>(null)
@@ -336,6 +339,46 @@ export default function EditorCanvas() {
     ? draggingId.slice('ferragem-'.length).split('-').slice(0, -1).join('-')
     : null
 
+  const painelToolbar = (() => {
+    if (!painelSelecionadoNome || draggingId === `painel-${painelSelecionadoNome}`) return null
+    const painel = tipologia.paineis.find((p) => p.nome === painelSelecionadoNome)
+    if (!painel) return null
+    const px = CANVAS_PADDING + (painel.posicao_x_mm ?? 0)
+    const py = CANVAS_PADDING + (painel.posicao_y_mm ?? 0)
+    return (
+      <PainelContextToolbar
+        painel={painel}
+        svgX={px}
+        svgY={py}
+        canvasWidth={canvasWidth}
+        onSetClassificacao={(c) => atualizarPainel(painel.nome, { classificacao: c })}
+        onDuplicar={() => duplicarPainel(painel.nome)}
+        onRemover={() => removerPainel(painel.nome)}
+        canRemover={tipologia.paineis.length > 1}
+      />
+    )
+  })()
+
+  const ferragemToolbar = (() => {
+    if (!ferragemSelecionada) return null
+    const painel = tipologia.paineis.find((p) => p.nome === ferragemSelecionada.painelNome)
+    if (!painel) return null
+    const ferragem = painel.ferragens[ferragemSelecionada.idx]
+    if (!ferragem) return null
+    if (draggingId === `ferragem-${ferragemSelecionada.painelNome}-${ferragemSelecionada.idx}`) return null
+    const px = CANVAS_PADDING + (painel.posicao_x_mm ?? 0)
+    const py = CANVAS_PADDING + (painel.posicao_y_mm ?? 0)
+    return (
+      <FerragemContextToolbar
+        ferragem={ferragem}
+        cx={px + ferragem.x_mm}
+        cy={py + ferragem.y_mm}
+        canvasWidth={canvasWidth}
+        onRemover={() => removerFerragemDoPainel(ferragemSelecionada.painelNome, ferragemSelecionada.idx)}
+      />
+    )
+  })()
+
   return (
     <div className="flex-1 flex flex-col bg-gray-100 rounded-lg border border-gray-300 min-h-0 overflow-hidden">
       {hasOverlap && (
@@ -408,6 +451,9 @@ export default function EditorCanvas() {
                   />
                 )
               })}
+
+              {painelToolbar}
+              {ferragemToolbar}
             </svg>
           </DndContext>
         </div>
@@ -560,6 +606,131 @@ interface DraggableFerragemProps {
   recorte: CanonicalRecorte | null
   isSelected: boolean
   onSelect: () => void
+}
+
+// ── PainelContextToolbar ──────────────────────────────────────────────────────
+
+interface PainelContextToolbarProps {
+  painel: Painel
+  svgX: number
+  svgY: number
+  canvasWidth: number
+  onSetClassificacao: (c: Painel['classificacao']) => void
+  onDuplicar: () => void
+  onRemover: () => void
+  canRemover: boolean
+}
+
+const CLASSIFICACAO_LABELS: Array<{ value: Painel['classificacao']; label: string }> = [
+  { value: 'movel',    label: 'Móvel'  },
+  { value: 'fixo',     label: 'Fixo'   },
+  { value: 'correr',   label: 'Correr' },
+  { value: 'bandeira', label: 'Band.'  },
+]
+
+// Layout constants (mm units match SVG coordinate system)
+const TB_H = 22
+const TB_PILL_W = 38
+const TB_PILL_H = 14
+const TB_PILL_Y = (TB_H - TB_PILL_H) / 2
+const TB_PILLS_X = [6, 47, 88, 129]   // x offsets for 4 classification pills
+const TB_DUP_X = 173
+const TB_DUP_W = 48
+const TB_CLOSE_X = 224
+const TB_CLOSE_W = 14
+const TB_W = 244                       // 6L + 4*38 + 3*3 + 6sp + 48 + 3 + 14 + 6R
+
+function PainelContextToolbar({ painel, svgX, svgY, canvasWidth, onSetClassificacao, onDuplicar, onRemover, canRemover }: PainelContextToolbarProps) {
+  const tbX = Math.max(4, Math.min(canvasWidth - TB_W - 4, svgX + painel.largura_mm / 2 - TB_W / 2))
+  const tbY = svgY - TB_H - 12
+
+  return (
+    <g style={{ pointerEvents: 'all' }}>
+      <rect x={tbX} y={tbY} width={TB_W} height={TB_H}
+        fill="white" stroke="#d1d5db" strokeWidth="0.6" rx="4"
+        style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.18))' }}
+      />
+      {CLASSIFICACAO_LABELS.map(({ value, label }, i) => {
+        const isActive = painel.classificacao === value
+        const px = TB_PILLS_X[i]
+        return (
+          <g key={value} onClick={(e) => { e.stopPropagation(); onSetClassificacao(value) }} style={{ cursor: 'pointer' }}>
+            <rect x={tbX + px} y={tbY + TB_PILL_Y} width={TB_PILL_W} height={TB_PILL_H}
+              fill={isActive ? '#1a5276' : '#e5e7eb'} rx="3"
+            />
+            <text x={tbX + px + TB_PILL_W / 2} y={tbY + TB_PILL_Y + 9.5}
+              textAnchor="middle" fontSize="6.5" fill={isActive ? 'white' : '#374151'}
+              style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {label}
+            </text>
+          </g>
+        )
+      })}
+      <g onClick={(e) => { e.stopPropagation(); onDuplicar() }} style={{ cursor: 'pointer' }}>
+        <rect x={tbX + TB_DUP_X} y={tbY + TB_PILL_Y} width={TB_DUP_W} height={TB_PILL_H}
+          fill="#f3f4f6" stroke="#d1d5db" strokeWidth="0.5" rx="3"
+        />
+        <text x={tbX + TB_DUP_X + TB_DUP_W / 2} y={tbY + TB_PILL_Y + 9.5}
+          textAnchor="middle" fontSize="6.5" fill="#374151"
+          style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          Duplicar
+        </text>
+      </g>
+      {canRemover && (
+        <g onClick={(e) => { e.stopPropagation(); onRemover() }} style={{ cursor: 'pointer' }}>
+          <rect x={tbX + TB_CLOSE_X} y={tbY + TB_PILL_Y} width={TB_CLOSE_W} height={TB_PILL_H}
+            fill="#fee2e2" stroke="#fca5a5" strokeWidth="0.5" rx="3"
+          />
+          <text x={tbX + TB_CLOSE_X + TB_CLOSE_W / 2} y={tbY + TB_PILL_Y + 9.5}
+            textAnchor="middle" fontSize="9" fill="#ef4444"
+            style={{ pointerEvents: 'none', userSelect: 'none' }}>
+            ×
+          </text>
+        </g>
+      )}
+    </g>
+  )
+}
+
+// ── FerragemContextToolbar ────────────────────────────────────────────────────
+
+interface FerragemContextToolbarProps {
+  ferragem: FerragemPosicao
+  cx: number
+  cy: number
+  canvasWidth: number
+  onRemover: () => void
+}
+
+function FerragemContextToolbar({ ferragem, cx, cy, canvasWidth, onRemover }: FerragemContextToolbarProps) {
+  const tbW = 130
+  const tbH = 16
+  const tbX = Math.max(4, Math.min(canvasWidth - tbW - 4, cx - tbW / 2))
+  const tbY = cy - tbH - 20
+
+  return (
+    <g style={{ pointerEvents: 'all' }}>
+      <rect x={tbX} y={tbY} width={tbW} height={tbH}
+        fill="white" stroke="#93c5fd" strokeWidth="0.8" rx="3"
+        style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.15))' }}
+      />
+      <text x={tbX + 6} y={tbY + 11} fontSize="6.5" fill="#374151"
+        style={{ pointerEvents: 'none', userSelect: 'none' }}>
+        {ferragem.codigo}
+        {ferragem.tipo ? ` · ${ferragem.tipo}` : ''}
+      </text>
+      <g onClick={(e) => { e.stopPropagation(); onRemover() }} style={{ cursor: 'pointer' }}>
+        <rect x={tbX + tbW - 18} y={tbY + 1} width={16} height={tbH - 2}
+          fill="#fee2e2" stroke="#fca5a5" strokeWidth="0.5" rx="2"
+        />
+        <text x={tbX + tbW - 10} y={tbY + 11}
+          textAnchor="middle" fontSize="9" fill="#ef4444"
+          style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          ×
+        </text>
+      </g>
+    </g>
+  )
 }
 
 function DraggableFerragem({ ferragem, idx, painelNome, painelX, painelY, svgScale, recorte, isSelected, onSelect }: DraggableFerragemProps) {

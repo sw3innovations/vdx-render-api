@@ -89,6 +89,7 @@ interface EditorActions {
   removerPainel: (nome: string) => void
   adicionarFerragemAoPainel: (painelNome: string, ferragem: FerragemPosicao) => void
   removerFerragemDoPainel: (painelNome: string, idx: number) => void
+  duplicarPainel: (nome: string) => void
 }
 
 const initialState: EditorState = {
@@ -187,6 +188,28 @@ export const useEditorStore = create<EditorState & EditorActions>()(
             ),
           },
         })),
+
+      duplicarPainel: (nome) =>
+        set((s) => {
+          const original = s.tipologia.paineis.find((p) => p.nome === nome)
+          if (!original) return s
+          const base = nome.replace(/ \(\d+\)$/, '')
+          const existentes = s.tipologia.paineis.map((p) => p.nome)
+          let n = 1
+          let novoNome = `${base} (${n})`
+          while (existentes.includes(novoNome)) { n++; novoNome = `${base} (${n})` }
+          const copia: Painel = {
+            ...original,
+            nome: novoNome,
+            posicao_x_mm: (original.posicao_x_mm ?? 0) + original.largura_mm + 20,
+            posicao_y_mm: original.posicao_y_mm ?? 0,
+            ferragens: original.ferragens.map((f) => ({ ...f })),
+          }
+          return {
+            tipologia: { ...s.tipologia, paineis: [...s.tipologia.paineis, copia] },
+            painelSelecionadoNome: novoNome,
+          }
+        }),
     }),
     { limit: 50 }
   )
