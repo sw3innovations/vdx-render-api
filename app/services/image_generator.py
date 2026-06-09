@@ -5,7 +5,7 @@ import logging
 import subprocess
 from pathlib import Path
 from typing import Optional
-from anthropic import Anthropic, APIError
+from app.services._llm_compat import get_compat_client as Anthropic, APIError
 from app.core import constitution
 from app.config import settings
 

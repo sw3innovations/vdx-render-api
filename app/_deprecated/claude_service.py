@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from typing import Optional
-from anthropic import Anthropic, APIError
+from app.services._llm_compat import get_compat_client as Anthropic, APIError
 from app._deprecated.catalogo import FERRAGEM_DEFAULTS, aplicar_defaults_ferragem  # TODO Sprint 2: remover dependência legada
 
 log = logging.getLogger(__name__)

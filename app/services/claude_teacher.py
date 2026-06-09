@@ -28,7 +28,7 @@ def _get_client():
     if not settings.anthropic_api_key:
         return None
     try:
-        from anthropic import Anthropic
+        from app.services._llm_compat import get_compat_client as Anthropic
         return Anthropic(api_key=settings.anthropic_api_key)
     except ImportError:
         log.warning("anthropic package não instalado")
