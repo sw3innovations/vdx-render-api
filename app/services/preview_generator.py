@@ -4,7 +4,7 @@ import json
 import os
 import re
 import logging
-from anthropic import Anthropic, APIError
+from app.services._llm_compat import get_compat_client as Anthropic, APIError
 from app.core import constitution
 
 log = logging.getLogger(__name__)

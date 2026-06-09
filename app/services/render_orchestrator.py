@@ -34,16 +34,6 @@ def _inferir_layout(request: RenderRequest) -> str:
     if request.layout.value != "auto":
         return request.layout.value
 
-    if request.tipologia_nome:
-        # Importação local para não criar dependência circular
-        try:
-            from app._deprecated.catalogo import resolver_layout_por_nome
-            encontrado = resolver_layout_por_nome(request.tipologia_nome)
-            if encontrado:
-                return encontrado
-        except Exception:
-            pass
-
     nomes = " ".join(p.nome.lower() for p in request.pecas)
     if "canto" in nomes or "l " in nomes:
         return "canto_l"
@@ -121,17 +111,10 @@ async def executar(request: RenderRequest, modo_svg: str = "tecnico") -> RenderR
                     except Exception as e:
                         log.debug(f"Enriquecimento catálogo para '{f.codigo}' falhou: {e}")
         else:
-            # Fallback: módulos legados
-            from app._deprecated.posicionamento_service import posicionar_ferragens as _pos_legacy
-            from app._deprecated.classificador import classificar_peca as _cls_legacy
-            ferragens = _pos_legacy(
-                peca_nome=peca.nome,
-                largura_mm=peca.largura_mm,
-                altura_mm=peca.altura_mm,
-                tipologia_nome=tip_nome,
-                puxador=puxador_dict,
-            )
-            classificacao = _cls_legacy(peca.nome, tip_nome)
+            # Tipologia desconhecida sem inferência — render sem ferragens (legado removido)
+            log.warning("render_orchestrator: tipologia '%s' sem dados — render sem ferragens", peca.nome)
+            ferragens = []
+            classificacao = "fixo" 
 
         pecas_renderizadas.append(PecaRenderizada(
             nome=peca.nome,

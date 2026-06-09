@@ -151,8 +151,8 @@ class VisionService:
 
         if settings.anthropic_api_key:
             try:
-                import anthropic  # type: ignore
-                self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+                from app.services._llm_compat import get_compat_client as _AnthropicCompat
+                self._client = _AnthropicCompat(api_key=settings.anthropic_api_key)
                 self._claude_ok = True
             except Exception as e:
                 log.warning("VisionService: falha ao instanciar cliente Anthropic: %s", e)

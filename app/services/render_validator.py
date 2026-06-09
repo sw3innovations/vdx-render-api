@@ -166,7 +166,7 @@ def _get_client():
         return None
     key = settings.anthropic_api_key
     try:
-        from anthropic import Anthropic
+        from app.services._llm_compat import get_compat_client as Anthropic
         return Anthropic(api_key=key)
     except ImportError:
         return None

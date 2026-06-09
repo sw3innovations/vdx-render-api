@@ -20,7 +20,7 @@ from app import __version__
 from app.config import settings
 from app.core.limiter import limiter
 from app.models.error import ErrorResponse, status_to_code
-from app.routers import render, chat, feedback, preview, tipologia_image, tipologia_sync, export, viewer_3d, proposal, smart_vision, catalogo, import_tipologia, dump_query, catalogo_query, canonical, editor, ferragens_v2
+from app.routers import render, chat, feedback, preview, tipologia_image, tipologia_sync, export, viewer_3d, proposal, smart_vision, catalogo, import_tipologia, dump_query, catalogo_query, canonical, editor, ferragens_v2, aprendizado_v2
 from app.core.constitution import init_db
 from app.core.constitution_seed import seed as _constitution_seed
 
@@ -158,6 +158,7 @@ app.include_router(catalogo_query.router)
 app.include_router(canonical.router)
 app.include_router(editor.router)
 app.include_router(ferragens_v2.router)
+app.include_router(aprendizado_v2.router)
 
 
 # ─── Middlewares ──────────────────────────────────────────────────────────────
